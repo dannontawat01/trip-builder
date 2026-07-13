@@ -421,8 +421,13 @@ function TripBuilderApp() {
 
     // Check initial user session & load plans
     const checkSession = async () => {
+      // Debug: log Supabase connection status
+      console.log('[TripBuilder] Supabase client:', supabase ? 'CONNECTED ✅' : 'NOT CONFIGURED ❌ (using Mock Mode)');
+      console.log('[TripBuilder] SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL || '(empty)');
+
       if (!supabase) {
         // Fallback to local mock session if no Supabase configured
+        console.warn('[TripBuilder] Running in LOCAL MOCK MODE - data will not sync across browsers!');
         try {
           const storedUser = localStorage.getItem('tb_mock_user');
           if (storedUser) {
@@ -439,14 +444,17 @@ function TripBuilderApp() {
       }
       
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) console.error('[TripBuilder] getSession error:', sessionError);
+        console.log('[TripBuilder] Session:', session ? `user=${session.user.email}` : 'no session');
         if (session?.user) {
           setUser(session.user);
           loadCloudPlans(session.user.id);
         } else {
           loadGuestPlan();
         }
-      } catch (_) {
+      } catch (err) {
+        console.error('[TripBuilder] checkSession failed:', err);
         loadGuestPlan();
       }
     };
@@ -543,6 +551,7 @@ function TripBuilderApp() {
 
   const loadCloudPlans = async (userId) => {
     if (!supabase) return;
+    console.log('[TripBuilder] loadCloudPlans for userId:', userId);
     try {
       const { data, error } = await supabase
         .from('itineraries')
@@ -550,7 +559,11 @@ function TripBuilderApp() {
         .eq('user_id', userId)
         .order('updated_at', { ascending: false });
         
-      if (error) throw error;
+      if (error) {
+        console.error('[TripBuilder] loadCloudPlans error:', error);
+        throw error;
+      }
+      console.log('[TripBuilder] Loaded', data?.length, 'cloud plans');
       
       const plans = data.map(item => ({
         id: item.id,
