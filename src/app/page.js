@@ -309,7 +309,7 @@ function TripBuilderApp() {
     // 1. Update landmarks list
     setLandmarks(prev => prev.map(l => l.id === editedPlace.id ? editedPlace : l));
     
-    // 2. Save to customPlaces in state and localStorage
+    // 2. Save to customPlaces in state and localStorage (fallback)
     const updatedCustom = { ...customPlaces };
     const cityId = editedPlace.city_id || activeCity;
     if (!updatedCustom[cityId]) updatedCustom[cityId] = [];
@@ -318,6 +318,23 @@ function TripBuilderApp() {
     updatedCustom[cityId].push(editedPlace);
     setCustomPlaces(updatedCustom);
     localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: updatedCustom }));
+
+    // 3. Sync edit to Supabase if connected and this is a custom place
+    if (supabase && editedPlace._custom) {
+      supabase.from('landmarks').update({
+        name: editedPlace.name,
+        cat: editedPlace.cat,
+        icon: editedPlace.icon,
+        description: editedPlace.desc,
+        address: editedPlace.addr,
+        lat: editedPlace.lat,
+        lng: editedPlace.lng,
+        duration_min: editedPlace.dur,
+        fee: editedPlace.fee,
+        transport: editedPlace.transport,
+        cover_image: editedPlace.cover_image || null,
+      }).eq('id', String(editedPlace.id)).then(() => {});
+    }
 
     // 3. Update itin state to reflect changes instantly on the days grid!
     const updatedItin = { ...itin };
@@ -933,7 +950,7 @@ function TripBuilderApp() {
   useEffect(() => {
     let activeCityLandmarks = MOCK_LANDMARKS[activeCity] || [];
     
-    // Mix in custom places created by user for this city
+    // Mix in custom places created by user for this city (local fallback)
     const customList = customPlaces[activeCity] || [];
     
     // Filter out mock landmarks that have been overridden/edited
@@ -947,34 +964,51 @@ function TripBuilderApp() {
       if (!supabase) return;
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        // 1. Load public approved landmarks
+        const { data: publicData, error: publicError } = await supabase
           .from('landmarks')
           .select('*')
           .eq('city_id', activeCity)
           .eq('status', 'approved');
 
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          const supaList = data.map(item => ({
-            id: item.id,
-            name: item.name,
-            cat: item.cat || 'อื่นๆ',
-            dur: item.duration_min || 90,
-            icon: item.icon || '📍',
-            desc: item.description || '',
-            addr: item.address || '',
-            lat: item.lat ? parseFloat(item.lat) : null,
-            lng: item.lng ? parseFloat(item.lng) : null,
-            fee: item.fee || '',
-            transport: item.transport || [],
-            cover_image: item.cover_image || null,
-            names: item.names || {},
-            descriptions: item.descriptions || {},
-            city_id: item.city_id
-          }));
-          
-          setLandmarks([...supaList, ...customList]);
+        if (publicError) throw publicError;
+
+        // 2. Load this user's custom places (if logged in)
+        let userCustomData = [];
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: uData } = await supabase
+            .from('landmarks')
+            .select('*')
+            .eq('city_id', activeCity)
+            .eq('status', 'user_custom')
+            .eq('user_id', session.user.id);
+          userCustomData = uData || [];
+        }
+
+        const allData = [...(publicData || []), ...userCustomData];
+
+        const mapItem = item => ({
+          id: item.id,
+          name: item.name,
+          cat: item.cat || 'อื่นๆ',
+          dur: item.duration_min || 90,
+          icon: item.icon || '📍',
+          desc: item.description || '',
+          addr: item.address || '',
+          lat: item.lat ? parseFloat(item.lat) : null,
+          lng: item.lng ? parseFloat(item.lng) : null,
+          fee: item.fee || '',
+          transport: item.transport || [],
+          cover_image: item.cover_image || null,
+          names: item.names || {},
+          descriptions: item.descriptions || {},
+          city_id: item.city_id,
+          _custom: item.status === 'user_custom'
+        });
+
+        if (allData.length > 0) {
+          setLandmarks(allData.map(mapItem));
         }
       } catch (err) {
         console.warn('Failed to load from Supabase:', err.message);
@@ -984,7 +1018,7 @@ function TripBuilderApp() {
     };
     
     fetchLandmarks();
-  }, [activeCity, customPlaces]);
+  }, [activeCity, customPlaces, user]);
 
   // Save itinerary to LocalStorage or Cloud
   const saveItinData = async (newItin, newNDays) => {
@@ -1330,8 +1364,9 @@ function TripBuilderApp() {
       return;
     }
 
+    const localId = Date.now();
     const localPlace = {
-      id: Date.now(),
+      id: localId,
       name: fName,
       cat: fCat,
       dur: parseInt(fDur) || 90,
@@ -1346,7 +1381,33 @@ function TripBuilderApp() {
       _custom: true
     };
 
-    // Save to local custom places state
+    // Save to Supabase first (if connected + logged in) to get a stable id
+    if (supabase && user) {
+      try {
+        const { data: sbData, error: sbErr } = await supabase.from('landmarks').insert([{
+          id: String(localId),
+          user_id: user.id,
+          name: localPlace.name,
+          cat: localPlace.cat,
+          icon: localPlace.icon,
+          city_id: localPlace.city_id,
+          address: localPlace.addr,
+          lat: localPlace.lat,
+          lng: localPlace.lng,
+          description: localPlace.desc,
+          duration_min: localPlace.dur,
+          fee: localPlace.fee,
+          transport: localPlace.transport,
+          status: 'user_custom'
+        }]).select();
+        if (sbErr) throw sbErr;
+        if (sbData?.[0]) localPlace.id = sbData[0].id; // use Supabase id
+      } catch (err) {
+        console.warn('Failed to save custom place to Supabase:', err.message);
+      }
+    }
+
+    // Also keep in local state as fallback
     const updatedCustom = { ...customPlaces };
     if (!updatedCustom[fCity]) updatedCustom[fCity] = [];
     updatedCustom[fCity].push(localPlace);
@@ -1369,26 +1430,6 @@ function TripBuilderApp() {
     setAddModalOpen(false);
 
     toast(`✅ เพิ่ม "${fName}" แล้ว`);
-
-    // Propose to Supabase if connected
-    if (supabase) {
-      try {
-        await supabase.from('landmarks').insert([{
-          name: localPlace.name,
-          cat: localPlace.cat,
-          icon: localPlace.icon,
-          city_id: localPlace.city_id,
-          address: localPlace.addr,
-          lat: localPlace.lat,
-          lng: localPlace.lng,
-          description: localPlace.desc,
-          duration_min: localPlace.dur,
-          fee: localPlace.fee,
-          transport: localPlace.transport,
-          status: 'pending' // pending admin approval
-        }]);
-      } catch (_) {}
-    }
   };
 
   // ─── AI PLAN & SUGGEST ──────────────────────────────────────────────
@@ -1415,10 +1456,11 @@ function TripBuilderApp() {
     }
   };
 
-  const addAIPlace = (p) => {
+  const addAIPlace = async (p) => {
     const targetCity = p.city || activeCity;
+    const localId = Date.now() + Math.floor(Math.random() * 1000);
     const aiPlace = {
-      id: Date.now() + Math.floor(Math.random() * 1000),
+      id: localId,
       name: p.name,
       cat: p.cat || 'อื่นๆ',
       dur: p.dur || 90,
@@ -1432,6 +1474,31 @@ function TripBuilderApp() {
       city_id: targetCity,
       _custom: true
     };
+
+    // Save to Supabase if logged in
+    if (supabase && user) {
+      try {
+        const { data: sbData } = await supabase.from('landmarks').insert([{
+          id: String(localId),
+          user_id: user.id,
+          name: aiPlace.name,
+          cat: aiPlace.cat,
+          icon: aiPlace.icon,
+          city_id: aiPlace.city_id,
+          address: aiPlace.addr,
+          lat: aiPlace.lat,
+          lng: aiPlace.lng,
+          description: aiPlace.desc,
+          duration_min: aiPlace.dur,
+          fee: aiPlace.fee,
+          transport: aiPlace.transport,
+          status: 'user_custom'
+        }]).select();
+        if (sbData?.[0]) aiPlace.id = sbData[0].id;
+      } catch (err) {
+        console.warn('Failed to save AI place to Supabase:', err.message);
+      }
+    }
 
     const updatedCustom = { ...customPlaces };
     if (!updatedCustom[targetCity]) updatedCustom[targetCity] = [];
