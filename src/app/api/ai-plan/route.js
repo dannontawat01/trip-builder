@@ -33,40 +33,51 @@ const getMockPlaces = (cityId) => {
 };
 
 export async function POST(req) {
+  let hotel = '', city_id = 'bkk', country_id = 'th', start_date = '', num_days = 3, interests = [];
   try {
-    const { hotel, city_id, country_id, start_date, num_days, interests } = await req.json();
+    const body = await req.json();
+    hotel = body.hotel || '';
+    city_id = body.city_id || 'bkk';
+    country_id = body.country_id || 'th';
+    start_date = body.start_date || '';
+    num_days = parseInt(body.num_days) || 3;
+    interests = body.interests || [];
+  } catch (e) {
+    // ignore parse error
+  }
 
-    // Setup fallback mock plan
-    const generateMockPlan = () => {
-      const placesPool = getMockPlaces(city_id);
-      const itin = {};
-      let mockPlaceIdx = 0;
-      
-      for (let day = 1; day <= num_days; day++) {
-        itin[day] = [];
-        // Add 2-3 places per day
-        const placesCount = Math.min(3, placesPool.length);
-        for (let i = 0; i < placesCount; i++) {
-          const basePlace = placesPool[mockPlaceIdx % placesPool.length];
-          itin[day].push({
-            id: 99000 + day * 10 + i,
-            name: `${basePlace.name} (Mock Day ${day})`,
-            cat: basePlace.cat,
-            dur: basePlace.dur,
-            icon: basePlace.icon,
-            desc: basePlace.desc,
-            addr: basePlace.addr,
-            lat: basePlace.lat,
-            lng: basePlace.lng,
-            fee: 'Mock Fee',
-            transport: 'เดินทางด้วยรถไฟฟ้า/รถยนต์'
-          });
-          mockPlaceIdx++;
-        }
+  // Setup fallback mock plan
+  const generateMockPlan = () => {
+    const placesPool = getMockPlaces(city_id);
+    const itin = {};
+    let mockPlaceIdx = 0;
+    
+    for (let day = 1; day <= num_days; day++) {
+      itin[day] = [];
+      // Add 2-3 places per day
+      const placesCount = Math.min(3, placesPool.length);
+      for (let i = 0; i < placesCount; i++) {
+        const basePlace = placesPool[mockPlaceIdx % placesPool.length];
+        itin[day].push({
+          id: 99000 + day * 10 + i,
+          name: `${basePlace.name} (Mock Day ${day})`,
+          cat: basePlace.cat,
+          dur: basePlace.dur,
+          icon: basePlace.icon,
+          desc: basePlace.desc,
+          addr: basePlace.addr,
+          lat: basePlace.lat,
+          lng: basePlace.lng,
+          fee: 'Mock Fee',
+          transport: 'เดินทางด้วยรถไฟฟ้า/รถยนต์'
+        });
+        mockPlaceIdx++;
       }
-      return { itin };
-    };
+    }
+    return { itin };
+  };
 
+  try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.warn("GEMINI_API_KEY is not configured. Returning mock plan.");

@@ -22,33 +22,39 @@ const getMockPlaces = (query) => {
 };
 
 export async function POST(req) {
+  let query = '';
   try {
-    const { query } = await req.json();
+    const body = await req.json();
+    query = body.query || '';
+  } catch (e) {
+    // ignore parse error
+  }
 
-    const generateMockResponse = () => {
-      const places = getMockPlaces(query);
-      if (places.length === 0) {
-        // Return custom placeholder if nothing matched
-        return {
-          places: [
-            {
-              name: query || 'สถานที่ตามใจชอบ',
-              cat: 'อื่นๆ',
-              dur: 90,
-              icon: '📍',
-              desc: 'สถานที่จำลองสำหรับทดสอบระบบ (กรุณาตั้งค่า API Key เพื่อใช้ AI จริง)',
-              addr: 'รายละเอียดที่อยู่จำลอง',
-              lat: 13.7563,
-              lng: 100.5018,
-              fee: 'ฟรี',
-              transport: 'ขนส่งสาธารณะ'
-            }
-          ]
-        };
-      }
-      return { places };
-    };
+  const generateMockResponse = () => {
+    const places = getMockPlaces(query);
+    if (places.length === 0) {
+      // Return custom placeholder if nothing matched
+      return {
+        places: [
+          {
+            name: query || 'สถานที่ตามใจชอบ',
+            cat: 'อื่นๆ',
+            dur: 90,
+            icon: '📍',
+            desc: 'สถานที่จำลองสำหรับทดสอบระบบ (กรุณาตั้งค่า API Key เพื่อใช้ AI จริง)',
+            addr: 'รายละเอียดที่อยู่จำลอง',
+            lat: 13.7563,
+            lng: 100.5018,
+            fee: 'ฟรี',
+            transport: 'ขนส่งสาธารณะ'
+          }
+        ]
+      };
+    }
+    return { places };
+  };
 
+  try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.warn("GEMINI_API_KEY is not configured. Returning mock suggestion.");
