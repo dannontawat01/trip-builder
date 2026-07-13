@@ -1696,3 +1696,145 @@ textarea.form-input {
   font-size: 11px;
   line-height: 1.6;
 }
+
+/* --- User Profile Header & Saved Plans Menu --- */
+.user-menu-container {
+  position: relative;
+  display: inline-block;
+  font-family: 'DM Sans', sans-serif;
+}
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.15s;
+  color: var(--dark);
+  user-select: none;
+}
+.user-badge:hover {
+  border-color: var(--teal);
+  background: var(--teal-l);
+}
+.user-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 10px;
+}
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  width: 290px;
+  z-index: 250;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: dropdownFadeIn 0.15s ease-out;
+  color: var(--dark);
+}
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dropdown-email {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dark);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  word-break: break-all;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.plans-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.plans-list-container {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 4px;
+}
+.plan-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 12px;
+  border: 1px solid transparent;
+  gap: 6px;
+}
+.plan-item-row:hover {
+  background: var(--bg);
+}
+.plan-item-row.active {
+  background: var(--teal-l);
+  border-color: var(--teal-m);
+  font-weight: 500;
+  color: var(--teal-d);
+}
+.plan-item-info {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plan-item-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0.3;
+  transition: opacity 0.15s;
+}
+.plan-item-row:hover .plan-item-actions {
+  opacity: 1;
+}
+.plan-btn-mini {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 12px;
+  color: var(--muted);
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.plan-btn-mini:hover {
+  color: var(--red);
+}
+.plan-btn-mini.rename:hover {
+  color: var(--teal);
+}
+

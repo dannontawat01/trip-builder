@@ -48,3 +48,37 @@ VALUES
 ('Gyeongbokgung Palace', 'พระราชวัง', '🏯', 'sel', '161 Sajik-ro, Jongno-gu, Seoul', 37.5796, 126.9770, 'The main royal palace of the Joseon dynasty, built in 1395.', 120, '₩3,000 / Free if wearing Hanbok', '[{"i":"🚇", "t":"Subway Line 3 Gyeongbokgung Station Exit 5"}]'::jsonb, '{"th":"พระราชวังเคียงบก", "en":"Gyeongbokgung Palace", "ko":"경복궁"}'::jsonb, '{"th":"พระราชวังหลวงที่ใหญ่ที่สุดในโซล", "en":"The largest of the Five Grand Palaces built during the Joseon Dynasty."}'::jsonb, 'approved'),
 ('Bukchon Hanok Village', 'ย่าน', '🏡', 'sel', '37 Gyeedong-gil, Jongno-gu, Seoul', 37.5826, 126.9836, 'A traditional village containing hundreds of hanoks (Korean traditional houses).', 90, 'Free', '[{"i":"🚇", "t":"Subway Line 3 Anguk Station Exit 2"}]'::jsonb, '{"th":"หมู่บ้านโบราณบุคชอนฮานอก", "en":"Bukchon Hanok Village", "ko":"북촌한옥마을"}'::jsonb, '{"th":"หมู่บ้านเกาหลีโบราณอายุกว่า 600 ปี", "en":"A historic village preserved to show a 600-year-old urban environment."}'::jsonb, 'approved'),
 ('N Seoul Tower', 'วิวทิวทัศน์', '🗼', 'sel', '105 Namsangongwon-gil, Yongsan-gu, Seoul', 37.5512, 126.9882, 'A communication and observation tower located on Namsan Mountain.', 120, '₩16,000 (Observatory)', '[{"i":"🚇", "t":"Namsan Cable Car or Namsan Sunhwan Shuttle Bus No. 01"}]'::jsonb, '{"th":"โซลทาวเวอร์", "en":"N Seoul Tower", "ko":"N서울타워"}'::jsonb, '{"th":"จุดชมวิวเมืองโซลยอดนิยมบนภูเขานัมซาน", "en":"Iconic landmark offering panoramic views of Seoul."}'::jsonb, 'approved');
+
+-- Create itineraries table
+CREATE TABLE IF NOT EXISTS public.itineraries (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    city_id text NOT NULL,
+    country_id text NOT NULL,
+    start_date date,
+    end_date date,
+    start_time text DEFAULT '09:00',
+    hotel text,
+    n_days integer DEFAULT 3,
+    itin jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS for itineraries
+ALTER TABLE public.itineraries ENABLE ROW LEVEL SECURITY;
+
+-- Create Policies for itineraries
+CREATE POLICY "Allow individual read access" ON public.itineraries
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Allow individual insert access" ON public.itineraries
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Allow individual update access" ON public.itineraries
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Allow individual delete access" ON public.itineraries
+    FOR DELETE USING (auth.uid() = user_id);
+

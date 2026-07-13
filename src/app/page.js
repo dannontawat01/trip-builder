@@ -186,6 +186,19 @@ function TripBuilderApp() {
   const [editDurationModalOpen, setEditDurationModalOpen] = useState(false);
   const [editDurationTarget, setEditDurationTarget] = useState(null);
   
+  // Auth states
+  const [user, setUser] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  // Multiple plans states
+  const [plansList, setPlansList] = useState([]);
+  const [activePlanId, setActivePlanId] = useState(null);
+  
   const [toastMessage, setToastMessage] = useState('');
   const [mobileTab, setMobileTab] = useState('plan');
   
@@ -405,7 +418,63 @@ function TripBuilderApp() {
       }
     } catch (_) {}
 
-    // Load itinerary
+    // Check initial user session & load plans
+    const checkSession = async () => {
+      if (!supabase) {
+        // Fallback to local mock session if no Supabase configured
+        try {
+          const storedUser = localStorage.getItem('tb_mock_user');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+            loadLocalMockPlans(parsedUser.email);
+          } else {
+            loadGuestPlan();
+          }
+        } catch (_) {
+          loadGuestPlan();
+        }
+        return;
+      }
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+          loadCloudPlans(session.user.id);
+        } else {
+          loadGuestPlan();
+        }
+      } catch (_) {
+        loadGuestPlan();
+      }
+    };
+
+    checkSession();
+
+    // Listen for auth changes
+    let authListener = null;
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          setUser(session.user);
+          loadCloudPlans(session.user.id);
+        } else {
+          setUser(null);
+          setPlansList([]);
+          setActivePlanId(null);
+          loadGuestPlan();
+        }
+      });
+      authListener = subscription;
+    }
+
+    return () => {
+      if (authListener) authListener.unsubscribe();
+    };
+  }, []);
+
+  const loadGuestPlan = () => {
     try {
       const raw = localStorage.getItem('trip_builder_itin_v1');
       if (raw) {
@@ -417,9 +486,419 @@ function TripBuilderApp() {
         if (parsed.itin) {
           setItin(parsed.itin);
         }
+      } else {
+        setItin({ 1: [], 2: [], 3: [] });
+        setNDays(3);
+        setHotel('');
+        setStartTime('09:00');
+      }
+      setActivePlanId('guest');
+    } catch (_) {
+      setActivePlanId('guest');
+    }
+  };
+
+  const loadLocalMockPlans = (email) => {
+    try {
+      const raw = localStorage.getItem(`tb_mock_plans_${email}`);
+      const plans = raw ? JSON.parse(raw) : [];
+      setPlansList(plans);
+      
+      const lastActiveId = localStorage.getItem(`tb_mock_active_plan_${email}`);
+      const activePlan = plans.find(p => p.id === lastActiveId) || plans[0];
+      
+      if (activePlan) {
+        setActivePlanId(activePlan.id);
+        setItin(activePlan.itin || { 1: [], 2: [], 3: [] });
+        setNDays(activePlan.nDays || 3);
+        setStartDate(activePlan.start || new Date().toISOString().split('T')[0]);
+        setStartTime(activePlan.time || '09:00');
+        setHotel(activePlan.hotel || '');
+      } else {
+        const defaultPlanId = `plan_${Date.now()}`;
+        const newPlan = {
+          id: defaultPlanId,
+          name: 'My Saved Plan 1',
+          city_id: activeCity,
+          itin: { 1: [], 2: [], 3: [] },
+          nDays: 3,
+          start: new Date().toISOString().split('T')[0],
+          time: '09:00',
+          hotel: ''
+        };
+        const updatedPlans = [newPlan];
+        setPlansList(updatedPlans);
+        localStorage.setItem(`tb_mock_plans_${email}`, JSON.stringify(updatedPlans));
+        
+        setActivePlanId(defaultPlanId);
+        setItin(newPlan.itin);
+        setNDays(newPlan.nDays);
+        setStartDate(newPlan.start);
+        setStartTime(newPlan.time);
+        setHotel(newPlan.hotel);
       }
     } catch (_) {}
-  }, []);
+  };
+
+  const loadCloudPlans = async (userId) => {
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from('itineraries')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      const plans = data.map(item => ({
+        id: item.id,
+        name: item.name,
+        city_id: item.city_id,
+        itin: item.itin,
+        nDays: item.n_days,
+        start: item.start_date,
+        time: item.start_time,
+        hotel: item.hotel
+      }));
+      
+      setPlansList(plans);
+      
+      const lastActiveId = localStorage.getItem(`tb_active_plan_${userId}`);
+      const activePlan = plans.find(p => p.id === lastActiveId) || plans[0];
+      
+      if (activePlan) {
+        setActivePlanId(activePlan.id);
+        setItin(activePlan.itin);
+        setNDays(activePlan.nDays);
+        setStartDate(activePlan.start);
+        setStartTime(activePlan.time);
+        setHotel(activePlan.hotel);
+      } else {
+        await handleCreatePlanCloud('My Saved Plan 1', userId);
+      }
+    } catch (err) {
+      console.warn('Failed to load cloud plans:', err.message);
+    }
+  };
+
+  const handleCreatePlanCloud = async (name, userId) => {
+    if (!supabase) return;
+    const defaultPlan = {
+      user_id: userId,
+      name: name,
+      city_id: activeCity,
+      country_id: activeCountry,
+      start_date: new Date().toISOString().split('T')[0],
+      start_time: '09:00',
+      hotel: '',
+      n_days: 3,
+      itin: { 1: [], 2: [], 3: [] }
+    };
+    
+    try {
+      const { data, error } = await supabase
+        .from('itineraries')
+        .insert([defaultPlan])
+        .select();
+        
+      if (error) throw error;
+      
+      if (data && data[0]) {
+        const newPlan = {
+          id: data[0].id,
+          name: data[0].name,
+          city_id: data[0].city_id,
+          itin: data[0].itin,
+          nDays: data[0].n_days,
+          start: data[0].start_date,
+          time: data[0].start_time,
+          hotel: data[0].hotel
+        };
+        setPlansList(prev => [newPlan, ...prev]);
+        setActivePlanId(newPlan.id);
+        setItin(newPlan.itin);
+        setNDays(newPlan.nDays);
+        setStartDate(newPlan.start);
+        setStartTime(newPlan.time);
+        setHotel(newPlan.hotel);
+        localStorage.setItem(`tb_active_plan_${userId}`, newPlan.id);
+      }
+    } catch (err) {
+      console.warn('Failed to create cloud plan:', err.message);
+    }
+  };
+
+  const createNewPlan = async () => {
+    const planName = prompt(activeLang === 'th' ? 'กรุณากรอกชื่อแผนเดินทางใหม่:' : 'Enter name for the new plan:', `Trip Plan ${plansList.length + 1}`);
+    if (!planName?.trim()) return;
+    
+    if (user) {
+      if (!supabase) {
+        const defaultPlanId = `plan_${Date.now()}`;
+        const newPlan = {
+          id: defaultPlanId,
+          name: planName,
+          city_id: activeCity,
+          itin: { 1: [], 2: [], 3: [] },
+          nDays: 3,
+          start: new Date().toISOString().split('T')[0],
+          time: '09:00',
+          hotel: ''
+        };
+        const updatedPlans = [newPlan, ...plansList];
+        setPlansList(updatedPlans);
+        localStorage.setItem(`tb_mock_plans_${user.email}`, JSON.stringify(updatedPlans));
+        
+        setActivePlanId(defaultPlanId);
+        setItin(newPlan.itin);
+        setNDays(newPlan.nDays);
+        setStartDate(newPlan.start);
+        setStartTime(newPlan.time);
+        setHotel(newPlan.hotel);
+        localStorage.setItem(`tb_mock_active_plan_${user.email}`, defaultPlanId);
+        toast(activeLang === 'th' ? 'สร้างแผนใหม่สำเร็จ' : 'New plan created');
+      } else {
+        await handleCreatePlanCloud(planName, user.id);
+        toast(activeLang === 'th' ? 'สร้างแผนใหม่สำเร็จ' : 'New plan created');
+      }
+    } else {
+      toast(activeLang === 'th' ? 'กรุณาเข้าสู่ระบบเพื่อบันทึกหลายแผน' : 'Please Sign In to save multiple plans');
+      setAuthModalOpen(true);
+    }
+  };
+
+  const deletePlan = async (planId, e) => {
+    if (e) e.stopPropagation();
+    if (plansList.length <= 1) {
+      toast(activeLang === 'th' ? 'ไม่สามารถลบแผนสุดท้ายได้' : 'Cannot delete the last plan');
+      return;
+    }
+    if (!confirm(activeLang === 'th' ? 'ต้องการลบแผนเดินทางนี้ใช่หรือไม่?' : 'Delete this plan?')) return;
+    
+    if (user) {
+      if (!supabase) {
+        const updatedPlans = plansList.filter(p => p.id !== planId);
+        setPlansList(updatedPlans);
+        localStorage.setItem(`tb_mock_plans_${user.email}`, JSON.stringify(updatedPlans));
+        
+        if (activePlanId === planId) {
+          const nextPlan = updatedPlans[0];
+          loadActivePlan(nextPlan.id, updatedPlans);
+        }
+        toast(activeLang === 'th' ? 'ลบแผนสำเร็จ' : 'Plan deleted');
+      } else {
+        try {
+          const { error } = await supabase
+            .from('itineraries')
+            .delete()
+            .eq('id', planId);
+            
+          if (error) throw error;
+          
+          const updatedPlans = plansList.filter(p => p.id !== planId);
+          setPlansList(updatedPlans);
+          
+          if (activePlanId === planId) {
+            const nextPlan = updatedPlans[0];
+            loadActivePlan(nextPlan.id, updatedPlans);
+          }
+          toast(activeLang === 'th' ? 'ลบแผนสำเร็จ' : 'Plan deleted');
+        } catch (err) {
+          console.warn('Failed to delete cloud plan:', err.message);
+        }
+      }
+    }
+  };
+
+  const renamePlan = async (planId, e) => {
+    if (e) e.stopPropagation();
+    const plan = plansList.find(p => p.id === planId);
+    if (!plan) return;
+    
+    const newName = prompt(activeLang === 'th' ? 'กรุณากรอกชื่อใหม่:' : 'Enter new name:', plan.name);
+    if (!newName?.trim() || newName === plan.name) return;
+    
+    if (user) {
+      if (!supabase) {
+        const updatedPlans = plansList.map(p => p.id === planId ? { ...p, name: newName } : p);
+        setPlansList(updatedPlans);
+        localStorage.setItem(`tb_mock_plans_${user.email}`, JSON.stringify(updatedPlans));
+        toast(activeLang === 'th' ? 'เปลี่ยนชื่อแผนสำเร็จ' : 'Plan renamed');
+      } else {
+        try {
+          const { error } = await supabase
+            .from('itineraries')
+            .update({ name: newName, updated_at: new Date().toISOString() })
+            .eq('id', planId);
+            
+          if (error) throw error;
+          
+          setPlansList(prev => prev.map(p => p.id === planId ? { ...p, name: newName } : p));
+          toast(activeLang === 'th' ? 'เปลี่ยนชื่อแผนสำเร็จ' : 'Plan renamed');
+        } catch (err) {
+          console.warn('Failed to rename cloud plan:', err.message);
+        }
+      }
+    }
+  };
+
+  const loadActivePlan = (planId, customList = null) => {
+    const list = customList || plansList;
+    const plan = list.find(p => p.id === planId);
+    if (!plan) return;
+    
+    setActivePlanId(planId);
+    setItin(plan.itin || { 1: [], 2: [], 3: [] });
+    setNDays(plan.nDays || 3);
+    setStartDate(plan.start || new Date().toISOString().split('T')[0]);
+    setStartTime(plan.time || '09:00');
+    setHotel(plan.hotel || '');
+    
+    if (user) {
+      if (!supabase) {
+        localStorage.setItem(`tb_mock_active_plan_${user.email}`, planId);
+      } else {
+        localStorage.setItem(`tb_active_plan_${user.id}`, planId);
+      }
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (!authEmail.trim() || !authPassword.trim()) {
+      toast('กรุณากรอกอีเมลและรหัสผ่าน');
+      return;
+    }
+    setAuthLoading(true);
+    
+    if (!supabase) {
+      try {
+        const rawUsers = localStorage.getItem('tb_mock_users') || '[]';
+        const users = JSON.parse(rawUsers);
+        if (users.find(u => u.email === authEmail)) {
+          toast('อีเมลนี้เคยลงทะเบียนแล้ว');
+          setAuthLoading(false);
+          return;
+        }
+        const newUser = { email: authEmail, password: authPassword };
+        users.push(newUser);
+        localStorage.setItem('tb_mock_users', JSON.stringify(users));
+        
+        localStorage.setItem('tb_mock_user', JSON.stringify({ email: authEmail }));
+        setUser({ email: authEmail });
+        setAuthModalOpen(false);
+        setAuthEmail('');
+        setAuthPassword('');
+        loadLocalMockPlans(authEmail);
+        toast('สมัครสมาชิกและเข้าสู่ระบบสำเร็จ (Mock)');
+      } catch (_) {
+        toast('สมัครสมาชิกล้มเหลว');
+      } finally {
+        setAuthLoading(false);
+      }
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: authEmail,
+        password: authPassword
+      });
+      if (error) throw error;
+      
+      if (data?.user) {
+        toast('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบได้ทันทีหากเปิดใช้งานการข้ามอีเมลยืนยัน');
+        setAuthModalOpen(false);
+        setAuthEmail('');
+        setAuthPassword('');
+      }
+    } catch (err) {
+      toast(`สมัครสมาชิกล้มเหลว: ${err.message}`);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignIn = async () => {
+    if (!authEmail.trim() || !authPassword.trim()) {
+      toast('กรุณากรอกอีเมลและรหัสผ่าน');
+      return;
+    }
+    setAuthLoading(true);
+    
+    if (!supabase) {
+      try {
+        const rawUsers = localStorage.getItem('tb_mock_users') || '[]';
+        const users = JSON.parse(rawUsers);
+        const match = users.find(u => u.email === authEmail && u.password === authPassword);
+        if (!match) {
+          toast('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+          setAuthLoading(false);
+          return;
+        }
+        
+        localStorage.setItem('tb_mock_user', JSON.stringify({ email: authEmail }));
+        setUser({ email: authEmail });
+        setAuthModalOpen(false);
+        setAuthEmail('');
+        setAuthPassword('');
+        loadLocalMockPlans(authEmail);
+        toast('เข้าสู่ระบบสำเร็จ (Mock)');
+      } catch (_) {
+        toast('เข้าสู่ระบบล้มเหลว');
+      } finally {
+        setAuthLoading(false);
+      }
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: authPassword
+      });
+      if (error) throw error;
+      
+      if (data?.user) {
+        setUser(data.user);
+        setAuthModalOpen(false);
+        setAuthEmail('');
+        setAuthPassword('');
+        loadCloudPlans(data.user.id);
+        toast('เข้าสู่ระบบสำเร็จ!');
+      }
+    } catch (err) {
+      toast(`เข้าสู่ระบบล้มเหลว: ${err.message}`);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!supabase) {
+      localStorage.removeItem('tb_mock_user');
+      setUser(null);
+      setPlansList([]);
+      setActivePlanId(null);
+      loadGuestPlan();
+      setUserDropdownOpen(false);
+      toast('ออกจากระบบแล้ว (Mock)');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+      setPlansList([]);
+      setActivePlanId(null);
+      loadGuestPlan();
+      setUserDropdownOpen(false);
+      toast('ออกจากระบบแล้ว');
+    } catch (err) {
+      toast(`ออกจากระบบล้มเหลว: ${err.message}`);
+    }
+  };
 
   // Sync end date and sync with nDays
   useEffect(() => {
@@ -487,8 +966,8 @@ function TripBuilderApp() {
     fetchLandmarks();
   }, [activeCity, customPlaces]);
 
-  // Save itinerary to LocalStorage
-  const saveItinData = (newItin, newNDays) => {
+  // Save itinerary to LocalStorage or Cloud
+  const saveItinData = async (newItin, newNDays) => {
     try {
       const data = {
         itin: newItin,
@@ -499,7 +978,69 @@ function TripBuilderApp() {
       };
       localStorage.setItem('trip_builder_itin_v1', JSON.stringify(data));
     } catch (_) {}
+
+    if (user && activePlanId && activePlanId !== 'guest') {
+      if (!supabase) {
+        const updatedPlans = plansList.map(p => {
+          if (p.id === activePlanId) {
+            return {
+              ...p,
+              itin: newItin,
+              nDays: newNDays,
+              start: startDate,
+              time: startTime,
+              hotel: hotel
+            };
+          }
+          return p;
+        });
+        setPlansList(updatedPlans);
+        localStorage.setItem(`tb_mock_plans_${user.email}`, JSON.stringify(updatedPlans));
+      } else {
+        try {
+          await supabase
+            .from('itineraries')
+            .update({
+              itin: newItin,
+              n_days: newNDays,
+              start_date: startDate,
+              start_time: startTime,
+              hotel: hotel,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', activePlanId);
+          
+          setPlansList(prev => prev.map(p => {
+            if (p.id === activePlanId) {
+              return {
+                ...p,
+                itin: newItin,
+                nDays: newNDays,
+                start: startDate,
+                time: startTime,
+                hotel: hotel
+              };
+            }
+            return p;
+          }));
+        } catch (err) {
+          console.warn('Failed to update cloud itinerary:', err.message);
+        }
+      }
+    }
   };
+
+  const hasMounted = useRef(false);
+  useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return;
+    }
+    const timer = setTimeout(() => {
+      saveItinData(itin, nDays);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [itin, nDays, startDate, startTime, hotel]);
 
   // Sync dates from start/end input
   const handleDateSync = (startVal, endVal) => {
@@ -1214,6 +1755,90 @@ function TripBuilderApp() {
 
           <button className="btn btn-ghost btn-sm" onClick={clearAll}>{t('clear')}</button>
           <button className="btn btn-primary btn-sm" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
+
+          {/* User Profile / Login Panel */}
+          <div className="user-menu-container">
+            {user ? (
+              <>
+                <div className="user-badge" onClick={() => setUserDropdownOpen(!userDropdownOpen)}>
+                  <div className="user-avatar">
+                    {user.email ? user.email.slice(0, 2).toUpperCase() : 'U'}
+                  </div>
+                  <span>{user.email ? user.email.split('@')[0] : 'Member'}</span>
+                  <span>▼</span>
+                </div>
+                
+                {userDropdownOpen && (
+                  <div className="user-dropdown" onClick={(e) => e.stopPropagation()}>
+                    <div className="dropdown-email">
+                      📧 {user.email}
+                    </div>
+                    
+                    <div className="plans-section-title">
+                      📂 {activeLang === 'th' ? 'แผนเดินทางของฉัน' : 'My Travel Plans'}
+                    </div>
+                    
+                    <div className="plans-list-container">
+                      {plansList.map(plan => {
+                        const isActive = activePlanId === plan.id;
+                        return (
+                          <div 
+                            key={plan.id} 
+                            className={`plan-item-row ${isActive ? 'active' : ''}`}
+                            onClick={() => loadActivePlan(plan.id)}
+                          >
+                            <span className="plan-item-info">
+                              {getCityObj(plan.city_id)?.emoji || '📍'} {plan.name} ({plan.nDays} วัน)
+                            </span>
+                            <div className="plan-item-actions">
+                              <button 
+                                className="plan-btn-mini rename" 
+                                title={activeLang === 'th' ? 'เปลี่ยนชื่อ' : 'Rename'}
+                                onClick={(e) => renamePlan(plan.id, e)}
+                              >
+                                ✏️
+                              </button>
+                              <button 
+                                className="plan-btn-mini" 
+                                title={activeLang === 'th' ? 'ลบ' : 'Delete'}
+                                onClick={(e) => deletePlan(plan.id, e)}
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    <button 
+                      className="btn btn-ghost btn-sm" 
+                      style={{ width: '100%', justifyContent: 'center' }}
+                      onClick={createNewPlan}
+                    >
+                      ➕ {activeLang === 'th' ? 'สร้างแผนใหม่' : 'New Plan'}
+                    </button>
+                    
+                    <button 
+                      className="btn btn-primary btn-sm" 
+                      style={{ width: '100%', justifyContent: 'center', background: 'var(--red)', borderColor: 'var(--red)' }}
+                      onClick={handleSignOut}
+                    >
+                      🚪 {activeLang === 'th' ? 'ออกจากระบบ' : 'Sign Out'}
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <button 
+                className="btn btn-ghost btn-sm" 
+                onClick={() => { setAuthMode('login'); setAuthModalOpen(true); }}
+                style={{ border: '1px solid var(--border)' }}
+              >
+                👤 {activeLang === 'th' ? 'เข้าสู่ระบบ' : 'Sign In'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -2318,6 +2943,93 @@ function TripBuilderApp() {
             <div className="modal-foot">
               <button className="btn btn-ghost" onClick={() => setEditDurationModalOpen(false)}>{activeLang === 'th' ? 'ยกเลิก' : 'Cancel'}</button>
               <button className="btn btn-primary" onClick={handleSaveDurationQuick}>{activeLang === 'th' ? 'บันทึก' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── AUTHENTICATION MODAL ────────────────────────────────────── */}
+      {authModalOpen && (
+        <div className="overlay show" onClick={() => setAuthModalOpen(false)}>
+          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div className="modal-title">
+                {authMode === 'login' 
+                  ? (activeLang === 'th' ? '🔑 เข้าสู่ระบบ' : '🔑 Sign In')
+                  : (activeLang === 'th' ? '📝 สมัครสมาชิก' : '📝 Register')}
+              </div>
+              <button className="modal-close" onClick={() => setAuthModalOpen(false)}>✕</button>
+            </div>
+            
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <div className="form-group">
+                <label className="form-label">{activeLang === 'th' ? 'อีเมล' : 'Email Address'}</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="name@example.com"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                />
+              </div>
+              
+              <div className="form-group" style={{ marginTop: '12px' }}>
+                <label className="form-label">{activeLang === 'th' ? 'รหัสผ่าน' : 'Password'}</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="••••••••"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (authMode === 'login') handleSignIn();
+                      else handleSignUp();
+                    }
+                  }}
+                />
+              </div>
+              
+              <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px', textAlign: 'center' }}>
+                {authMode === 'login' ? (
+                  <>
+                    {activeLang === 'th' ? 'ยังไม่มีบัญชีผู้ใช้?' : "Don't have an account?"}{' '}
+                    <span 
+                      style={{ color: 'var(--teal)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                      onClick={() => setAuthMode('register')}
+                    >
+                      {activeLang === 'th' ? 'สมัครสมาชิกที่นี่' : 'Register here'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {activeLang === 'th' ? 'มีบัญชีอยู่แล้ว?' : 'Already have an account?'}{' '}
+                    <span 
+                      style={{ color: 'var(--teal)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                      onClick={() => setAuthMode('login')}
+                    >
+                      {activeLang === 'th' ? 'เข้าสู่ระบบที่นี่' : 'Sign in here'}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <div className="modal-foot">
+              <button className="btn btn-ghost" onClick={() => setAuthModalOpen(false)}>
+                {activeLang === 'th' ? 'ยกเลิก' : 'Cancel'}
+              </button>
+              <button 
+                className="btn btn-primary" 
+                disabled={authLoading}
+                onClick={authMode === 'login' ? handleSignIn : handleSignUp}
+              >
+                {authLoading 
+                  ? (activeLang === 'th' ? 'กำลังทำงาน...' : 'Loading...')
+                  : (authMode === 'login' 
+                      ? (activeLang === 'th' ? 'เข้าสู่ระบบ' : 'Sign In')
+                      : (activeLang === 'th' ? 'สมัครสมาชิก' : 'Register'))}
+              </button>
             </div>
           </div>
         </div>
