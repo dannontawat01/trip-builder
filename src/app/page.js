@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
@@ -142,7 +143,17 @@ const CITY_KEYWORDS = {
 };
 
 export default function Page() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>Loading...</div>}>
+      <TripBuilderApp />
+    </Suspense>
+  );
+}
+
+function TripBuilderApp() {
   // ─── STATES ────────────────────────────────────────────────────────
+  const searchParams = useSearchParams();
+  const tripParam = searchParams.get('trip');
   const [activeLang, setActiveLang] = useState('th');
   const [activeCountry, setActiveCountry] = useState('th');
   const [activeCity, setActiveCity] = useState('bkk');
@@ -1055,8 +1066,6 @@ export default function Page() {
 
   // Load from Share Link on startup
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tripParam = params.get('trip');
     if (!tripParam) return;
     try {
       const data = JSON.parse(decodeURIComponent(escape(atob(tripParam))));
@@ -1074,7 +1083,7 @@ export default function Page() {
     } catch (e) {
       console.warn('Share link decoding failed:', e);
     }
-  }, []);
+  }, [tripParam]);
 
   // ─── CALCULATE SUMMARY STATS ───────────────────────────────────────
   const getSummaryStats = () => {
