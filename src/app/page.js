@@ -950,13 +950,14 @@ function TripBuilderApp() {
   useEffect(() => {
     let activeCityLandmarks = MOCK_LANDMARKS[activeCity] || [];
     
-    // Mix in custom places created by user for this city (local fallback)
+    // Mix in custom places created by user for this city (local fallback only)
     const customList = customPlaces[activeCity] || [];
     
     // Filter out mock landmarks that have been overridden/edited
     const customIds = new Set(customList.map(p => p.id));
     const filteredMock = activeCityLandmarks.filter(l => !customIds.has(l.id));
     
+    // Set initial landmarks from local data (will be replaced by Supabase if connected)
     setLandmarks([...filteredMock, ...customList]);
 
     // Fetch from Supabase if connected
@@ -976,7 +977,8 @@ function TripBuilderApp() {
         // 2. Load this user's custom places (if logged in)
         let userCustomData = [];
         const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
+        const isLoggedIn = !!session?.user;
+        if (isLoggedIn) {
           const { data: uData } = await supabase
             .from('landmarks')
             .select('*')
@@ -1007,13 +1009,27 @@ function TripBuilderApp() {
           _custom: item.status === 'user_custom'
         });
 
-        // Merge Supabase data with local customList
-        // Local custom places that are NOT yet in Supabase are kept (e.g. INSERT pending)
-        const supaIds = new Set(allData.map(d => String(d.id)));
-        const localOnlyCustom = customList.filter(p => !supaIds.has(String(p.id)));
-        const merged = [...allData.map(mapItem), ...localOnlyCustom];
-        if (merged.length > 0) {
-          setLandmarks(merged);
+        if (isLoggedIn) {
+          // Logged-in: use ONLY Supabase data (public + user's own custom)
+          // Clear stale local custom places so duplicates don't appear
+          if (allData.length > 0) {
+            setLandmarks(allData.map(mapItem));
+            // Wipe stale localStorage custom places for this city
+            setCustomPlaces(prev => {
+              const cleaned = { ...prev };
+              delete cleaned[activeCity];
+              try {
+                localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: cleaned }));
+              } catch (_) {}
+              return cleaned;
+            });
+          }
+        } else {
+          // Guest: merge Supabase approved with local custom places
+          const supaIds = new Set(allData.map(d => String(d.id)));
+          const localOnlyCustom = customList.filter(p => !supaIds.has(String(p.id)));
+          const merged = [...allData.map(mapItem), ...localOnlyCustom];
+          if (merged.length > 0) setLandmarks(merged);
         }
       } catch (err) {
         console.warn('Failed to load from Supabase:', err.message);
@@ -1023,6 +1039,7 @@ function TripBuilderApp() {
     };
     
     fetchLandmarks();
+
   }, [activeCity, customPlaces, user]);
 
   // Save itinerary to LocalStorage or Cloud
