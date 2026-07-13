@@ -1007,8 +1007,13 @@ function TripBuilderApp() {
           _custom: item.status === 'user_custom'
         });
 
-        if (allData.length > 0) {
-          setLandmarks(allData.map(mapItem));
+        // Merge Supabase data with local customList
+        // Local custom places that are NOT yet in Supabase are kept (e.g. INSERT pending)
+        const supaIds = new Set(allData.map(d => String(d.id)));
+        const localOnlyCustom = customList.filter(p => !supaIds.has(String(p.id)));
+        const merged = [...allData.map(mapItem), ...localOnlyCustom];
+        if (merged.length > 0) {
+          setLandmarks(merged);
         }
       } catch (err) {
         console.warn('Failed to load from Supabase:', err.message);
