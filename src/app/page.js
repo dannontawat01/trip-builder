@@ -2154,7 +2154,14 @@ function TripBuilderApp() {
               <div className="form-group">
                 <div className="form-label">{t('exportShare')}</div>
                 <div className="share-box">
-                  <div className="share-url">{buildShareLink()}</div>
+                  <input
+                    type="text"
+                    readOnly
+                    className="share-url notranslate"
+                    translate="no"
+                    value={buildShareLink()}
+                    onClick={(e) => e.target.select()}
+                  />
                   <button className="btn btn-primary btn-sm" onClick={() => { navigator.clipboard.writeText(buildShareLink()); toast('คัดลอกลิงก์แชร์แล้ว!'); }}>คัดลอก</button>
                 </div>
                 <div className="share-note">{t('exportShareNote')}</div>

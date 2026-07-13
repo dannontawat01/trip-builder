@@ -1262,6 +1262,10 @@ textarea.form-input {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  background: none;
+  border: none;
+  outline: none;
+  width: 100%;
 }
 .share-note {
   font-size: 11px;
