@@ -3001,9 +3001,9 @@ function TripBuilderApp() {
                 <div className="form-group" style={{ marginTop: '12px' }}>
                   <label className="form-label">{activeLang === 'th' ? 'รหัสผ่านการสมัคร (Registration Code)' : 'Registration Code'}</label>
                   <input
-                    type="text"
+                    type="password"
                     className="form-input"
-                    placeholder="8486"
+                    placeholder="••••"
                     value={authRegisterCode}
                     onChange={(e) => setAuthRegisterCode(e.target.value)}
                     onKeyDown={(e) => {
