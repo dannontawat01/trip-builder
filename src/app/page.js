@@ -1068,7 +1068,9 @@ function TripBuilderApp() {
   useEffect(() => {
     if (!tripParam) return;
     try {
-      const data = JSON.parse(decodeURIComponent(escape(atob(tripParam))));
+      // Replace any space characters (converted from '+' by URL parsers) back to '+'
+      const cleanParam = tripParam.replace(/ /g, '+');
+      const data = JSON.parse(decodeURIComponent(escape(atob(cleanParam))));
       if (data.days) setNDays(data.days);
       if (data.start) setStartDate(data.start);
       if (data.time) setStartTime(data.time);
