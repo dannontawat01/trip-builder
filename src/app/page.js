@@ -192,6 +192,7 @@ function TripBuilderApp() {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [authRegisterCode, setAuthRegisterCode] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
@@ -765,8 +766,12 @@ function TripBuilderApp() {
   };
 
   const handleSignUp = async () => {
-    if (!authEmail.trim() || !authPassword.trim()) {
-      toast('กรุณากรอกอีเมลและรหัสผ่าน');
+    if (!authEmail.trim() || !authPassword.trim() || !authRegisterCode.trim()) {
+      toast(activeLang === 'th' ? 'กรุณากรอกข้อมูลให้ครบถ้วน รวมถึงรหัสการสมัคร' : 'Please fill in all fields including the registration code');
+      return;
+    }
+    if (authRegisterCode.trim() !== '8486') {
+      toast(activeLang === 'th' ? 'รหัสการสมัครไม่ถูกต้อง!' : 'Invalid registration code!');
       return;
     }
     setAuthLoading(true);
@@ -789,6 +794,7 @@ function TripBuilderApp() {
         setAuthModalOpen(false);
         setAuthEmail('');
         setAuthPassword('');
+        setAuthRegisterCode('');
         loadLocalMockPlans(authEmail);
         toast('สมัครสมาชิกและเข้าสู่ระบบสำเร็จ (Mock)');
       } catch (_) {
@@ -811,6 +817,7 @@ function TripBuilderApp() {
         setAuthModalOpen(false);
         setAuthEmail('');
         setAuthPassword('');
+        setAuthRegisterCode('');
       }
     } catch (err) {
       toast(`สมัครสมาชิกล้มเหลว: ${err.message}`);
@@ -2989,6 +2996,24 @@ function TripBuilderApp() {
                   }}
                 />
               </div>
+
+              {authMode === 'register' && (
+                <div className="form-group" style={{ marginTop: '12px' }}>
+                  <label className="form-label">{activeLang === 'th' ? 'รหัสผ่านการสมัคร (Registration Code)' : 'Registration Code'}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="8486"
+                    value={authRegisterCode}
+                    onChange={(e) => setAuthRegisterCode(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSignUp();
+                      }
+                    }}
+                  />
+                </div>
+              )}
               
               <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px', textAlign: 'center' }}>
                 {authMode === 'login' ? (
@@ -2996,7 +3021,7 @@ function TripBuilderApp() {
                     {activeLang === 'th' ? 'ยังไม่มีบัญชีผู้ใช้?' : "Don't have an account?"}{' '}
                     <span 
                       style={{ color: 'var(--teal)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                      onClick={() => setAuthMode('register')}
+                      onClick={() => { setAuthMode('register'); setAuthRegisterCode(''); }}
                     >
                       {activeLang === 'th' ? 'สมัครสมาชิกที่นี่' : 'Register here'}
                     </span>
@@ -3006,7 +3031,7 @@ function TripBuilderApp() {
                     {activeLang === 'th' ? 'มีบัญชีอยู่แล้ว?' : 'Already have an account?'}{' '}
                     <span 
                       style={{ color: 'var(--teal)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                      onClick={() => setAuthMode('login')}
+                      onClick={() => { setAuthMode('login'); setAuthRegisterCode(''); }}
                     >
                       {activeLang === 'th' ? 'เข้าสู่ระบบที่นี่' : 'Sign in here'}
                     </span>
