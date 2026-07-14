@@ -1014,8 +1014,9 @@ function TripBuilderApp() {
           // Clear stale local custom places so duplicates don't appear
           if (allData.length > 0) {
             setLandmarks(allData.map(mapItem));
-            // Wipe stale localStorage custom places for this city
+            // Wipe stale localStorage custom places for this city only if they exist to prevent infinite loop
             setCustomPlaces(prev => {
+              if (!prev[activeCity] || prev[activeCity].length === 0) return prev;
               const cleaned = { ...prev };
               delete cleaned[activeCity];
               try {
