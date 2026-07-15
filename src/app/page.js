@@ -2,7 +2,13 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { googleSheets } from '@/lib/googleSheets';
+import dynamic from 'next/dynamic';
+
+const MapComponent = dynamic(() => import('./components/MapComponent'), {
+  ssr: false,
+  loading: () => <div className="map-loading-placeholder">กำลังโหลดแผนที่...</div>
+});
 
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
 const LANG_STRINGS = {
@@ -15,7 +21,7 @@ const LANG_STRINGS = {
     nearby: 'แนะนำใกล้เคียง', nearbyEmpty: 'เพิ่มสถานที่ในแผนก่อน\nเราจะแนะนำที่ใกล้เคียงให้',
     mobPlan: 'แผน', mobPlaces: 'สถานที่', mobNearby: 'แนะนำ', mobExport: 'ส่งออก',
     close: 'ปิด', cancel: 'ยกเลิก', save: 'บันทึกสถานที่', addToDay: 'เพิ่มเข้าวัน:',
-    addNew: 'เพิ่มสถานที่ใหม่', tabManual: '✏️ กรอกเอง', tabAI: '🤖 AI แนะนำ', tabGmaps: '📍 Google Maps',
+    addNew: 'เพิ่มสถานที่ใหม่', tabManual: '✏️ กรอกเอง', tabAI: '🤖 AI แนะนำ', tabGmaps: '📍 Google Maps', tabJson: '📋 นำเข้า JSON',
     osmSearch: '🔍 ค้นหาสถานที่ (OpenStreetMap)', osmBtn: 'ค้นหา GPS', osmPh: 'พิมพ์ชื่อสถานที่ เช่น Gyeongbokgung Palace Seoul',
     fName: 'ชื่อสถานที่ *', fDesc: 'รายละเอียด', fCat: 'หมวดหมู่', fDur: 'ระยะเวลา (นาที)',
     fAddr: 'ที่อยู่', fFee: 'ค่าเข้าชม', fTransport: 'วิธีเดินทาง', fIcon: 'ไอคอน Emoji', fCity: 'เมือง',
@@ -49,7 +55,7 @@ const LANG_STRINGS = {
     nearby: 'Nearby Suggestions', nearbyEmpty: 'Add places to your plan\nand we\'ll suggest nearby spots',
     mobPlan: 'Plan', mobPlaces: 'Places', mobNearby: 'Nearby', mobExport: 'Export',
     close: 'Close', cancel: 'Cancel', save: 'Save Place', addToDay: 'Add to Day:',
-    addNew: 'Add New Place', tabManual: '✏️ Manual', tabAI: '🤖 AI Suggest', tabGmaps: '📍 Google Maps',
+    addNew: 'Add New Place', tabManual: '✏️ Manual', tabAI: '🤖 AI Suggest', tabGmaps: '📍 Google Maps', tabJson: '📋 Import JSON',
     osmSearch: '🔍 Search Place (OpenStreetMap)', osmBtn: 'Find GPS', osmPh: 'Type place name e.g. Gyeongbokgung Palace Seoul',
     fName: 'Place Name *', fDesc: 'Description', fCat: 'Category', fDur: 'Duration (min)',
     fAddr: 'Address', fFee: 'Entry Fee', fTransport: 'Getting There', fIcon: 'Emoji Icon', fCity: 'City',
@@ -103,20 +109,6 @@ const COUNTRIES = [
   },
 ];
 
-const MOCK_LANDMARKS = {
-  bkk: [
-    { id: 1, name: 'วัดพระแก้ว (Wat Phra Kaew)', cat: 'วัด', dur: 120, icon: '🛕', desc: 'วัดคู่บ้านคู่เมืองของไทย', addr: 'Na Phra Lan Rd, Bangkok', lat: 13.7516, lng: 100.4927, fee: 'คนไทยเข้าฟรี / ต่างชาติ 500 บาท', transport: [{i: '🚇', t: 'MRT สนามไชย ทางออก 1'}] },
-    { id: 2, name: 'พระบรมมหาราชวัง (Grand Palace)', cat: 'พระราชวัง', dur: 120, icon: '🏰', desc: 'พระบรมมหาราชวังอันวิจิตร', addr: 'Na Phra Lan Rd, Bangkok', lat: 13.7500, lng: 100.4913, fee: 'รวมกับวัดพระแก้ว', transport: [{i: '🚗', t: 'แท็กซี่ หรือเรือด่วนท่าช้าง'}] },
-    { id: 3, name: 'วัดอรุณฯ (Wat Arun)', cat: 'วัด', dur: 90, icon: '🛕', desc: 'พระปรางค์สีขาวโดดเด่นริมแม่น้ำเจ้าพระยา', addr: 'Wang Doem Rd, Bangkok', lat: 13.7437, lng: 100.4889, fee: 'คนไทยฟรี / ต่างชาติ 100 บาท', transport: [{i: '🛳', t: 'เรือข้ามฟากจากท่าเตียน'}] },
-    { id: 4, name: 'ตลาดนัดจตุจักร (Chatuchak Market)', cat: 'ช้อปปิ้ง', dur: 180, icon: '🛍', desc: 'ตลาดนัดสุดสัปดาห์ที่ใหญ่ที่สุด', addr: 'Kamphaeng Phet 2 Rd, Bangkok', lat: 13.7999, lng: 100.5508, fee: 'ฟรี', transport: [{i: '🚇', t: 'BTS หมอชิต / MRT สวนจตุจักร'}] },
-    { id: 5, name: 'สยามพารากอน (Siam Paragon)', cat: 'ช้อปปิ้ง', dur: 150, icon: '🛍', desc: 'ห้างสรรพสินค้าลักชูรีใจกลางกรุงเทพฯ', addr: 'Rama I Rd, Bangkok', lat: 13.7461, lng: 100.5348, fee: 'ฟรี', transport: [{i: '🚇', t: 'BTS สยาม'}] }
-  ],
-  sel: [
-    { id: 101, name: 'Gyeongbokgung Palace', cat: 'พระราชวัง', dur: 120, icon: '🏯', desc: 'The largest palace of the Joseon Dynasty.', addr: '161 Sajik-ro, Jongno-gu, Seoul', lat: 37.5796, lng: 126.9770, fee: '₩3,000 / Free in Hanbok', transport: [{i: '🚇', t: 'Subway Line 3 Gyeongbokgung Exit 5'}] },
-    { id: 102, name: 'Bukchon Hanok Village', cat: 'ย่าน', dur: 90, icon: '🏡', desc: 'Traditional Korean historic neighborhood.', addr: 'Gyeedong-gil, Jongno-gu, Seoul', lat: 37.5826, lng: 126.9836, fee: 'Free', transport: [{i: '🚇', t: 'Subway Line 3 Anguk Exit 2'}] },
-    { id: 103, name: 'N Seoul Tower', cat: 'วิวทิวทัศน์', dur: 120, icon: '🗼', desc: 'Observatory tower on Namsan Mountain.', addr: '105 Namsangongwon-gil, Yongsan-gu, Seoul', lat: 37.5512, lng: 126.9882, fee: '₩16,000', transport: [{i: '🚌', t: 'Namsan Shuttle Bus No. 01'}] }
-  ]
-};
 
 const DAY_COLORS = [
   { bg: "#EAF3DE", t: "#3B6D11", b: "#C0DD97", acc: "#639922" },
@@ -166,6 +158,7 @@ function TripBuilderApp() {
   const [hotel, setHotel] = useState('');
   
   const [itin, setItin] = useState({ 1: [], 2: [], 3: [] });
+  const [showMap, setShowMap] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCat, setFilterCat] = useState('__all__');
   
@@ -217,6 +210,9 @@ function TripBuilderApp() {
   const [fTransport, setFTransport] = useState('');
   const [fIcon, setFIcon] = useState('🏯');
   const [fCity, setFCity] = useState('bkk');
+  const [fGmapsUrl, setFGmapsUrl] = useState('');
+  const [fRating, setFRating] = useState('');
+  const [fPhotos, setFPhotos] = useState([]);
 
   // Editing states
   const [isEditing, setIsEditing] = useState(false);
@@ -232,6 +228,9 @@ function TripBuilderApp() {
   const [editIcon, setEditIcon] = useState('📍');
   const [editKeywords, setEditKeywords] = useState('');
   const [editSelectedImage, setEditSelectedImage] = useState('');
+  const [searchedPhotos, setSearchedPhotos] = useState([]);
+  const [searchingPhotos, setSearchingPhotos] = useState(false);
+  const [localCoverOverrides, setLocalCoverOverrides] = useState({});
   
   // AI suggest states
   const [aiSuggestQuery, setAiSuggestQuery] = useState('');
@@ -265,15 +264,22 @@ function TripBuilderApp() {
   };
 
   const getCoverImage = (place) => {
-    if (place.cover_image) return place.cover_image;
-    const cityKey = CITY_KEYWORDS[place.city_id || activeCity] || 'travel';
-    const englishMatch = place.name.match(/\(([^)]+)\)/);
-    let keyword = place.name;
-    if (englishMatch && englishMatch[1]) {
-      keyword = englishMatch[1];
-    }
-    const cleanKeyword = keyword.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, ',');
-    return `https://loremflickr.com/400/300/${cityKey},${cleanKeyword}/all`;
+    if (place && localCoverOverrides[place.id]) return localCoverOverrides[place.id];
+    if (place && place.cover_image) return place.cover_image;
+    const cityKey = place ? (CITY_KEYWORDS[place.city_id || activeCity] || 'travel') : 'travel';
+    return `https://loremflickr.com/400/300/${cityKey}`;
+  };
+
+  const findLandmarkGlobally = (id, cityId) => {
+    let found = landmarks.find(l => String(l.id) === String(id));
+    if (found) return found;
+    
+    const targetCity = cityId || activeCity;
+    const cityCustomList = customPlaces[targetCity] || [];
+    found = cityCustomList.find(l => String(l.id) === String(id));
+    if (found) return found;
+    
+    return null;
   };
 
   const handleOpenDetail = (place) => {
@@ -305,11 +311,55 @@ function TripBuilderApp() {
     setEditSelectedImage(place.cover_image || '');
   };
 
-  const saveEditedPlace = (editedPlace) => {
-    // 1. Update landmarks list
+  const handleStartEditing = async (place) => {
+    setIsEditing(true);
+    setSearchedPhotos([]);
+    setSearchingPhotos(true);
+    try {
+      const res = await fetch('/api/search-photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: `${place.name} ${getCityObj(place.city_id || activeCity)?.name || ''}`.trim() })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.photos && data.photos.length > 0) {
+          setSearchedPhotos(data.photos);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch photos:", e);
+    } finally {
+      setSearchingPhotos(false);
+    }
+  };
+
+  const saveEditedPlace = async (editedPlace) => {
+    // 1. Update landmarks list locally first
     setLandmarks(prev => prev.map(l => l.id === editedPlace.id ? editedPlace : l));
+
+    // 2. Sync edit to Google Sheets if connected and this is a custom place
+    if (googleSheets && editedPlace._custom) {
+      try {
+        await googleSheets.updateLandmark({
+          id: String(editedPlace.id),
+          name: editedPlace.name,
+          cat: editedPlace.cat,
+          icon: editedPlace.icon,
+          description: editedPlace.desc,
+          address: editedPlace.addr,
+          lat: editedPlace.lat,
+          lng: editedPlace.lng,
+          duration_min: editedPlace.dur,
+          fee: editedPlace.fee,
+          cover_image: editedPlace.cover_image
+        });
+      } catch (err) {
+        console.warn('Failed to update landmark in Google Sheets:', err);
+      }
+    }
     
-    // 2. Save to customPlaces in state and localStorage (fallback)
+    // 3. Save to customPlaces in state and localStorage (this triggers useEffect to sync with DB)
     const updatedCustom = { ...customPlaces };
     const cityId = editedPlace.city_id || activeCity;
     if (!updatedCustom[cityId]) updatedCustom[cityId] = [];
@@ -319,22 +369,13 @@ function TripBuilderApp() {
     setCustomPlaces(updatedCustom);
     localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: updatedCustom }));
 
-    // 3. Sync edit to Supabase if connected and this is a custom place
-    if (supabase && editedPlace._custom) {
-      supabase.from('landmarks').update({
-        name: editedPlace.name,
-        cat: editedPlace.cat,
-        icon: editedPlace.icon,
-        description: editedPlace.desc,
-        address: editedPlace.addr,
-        lat: editedPlace.lat,
-        lng: editedPlace.lng,
-        duration_min: editedPlace.dur,
-        fee: editedPlace.fee,
-        transport: editedPlace.transport,
-        cover_image: editedPlace.cover_image || null,
-      }).eq('id', String(editedPlace.id)).then(() => {});
-    }
+    // Save to local cover overrides to prevent Google Sheets sync deletions
+    try {
+      const localCovers = JSON.parse(localStorage.getItem('trip_builder_local_covers_v1') || '{}');
+      localCovers[editedPlace.id] = editedPlace.cover_image;
+      localStorage.setItem('trip_builder_local_covers_v1', JSON.stringify(localCovers));
+      setLocalCoverOverrides(prev => ({ ...prev, [editedPlace.id]: editedPlace.cover_image }));
+    } catch (_) {}
 
     // 3. Update itin state to reflect changes instantly on the days grid!
     const updatedItin = { ...itin };
@@ -436,14 +477,22 @@ function TripBuilderApp() {
       }
     } catch (_) {}
 
+    // Load local cover overrides
+    try {
+      const rawCovers = localStorage.getItem('trip_builder_local_covers_v1');
+      if (rawCovers) {
+        setLocalCoverOverrides(JSON.parse(rawCovers));
+      }
+    } catch (_) {}
+
     // Check initial user session & load plans
     const checkSession = async () => {
-      // Debug: log Supabase connection status
-      console.log('[TripBuilder] Supabase client:', supabase ? 'CONNECTED ✅' : 'NOT CONFIGURED ❌ (using Mock Mode)');
-      console.log('[TripBuilder] SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL || '(empty)');
+      // Debug: log Google Sheets connection status
+      console.log('[TripBuilder] Google Sheets client:', googleSheets ? 'CONNECTED ✅' : 'NOT CONFIGURED ❌ (using Mock Mode)');
+      console.log('[TripBuilder] GOOGLE_SCRIPT_URL:', process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_URL || '(empty)');
 
-      if (!supabase) {
-        // Fallback to local mock session if no Supabase configured
+      if (!googleSheets) {
+        // Fallback to local mock session if no Google Sheets configured
         console.warn('[TripBuilder] Running in LOCAL MOCK MODE - data will not sync across browsers!');
         try {
           const storedUser = localStorage.getItem('tb_mock_user');
@@ -461,12 +510,11 @@ function TripBuilderApp() {
       }
       
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) console.error('[TripBuilder] getSession error:', sessionError);
-        console.log('[TripBuilder] Session:', session ? `user=${session.user.email}` : 'no session');
-        if (session?.user) {
-          setUser(session.user);
-          loadCloudPlans(session.user.id);
+        const storedUser = localStorage.getItem('tb_sheet_user');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          loadCloudPlans(parsedUser.email);
         } else {
           loadGuestPlan();
         }
@@ -478,26 +526,7 @@ function TripBuilderApp() {
 
     checkSession();
 
-    // Listen for auth changes
-    let authListener = null;
-    if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-          loadCloudPlans(session.user.id);
-        } else {
-          setUser(null);
-          setPlansList([]);
-          setActivePlanId(null);
-          loadGuestPlan();
-        }
-      });
-      authListener = subscription;
-    }
-
-    return () => {
-      if (authListener) authListener.unsubscribe();
-    };
+    return () => {};
   }, []);
 
   const loadGuestPlan = () => {
@@ -566,20 +595,11 @@ function TripBuilderApp() {
     } catch (_) {}
   };
 
-  const loadCloudPlans = async (userId) => {
-    if (!supabase) return;
-    console.log('[TripBuilder] loadCloudPlans for userId:', userId);
+  const loadCloudPlans = async (email) => {
+    if (!googleSheets) return;
+    console.log('[TripBuilder] loadCloudPlans for email:', email);
     try {
-      const { data, error } = await supabase
-        .from('itineraries')
-        .select('*')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false });
-        
-      if (error) {
-        console.error('[TripBuilder] loadCloudPlans error:', error);
-        throw error;
-      }
+      const data = await googleSheets.getItineraries(email);
       console.log('[TripBuilder] Loaded', data?.length, 'cloud plans');
       
       const plans = data.map(item => ({
@@ -593,9 +613,12 @@ function TripBuilderApp() {
         hotel: item.hotel
       }));
       
+      // Sort by ID descending locally as fallback for ordering
+      plans.sort((a, b) => b.id.localeCompare(a.id));
+
       setPlansList(plans);
       
-      const lastActiveId = localStorage.getItem(`tb_active_plan_${userId}`);
+      const lastActiveId = localStorage.getItem(`tb_active_plan_${email}`);
       const activePlan = plans.find(p => p.id === lastActiveId) || plans[0];
       
       if (activePlan) {
@@ -606,17 +629,16 @@ function TripBuilderApp() {
         setStartTime(activePlan.time);
         setHotel(activePlan.hotel);
       } else {
-        await handleCreatePlanCloud('My Saved Plan 1', userId);
+        await handleCreatePlanCloud('My Saved Plan 1', email);
       }
     } catch (err) {
       console.warn('Failed to load cloud plans:', err.message);
     }
   };
 
-  const handleCreatePlanCloud = async (name, userId) => {
-    if (!supabase) return;
+  const handleCreatePlanCloud = async (name, email) => {
+    if (!googleSheets) return;
     const defaultPlan = {
-      user_id: userId,
       name: name,
       city_id: activeCity,
       country_id: activeCountry,
@@ -628,23 +650,17 @@ function TripBuilderApp() {
     };
     
     try {
-      const { data, error } = await supabase
-        .from('itineraries')
-        .insert([defaultPlan])
-        .select();
-        
-      if (error) throw error;
-      
-      if (data && data[0]) {
+      const res = await googleSheets.insertItinerary(email, defaultPlan);
+      if (res.success && res.id) {
         const newPlan = {
-          id: data[0].id,
-          name: data[0].name,
-          city_id: data[0].city_id,
-          itin: data[0].itin,
-          nDays: data[0].n_days,
-          start: data[0].start_date,
-          time: data[0].start_time,
-          hotel: data[0].hotel
+          id: res.id,
+          name: defaultPlan.name,
+          city_id: defaultPlan.city_id,
+          itin: defaultPlan.itin,
+          nDays: defaultPlan.n_days,
+          start: defaultPlan.start_date,
+          time: defaultPlan.start_time,
+          hotel: defaultPlan.hotel
         };
         setPlansList(prev => [newPlan, ...prev]);
         setActivePlanId(newPlan.id);
@@ -653,7 +669,7 @@ function TripBuilderApp() {
         setStartDate(newPlan.start);
         setStartTime(newPlan.time);
         setHotel(newPlan.hotel);
-        localStorage.setItem(`tb_active_plan_${userId}`, newPlan.id);
+        localStorage.setItem(`tb_active_plan_${email}`, newPlan.id);
       }
     } catch (err) {
       console.warn('Failed to create cloud plan:', err.message);
@@ -665,7 +681,7 @@ function TripBuilderApp() {
     if (!planName?.trim()) return;
     
     if (user) {
-      if (!supabase) {
+      if (!googleSheets) {
         const defaultPlanId = `plan_${Date.now()}`;
         const newPlan = {
           id: defaultPlanId,
@@ -690,7 +706,7 @@ function TripBuilderApp() {
         localStorage.setItem(`tb_mock_active_plan_${user.email}`, defaultPlanId);
         toast(activeLang === 'th' ? 'สร้างแผนใหม่สำเร็จ' : 'New plan created');
       } else {
-        await handleCreatePlanCloud(planName, user.id);
+        await handleCreatePlanCloud(planName, user.email);
         toast(activeLang === 'th' ? 'สร้างแผนใหม่สำเร็จ' : 'New plan created');
       }
     } else {
@@ -708,7 +724,7 @@ function TripBuilderApp() {
     if (!confirm(activeLang === 'th' ? 'ต้องการลบแผนเดินทางนี้ใช่หรือไม่?' : 'Delete this plan?')) return;
     
     if (user) {
-      if (!supabase) {
+      if (!googleSheets) {
         const updatedPlans = plansList.filter(p => p.id !== planId);
         setPlansList(updatedPlans);
         localStorage.setItem(`tb_mock_plans_${user.email}`, JSON.stringify(updatedPlans));
@@ -720,12 +736,7 @@ function TripBuilderApp() {
         toast(activeLang === 'th' ? 'ลบแผนสำเร็จ' : 'Plan deleted');
       } else {
         try {
-          const { error } = await supabase
-            .from('itineraries')
-            .delete()
-            .eq('id', planId);
-            
-          if (error) throw error;
+          await googleSheets.deleteItinerary(planId);
           
           const updatedPlans = plansList.filter(p => p.id !== planId);
           setPlansList(updatedPlans);
@@ -751,19 +762,22 @@ function TripBuilderApp() {
     if (!newName?.trim() || newName === plan.name) return;
     
     if (user) {
-      if (!supabase) {
+      if (!googleSheets) {
         const updatedPlans = plansList.map(p => p.id === planId ? { ...p, name: newName } : p);
         setPlansList(updatedPlans);
         localStorage.setItem(`tb_mock_plans_${user.email}`, JSON.stringify(updatedPlans));
         toast(activeLang === 'th' ? 'เปลี่ยนชื่อแผนสำเร็จ' : 'Plan renamed');
       } else {
         try {
-          const { error } = await supabase
-            .from('itineraries')
-            .update({ name: newName, updated_at: new Date().toISOString() })
-            .eq('id', planId);
-            
-          if (error) throw error;
+          await googleSheets.updateItinerary({
+            id: planId,
+            name: newName,
+            start_date: plan.start,
+            start_time: plan.time,
+            hotel: plan.hotel,
+            n_days: plan.nDays,
+            itin: plan.itin
+          });
           
           setPlansList(prev => prev.map(p => p.id === planId ? { ...p, name: newName } : p));
           toast(activeLang === 'th' ? 'เปลี่ยนชื่อแผนสำเร็จ' : 'Plan renamed');
@@ -787,10 +801,10 @@ function TripBuilderApp() {
     setHotel(plan.hotel || '');
     
     if (user) {
-      if (!supabase) {
+      if (!googleSheets) {
         localStorage.setItem(`tb_mock_active_plan_${user.email}`, planId);
       } else {
-        localStorage.setItem(`tb_active_plan_${user.id}`, planId);
+        localStorage.setItem(`tb_active_plan_${user.email}`, planId);
       }
     }
   };
@@ -806,7 +820,7 @@ function TripBuilderApp() {
     }
     setAuthLoading(true);
     
-    if (!supabase) {
+    if (!googleSheets) {
       try {
         const rawUsers = localStorage.getItem('tb_mock_users') || '[]';
         const users = JSON.parse(rawUsers);
@@ -836,14 +850,9 @@ function TripBuilderApp() {
     }
     
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: authEmail,
-        password: authPassword
-      });
-      if (error) throw error;
-      
-      if (data?.user) {
-        toast('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบได้ทันทีหากเปิดใช้งานการข้ามอีเมลยืนยัน');
+      const res = await googleSheets.signUp(authEmail, authPassword);
+      if (res.success) {
+        toast('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบได้ทันที');
         setAuthModalOpen(false);
         setAuthEmail('');
         setAuthPassword('');
@@ -863,7 +872,7 @@ function TripBuilderApp() {
     }
     setAuthLoading(true);
     
-    if (!supabase) {
+    if (!googleSheets) {
       try {
         const rawUsers = localStorage.getItem('tb_mock_users') || '[]';
         const users = JSON.parse(rawUsers);
@@ -890,18 +899,14 @@ function TripBuilderApp() {
     }
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: authEmail,
-        password: authPassword
-      });
-      if (error) throw error;
-      
-      if (data?.user) {
-        setUser(data.user);
+      const res = await googleSheets.signIn(authEmail, authPassword);
+      if (res.success && res.user) {
+        setUser(res.user);
+        localStorage.setItem('tb_sheet_user', JSON.stringify(res.user));
         setAuthModalOpen(false);
         setAuthEmail('');
         setAuthPassword('');
-        loadCloudPlans(data.user.id);
+        loadCloudPlans(res.user.email);
         toast('เข้าสู่ระบบสำเร็จ!');
       }
     } catch (err) {
@@ -912,7 +917,7 @@ function TripBuilderApp() {
   };
 
   const handleSignOut = async () => {
-    if (!supabase) {
+    if (!googleSheets) {
       localStorage.removeItem('tb_mock_user');
       setUser(null);
       setPlansList([]);
@@ -924,8 +929,7 @@ function TripBuilderApp() {
     }
     
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      localStorage.removeItem('tb_sheet_user');
       setUser(null);
       setPlansList([]);
       setActivePlanId(null);
@@ -948,73 +952,44 @@ function TripBuilderApp() {
 
   // Load landmarks when activeCity or customPlaces changes
   useEffect(() => {
-    let activeCityLandmarks = MOCK_LANDMARKS[activeCity] || [];
-    
-    // Mix in custom places created by user for this city (local fallback only)
     const customList = customPlaces[activeCity] || [];
-    
-    // Filter out mock landmarks that have been overridden/edited
-    const customIds = new Set(customList.map(p => p.id));
-    const filteredMock = activeCityLandmarks.filter(l => !customIds.has(l.id));
-    
-    // Set initial landmarks from local data (will be replaced by Supabase if connected)
-    setLandmarks([...filteredMock, ...customList]);
+    setLandmarks(customList);
 
     // Fetch from Supabase if connected
     const fetchLandmarks = async () => {
-      if (!supabase) return;
+      if (!googleSheets) return;
       setIsLoading(true);
       try {
-        // 1. Load public approved landmarks
-        const { data: publicData, error: publicError } = await supabase
-          .from('landmarks')
-          .select('*')
-          .eq('city_id', activeCity)
-          .eq('status', 'approved');
+        const email = user?.email || '';
+        const allData = await googleSheets.getLandmarks(activeCity, email);
 
-        if (publicError) throw publicError;
+        const mapItem = item => {
+          const localList = customPlaces[activeCity] || [];
+          const localItem = localList.find(p => String(p.id) === String(item.id));
+          return {
+            id: item.id,
+            name: item.name,
+            cat: item.cat || 'อื่นๆ',
+            dur: item.duration_min || 90,
+            icon: item.icon || '📍',
+            desc: item.description || '',
+            addr: item.address || '',
+            lat: item.lat ? parseFloat(item.lat) : null,
+            lng: item.lng ? parseFloat(item.lng) : null,
+            fee: item.fee || '',
+            transport: item.transport || [],
+            cover_image: item.cover_image || (localItem ? localItem.cover_image : null),
+            names: item.names || {},
+            descriptions: item.descriptions || {},
+            city_id: item.city_id,
+            _custom: item.status === 'user_custom'
+          };
+        };
 
-        // 2. Load this user's custom places (if logged in)
-        let userCustomData = [];
-        const { data: { session } } = await supabase.auth.getSession();
-        const isLoggedIn = !!session?.user;
+        const isLoggedIn = !!user;
         if (isLoggedIn) {
-          const { data: uData } = await supabase
-            .from('landmarks')
-            .select('*')
-            .eq('city_id', activeCity)
-            .eq('status', 'user_custom')
-            .eq('user_id', session.user.id);
-          userCustomData = uData || [];
-        }
-
-        const allData = [...(publicData || []), ...userCustomData];
-
-        const mapItem = item => ({
-          id: item.id,
-          name: item.name,
-          cat: item.cat || 'อื่นๆ',
-          dur: item.duration_min || 90,
-          icon: item.icon || '📍',
-          desc: item.description || '',
-          addr: item.address || '',
-          lat: item.lat ? parseFloat(item.lat) : null,
-          lng: item.lng ? parseFloat(item.lng) : null,
-          fee: item.fee || '',
-          transport: item.transport || [],
-          cover_image: item.cover_image || null,
-          names: item.names || {},
-          descriptions: item.descriptions || {},
-          city_id: item.city_id,
-          _custom: item.status === 'user_custom'
-        });
-
-        if (isLoggedIn) {
-          // Logged-in: use ONLY Supabase data (public + user's own custom)
-          // Clear stale local custom places so duplicates don't appear
           if (allData.length > 0) {
             setLandmarks(allData.map(mapItem));
-            // Wipe stale localStorage custom places for this city only if they exist to prevent infinite loop
             setCustomPlaces(prev => {
               if (!prev[activeCity] || prev[activeCity].length === 0) return prev;
               const cleaned = { ...prev };
@@ -1026,14 +1001,13 @@ function TripBuilderApp() {
             });
           }
         } else {
-          // Guest: merge Supabase approved with local custom places
-          const supaIds = new Set(allData.map(d => String(d.id)));
-          const localOnlyCustom = customList.filter(p => !supaIds.has(String(p.id)));
+          const sheetIds = new Set(allData.map(d => String(d.id)));
+          const localOnlyCustom = customList.filter(p => !sheetIds.has(String(p.id)));
           const merged = [...allData.map(mapItem), ...localOnlyCustom];
           if (merged.length > 0) setLandmarks(merged);
         }
       } catch (err) {
-        console.warn('Failed to load from Supabase:', err.message);
+        console.warn('Failed to load from Google Sheets:', err.message);
       } finally {
         setIsLoading(false);
       }
@@ -1057,7 +1031,7 @@ function TripBuilderApp() {
     } catch (_) {}
 
     if (user && activePlanId && activePlanId !== 'guest') {
-      if (!supabase) {
+      if (!googleSheets) {
         const updatedPlans = plansList.map(p => {
           if (p.id === activePlanId) {
             return {
@@ -1075,17 +1049,14 @@ function TripBuilderApp() {
         localStorage.setItem(`tb_mock_plans_${user.email}`, JSON.stringify(updatedPlans));
       } else {
         try {
-          await supabase
-            .from('itineraries')
-            .update({
-              itin: newItin,
-              n_days: newNDays,
-              start_date: startDate,
-              start_time: startTime,
-              hotel: hotel,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', activePlanId);
+          await googleSheets.updateItinerary({
+            id: activePlanId,
+            itin: newItin,
+            n_days: newNDays,
+            start_date: startDate,
+            start_time: startTime,
+            hotel: hotel
+          });
           
           setPlansList(prev => prev.map(p => {
             if (p.id === activePlanId) {
@@ -1162,6 +1133,8 @@ function TripBuilderApp() {
       dur: place.dur || 90,
       icon: place.icon,
       city_id: place.city_id || activeCity,
+      cover_image: place.cover_image || null,
+      photos: place.photos || [],
       names: place.names || {},
       lat: place.lat,
       lng: place.lng
@@ -1336,48 +1309,80 @@ function TripBuilderApp() {
   };
 
   // ─── GOOGLE MAPS LINK PARSER ────────────────────────────────────────
-  const parseGmaps = () => {
+  const parseGmaps = async () => {
     if (!gmapsUrl.trim()) return;
-    let lat = null, lng = null, name = '';
-    
-    const m1 = gmapsUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-    if (m1) {
-      lat = parseFloat(m1[1]);
-      lng = parseFloat(m1[2]);
-    }
-    const m2 = gmapsUrl.match(/place\/([^/@?]+)/);
-    if (m2) {
-      name = decodeURIComponent(m2[1].replace(/\+/g, ' ')).replace(/\//g, '').trim();
-    }
-    const m3 = gmapsUrl.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
-    if (m3 && !lat) {
-      lat = parseFloat(m3[1]);
-      lng = parseFloat(m3[2]);
-    }
-    const m4 = gmapsUrl.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
-    if (m4 && !lat) {
-      lat = parseFloat(m4[1]);
-      lng = parseFloat(m4[2]);
-    }
-    const m5 = gmapsUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
-    if (m5 && !lat) {
-      lat = parseFloat(m5[1]);
-      lng = parseFloat(m5[2]);
-    }
 
-    if (lat && lng) {
-      setGmapsResult({ name, lat, lng });
-    } else {
+    setGmapsResult(null); // Clear previous result
+    try {
+      const res = await fetch('/api/resolve-gmaps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: gmapsUrl.trim() })
+      });
+      const data = await res.json();
+      if (data.lat && data.lng) {
+        setGmapsResult({ 
+          name: data.name, 
+          lat: data.lat, 
+          lng: data.lng,
+          address: data.address,
+          category: data.category,
+          icon: data.icon,
+          rating: data.rating,
+          gmaps_url: data.finalUrl || gmapsUrl.trim(),
+          photos: data.photos || []
+        });
+      } else {
+        setGmapsResult({ error: true });
+      }
+    } catch (e) {
       setGmapsResult({ error: true });
     }
   };
 
-  const fillFromMaps = (name, lat, lng) => {
+  const fillFromMaps = (name, lat, lng, address = '', category = 'อื่นๆ', icon = '📍', gmapsUrl = '', rating = null, photos = []) => {
     setActiveAddTab('manual');
     setFName(name || 'สถานที่จาก Google Maps');
     setFLat(lat);
     setFLng(lng);
-    toast('ดึง GPS จาก Google Maps สำเร็จ!');
+    if (address) setFAddr(address);
+    if (category) setFCat(category);
+    if (icon) setFIcon(icon);
+    if (gmapsUrl) setFGmapsUrl(gmapsUrl);
+    setFRating(rating ? String(rating) : '');
+    setFPhotos(photos || []);
+
+    // Auto-detect closest city based on coordinates
+    const cityCoords = {
+      bkk: [13.7563, 100.5018],
+      cnx: [18.7883, 98.9853],
+      hkt: [7.8804, 98.3922],
+      ptt: [12.9236, 100.8824],
+      aya: [14.3532, 100.5681],
+      sel: [37.5665, 126.9780],
+      bus: [35.1796, 129.0756],
+      jej: [33.4996, 126.5312],
+      tky: [35.6762, 139.6503],
+      kyo: [35.0116, 135.7681],
+      osk: [34.6937, 135.5023],
+    };
+
+    if (lat && lng) {
+      let closestCity = 'bkk';
+      let minDistance = Infinity;
+      Object.entries(cityCoords).forEach(([cityId, coords]) => {
+        const dy = coords[0] - parseFloat(lat);
+        const dx = coords[1] - parseFloat(lng);
+        const dist = dy * dy + dx * dx;
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestCity = cityId;
+        }
+      });
+      setFCity(closestCity);
+    }
+
+    toast('ดึงข้อมูลจาก Google Maps สำเร็จ!');
   };
 
   // ─── SAVE NEW CUSTOM PLACE ──────────────────────────────────────────
@@ -1401,15 +1406,18 @@ function TripBuilderApp() {
       fee: fFee,
       transport: fTransport ? [{ i: '🚇', t: fTransport }] : [],
       city_id: fCity,
+      gmaps_url: fGmapsUrl || null,
+      rating: fRating ? parseFloat(fRating) : null,
+      cover_image: fPhotos.length > 0 ? fPhotos[0] : null,
+      photos: fPhotos || [],
       _custom: true
     };
 
-    // Save to Supabase first (if connected + logged in) to get a stable id
-    if (supabase && user) {
+    // Save to Google Sheets first (if connected + logged in) to get a stable id
+    if (googleSheets && user) {
       try {
-        const { data: sbData, error: sbErr } = await supabase.from('landmarks').insert([{
+        const res = await googleSheets.insertLandmark(user.email, {
           id: String(localId),
-          user_id: user.id,
           name: localPlace.name,
           cat: localPlace.cat,
           icon: localPlace.icon,
@@ -1421,12 +1429,12 @@ function TripBuilderApp() {
           duration_min: localPlace.dur,
           fee: localPlace.fee,
           transport: localPlace.transport,
-          status: 'user_custom'
-        }]).select();
-        if (sbErr) throw sbErr;
-        if (sbData?.[0]) localPlace.id = sbData[0].id; // use Supabase id
+          status: 'user_custom',
+          cover_image: localPlace.cover_image
+        });
+        if (res.success && res.id) localPlace.id = res.id;
       } catch (err) {
-        console.warn('Failed to save custom place to Supabase:', err.message);
+        console.warn('Failed to save custom place to Google Sheets:', err.message);
       }
     }
 
@@ -1450,6 +1458,9 @@ function TripBuilderApp() {
     setOsmResults([]);
     setGmapsUrl('');
     setGmapsResult(null);
+    setFGmapsUrl('');
+    setFRating('');
+    setFPhotos([]);
     setAddModalOpen(false);
 
     toast(`✅ เพิ่ม "${fName}" แล้ว`);
@@ -1495,15 +1506,16 @@ function TripBuilderApp() {
       fee: p.fee || '',
       transport: p.transport ? [{ i: '🚇', t: p.transport }] : [],
       city_id: targetCity,
+      cover_image: p.cover_image || (p.photos && p.photos.length > 0 ? p.photos[0] : null),
+      photos: p.photos || [],
       _custom: true
     };
 
-    // Save to Supabase if logged in
-    if (supabase && user) {
+    // Save to Google Sheets if logged in
+    if (googleSheets && user) {
       try {
-        const { data: sbData } = await supabase.from('landmarks').insert([{
+        const res = await googleSheets.insertLandmark(user.email, {
           id: String(localId),
-          user_id: user.id,
           name: aiPlace.name,
           cat: aiPlace.cat,
           icon: aiPlace.icon,
@@ -1515,11 +1527,12 @@ function TripBuilderApp() {
           duration_min: aiPlace.dur,
           fee: aiPlace.fee,
           transport: aiPlace.transport,
-          status: 'user_custom'
-        }]).select();
-        if (sbData?.[0]) aiPlace.id = sbData[0].id;
+          status: 'user_custom',
+          cover_image: aiPlace.cover_image
+        });
+        if (res.success && res.id) aiPlace.id = res.id;
       } catch (err) {
-        console.warn('Failed to save AI place to Supabase:', err.message);
+        console.warn('Failed to save AI place to Google Sheets:', err.message);
       }
     }
 
@@ -1645,6 +1658,7 @@ function TripBuilderApp() {
   };
 
   const toT = (m) => {
+    if (isNaN(m)) return '--:--';
     const h = Math.floor(m / 60) % 24;
     return `${String(h).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   };
@@ -1803,153 +1817,165 @@ function TripBuilderApp() {
     <>
       {/* ─── TOPBAR ─────────────────────────────────────────────────── */}
       <div className="topbar">
-        <div className="logo">
-          <div className="logo-dot"></div>
-          Trip Builder
-        </div>
-        <div className="topbar-sep" />
-        
-        {/* Country buttons */}
-        <div className="country-row">
-          {COUNTRIES.map(c => (
-            <button
-              key={c.id}
-              className={`country-btn ${activeCountry === c.id ? 'active' : ''}`}
-              style={activeCountry === c.id ? { background: getCityObj(activeCity)?.color || '#1D9E75' } : {}}
-              onClick={() => handleCountrySelect(c.id)}
-            >
-              {c.flag} {c.name}
-            </button>
-          ))}
-        </div>
-        
-        <div className="topbar-sep" />
-
-        {/* City buttons */}
-        <div className="city-row">
-          {(COUNTRIES.find(c => c.id === activeCountry)?.cities || []).map(c => (
-            <button
-              key={c.id}
-              className={`city-btn ${activeCity === c.id ? 'active' : ''}`}
-              style={activeCity === c.id ? { background: c.color, borderColor: c.color } : {}}
-              onClick={() => {
-                setActiveCity(c.id);
-                setFilterCat('__all__');
-              }}
-            >
-              {c.emoji} {c.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Topbar Actions */}
-        <div className="topbar-actions">
-          <select
-            className="lang-select"
-            value={activeLang}
-            onChange={(e) => {
-              setActiveLang(e.target.value);
-              localStorage.setItem('tb_lang', e.target.value);
-            }}
-            title="Language"
-          >
-            <option value="th">🇹🇭 ไทย</option>
-            <option value="en">🇬🇧 EN</option>
-          </select>
+        <div className="topbar-main-row">
+          <div className="logo">
+            <div className="logo-dot"></div>
+            Trip Builder
+          </div>
           
-          <div style={{ display: 'flex', gap: '2px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '9px', padding: '2px' }}>
-            <button className={`theme-mode-btn ${theme === 'clean' ? 'active' : ''}`} onClick={() => setTheme('clean')} title="Clean">☀</button>
-            <button className={`theme-mode-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title="Dark">🌙</button>
-            <button className={`theme-mode-btn ${theme === 'colorful' ? 'active' : ''}`} onClick={() => setTheme('colorful')} title="Colorful">🎨</button>
-          </div>
+          {/* Topbar Actions */}
+          <div className="topbar-actions">
+            <select
+              className="lang-select"
+              value={activeLang}
+              onChange={(e) => {
+                setActiveLang(e.target.value);
+                localStorage.setItem('tb_lang', e.target.value);
+              }}
+              title="Language"
+            >
+              <option value="th">🇹🇭 ไทย</option>
+              <option value="en">🇬🇧 EN</option>
+            </select>
+            
+            <div className="theme-toggle-container" style={{ display: 'flex', gap: '2px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '9px', padding: '2px' }}>
+              <button className={`theme-mode-btn ${theme === 'clean' ? 'active' : ''}`} onClick={() => setTheme('clean')} title="Clean">☀</button>
+              <button className={`theme-mode-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title="Dark">🌙</button>
+              <button className={`theme-mode-btn ${theme === 'colorful' ? 'active' : ''}`} onClick={() => setTheme('colorful')} title="Colorful">🎨</button>
+            </div>
 
-          <button className="btn btn-ghost btn-sm" onClick={clearAll}>{t('clear')}</button>
-          <button className="btn btn-primary btn-sm" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
+            <button className={`btn btn-sm ${showMap ? 'btn-primary' : 'btn-ghost'} topbar-map-btn`} onClick={() => setShowMap(!showMap)}>
+              <span className="map-btn-icon">🗺️</span>
+              <span className="map-btn-text"> {activeLang === 'th' ? 'แผนที่' : 'Map'}</span>
+            </button>
+            <button className="btn btn-ghost btn-sm topbar-clear-btn" onClick={clearAll}>{t('clear')}</button>
+            <button className="btn btn-primary btn-sm topbar-export-btn" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
 
-          {/* User Profile / Login Panel */}
-          <div className="user-menu-container">
-            {user ? (
-              <>
-                <div className="user-badge" onClick={() => setUserDropdownOpen(!userDropdownOpen)}>
-                  <div className="user-avatar">
-                    {user.email ? user.email.slice(0, 2).toUpperCase() : 'U'}
+            {/* User Profile / Login Panel */}
+            <div className="user-menu-container">
+              {user ? (
+                <>
+                  <div className="user-badge" onClick={() => setUserDropdownOpen(!userDropdownOpen)}>
+                    <div className="user-avatar">
+                      {user.email ? user.email.slice(0, 2).toUpperCase() : 'U'}
+                    </div>
+                    <span className="user-badge-name">{user.email ? user.email.split('@')[0] : 'Member'}</span>
+                    <span className="user-badge-arrow"> ▼</span>
                   </div>
-                  <span>{user.email ? user.email.split('@')[0] : 'Member'}</span>
-                  <span>▼</span>
-                </div>
-                
-                {userDropdownOpen && (
-                  <div className="user-dropdown" onClick={(e) => e.stopPropagation()}>
-                    <div className="dropdown-email">
-                      📧 {user.email}
-                    </div>
-                    
-                    <div className="plans-section-title">
-                      📂 {activeLang === 'th' ? 'แผนเดินทางของฉัน' : 'My Travel Plans'}
-                    </div>
-                    
-                    <div className="plans-list-container">
-                      {plansList.map(plan => {
-                        const isActive = activePlanId === plan.id;
-                        return (
-                          <div 
-                            key={plan.id} 
-                            className={`plan-item-row ${isActive ? 'active' : ''}`}
-                            onClick={() => loadActivePlan(plan.id)}
-                          >
-                            <span className="plan-item-info">
-                              {getCityObj(plan.city_id)?.emoji || '📍'} {plan.name} ({plan.nDays} วัน)
-                            </span>
-                            <div className="plan-item-actions">
-                              <button 
-                                className="plan-btn-mini rename" 
-                                title={activeLang === 'th' ? 'เปลี่ยนชื่อ' : 'Rename'}
-                                onClick={(e) => renamePlan(plan.id, e)}
-                              >
-                                ✏️
-                              </button>
-                              <button 
-                                className="plan-btn-mini" 
-                                title={activeLang === 'th' ? 'ลบ' : 'Delete'}
-                                onClick={(e) => deletePlan(plan.id, e)}
-                              >
-                                🗑️
-                              </button>
+                  
+                  {userDropdownOpen && (
+                    <div className="user-dropdown" onClick={(e) => e.stopPropagation()}>
+                      <div className="dropdown-email">
+                        📧 {user.email}
+                      </div>
+                      
+                      <div className="plans-section-title">
+                        📂 {activeLang === 'th' ? 'แผนเดินทางของฉัน' : 'My Travel Plans'}
+                      </div>
+                      
+                      <div className="plans-list-container">
+                        {plansList.map(plan => {
+                          const isActive = activePlanId === plan.id;
+                          return (
+                            <div 
+                              key={plan.id} 
+                              className={`plan-item-row ${isActive ? 'active' : ''}`}
+                              onClick={() => loadActivePlan(plan.id)}
+                            >
+                              <span className="plan-item-info">
+                                {getCityObj(plan.city_id)?.emoji || '📍'} {plan.name} ({plan.nDays} วัน)
+                              </span>
+                              <div className="plan-item-actions">
+                                <button 
+                                  className="plan-btn-mini rename" 
+                                  title={activeLang === 'th' ? 'เปลี่ยนชื่อ' : 'Rename'}
+                                  onClick={(e) => renamePlan(plan.id, e)}
+                                >
+                                  ✏️
+                                </button>
+                                <button 
+                                  className="plan-btn-mini" 
+                                  title={activeLang === 'th' ? 'ลบ' : 'Delete'}
+                                  onClick={(e) => deletePlan(plan.id, e)}
+                                >
+                                  🗑️
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
+                      
+                      <button 
+                        className="btn btn-ghost btn-sm" 
+                        style={{ width: '100%', justifyContent: 'center' }}
+                        onClick={createNewPlan}
+                      >
+                        ➕ {activeLang === 'th' ? 'สร้างแผนใหม่' : 'New Plan'}
+                      </button>
+                      
+                      <button 
+                        className="btn btn-primary btn-sm" 
+                        style={{ width: '100%', justifyContent: 'center', background: 'var(--red)', borderColor: 'var(--red)' }}
+                        onClick={handleSignOut}
+                      >
+                        🚪 {activeLang === 'th' ? 'ออกจากระบบ' : 'Sign Out'}
+                      </button>
                     </div>
-                    
-                    <button 
-                      className="btn btn-ghost btn-sm" 
-                      style={{ width: '100%', justifyContent: 'center' }}
-                      onClick={createNewPlan}
-                    >
-                      ➕ {activeLang === 'th' ? 'สร้างแผนใหม่' : 'New Plan'}
-                    </button>
-                    
-                    <button 
-                      className="btn btn-primary btn-sm" 
-                      style={{ width: '100%', justifyContent: 'center', background: 'var(--red)', borderColor: 'var(--red)' }}
-                      onClick={handleSignOut}
-                    >
-                      🚪 {activeLang === 'th' ? 'ออกจากระบบ' : 'Sign Out'}
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <button 
-                className="btn btn-ghost btn-sm" 
-                onClick={() => { setAuthMode('login'); setAuthModalOpen(true); }}
-                style={{ border: '1px solid var(--border)' }}
-              >
-                👤 {activeLang === 'th' ? 'เข้าสู่ระบบ' : 'Sign In'}
-              </button>
-            )}
+                  )}
+                </>
+              ) : (
+                <button 
+                  className="btn btn-ghost btn-sm topbar-signin-btn" 
+                  onClick={() => { setAuthMode('login'); setAuthModalOpen(true); }}
+                  style={{ border: '1px solid var(--border)' }}
+                >
+                  <span>👤</span>
+                  <span className="signin-btn-text"> {activeLang === 'th' ? 'เข้าสู่ระบบ' : 'Sign In'}</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        <div className="topbar-sep desktop-sep-1" />
+
+        <div className="topbar-sub-row">
+          {/* Country buttons */}
+          <div className="country-row">
+            {COUNTRIES.map(c => (
+              <button
+                key={c.id}
+                className={`country-btn ${activeCountry === c.id ? 'active' : ''}`}
+                style={activeCountry === c.id ? { background: getCityObj(activeCity)?.color || '#1D9E75' } : {}}
+                onClick={() => handleCountrySelect(c.id)}
+              >
+                {c.flag} {c.name}
+              </button>
+            ))}
+          </div>
+          
+          <div className="topbar-sep sub-sep" />
+
+          {/* City buttons */}
+          <div className="city-row">
+            {(COUNTRIES.find(c => c.id === activeCountry)?.cities || []).map(c => (
+              <button
+                key={c.id}
+                className={`city-btn ${activeCity === c.id ? 'active' : ''}`}
+                style={activeCity === c.id ? { background: c.color, borderColor: c.color } : {}}
+                onClick={() => {
+                  setActiveCity(c.id);
+                  setFilterCat('__all__');
+                }}
+              >
+                {c.emoji} {c.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="topbar-sep desktop-sep-2" />
       </div>
 
       {/* ─── MAIN LAYOUT ────────────────────────────────────────────── */}
@@ -2097,7 +2123,7 @@ function TripBuilderApp() {
 
           {/* Config row */}
           <div className="trip-bar">
-            <div className="cfg">
+            <div className="cfg cfg-start-date">
               <label>{t('startDate')}</label>
               <input
                 type="date"
@@ -2108,8 +2134,8 @@ function TripBuilderApp() {
                 }}
               />
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--muted)', alignSelf: 'flex-end', paddingBottom: '6px' }}>→</div>
-            <div className="cfg">
+            <div className="trip-bar-arrow">→</div>
+            <div className="cfg cfg-end-date">
               <label>{t('endDate')}</label>
               <input
                 type="date"
@@ -2121,7 +2147,7 @@ function TripBuilderApp() {
               />
             </div>
             <div className="trip-bar-divider" />
-            <div className="cfg">
+            <div className="cfg cfg-depart-time">
               <label>{t('departTime')}</label>
               <input
                 type="time"
@@ -2130,7 +2156,7 @@ function TripBuilderApp() {
               />
             </div>
             <div className="trip-bar-divider" />
-            <div className="cfg" style={{ flex: '1', minWidth: '140px' }}>
+            <div className="cfg cfg-hotel" style={{ flex: '1', minWidth: '140px' }}>
               <label>{t('hotel')}</label>
               <input
                 type="text"
@@ -2141,7 +2167,7 @@ function TripBuilderApp() {
               />
             </div>
             <div className="trip-bar-divider" />
-            <div className="cfg">
+            <div className="cfg cfg-num-days">
               <label>{t('numDays')}</label>
               <select
                 value={nDays}
@@ -2194,132 +2220,164 @@ function TripBuilderApp() {
             </div>
           </div>
 
-          {/* Day Columns */}
-          <div className="days-grid">
-            {Array(nDays).fill(0).map((_, i) => {
-              const day = i + 1;
-              const items = itin[day] || [];
-              const dayColor = DAY_COLORS[i % DAY_COLORS.length];
-              
-              // Calculate day duration
-              const totalMin = items.reduce((s, x) => s + x.dur, 0);
-              const hourCount = Math.floor(totalMin / 60);
-              const minCount = totalMin % 60;
-              const durationLabel = `${hourCount}h${minCount ? minCount + 'm' : ''}`;
-
-              let [sh, sm] = startTime.split(':').map(Number);
-              let currentTimeInMin = sh * 60 + sm;
-              let lunchAdded = false;
-
-              return (
-                <div className="day-col" key={day}>
-                  <div className="day-hd">
-                    <span className="day-lbl" style={{ background: dayColor.bg, color: dayColor.t, border: `1px solid ${dayColor.b}` }}>
-                      {t('dayLabel')} {day} · {getLocalDate(day)}
-                    </span>
-                    <span className="day-info">
-                      {items.length} · {durationLabel}
-                    </span>
-                  </div>
+          <div className={`builder-split-layout ${showMap ? 'has-map' : ''}`}>
+            <div className="days-grid-wrapper">
+              {/* Day Columns */}
+              <div className="days-grid">
+                {Array(nDays).fill(0).map((_, i) => {
+                  const day = i + 1;
+                  const items = itin[day] || [];
+                  const dayColor = DAY_COLORS[i % DAY_COLORS.length];
                   
-                  <div
-                    className="day-zone drop-zone"
-                    onDragOver={(e) => handleDragOver(e, day)}
-                    onDrop={(e) => handleDrop(e, day)}
-                    data-day={day}
-                  >
-                    {items.length > 0 ? (
-                      items.map((item, idx) => {
-                        // Render travel separation between items
-                        const isLastAdded = lastId === item.id && lastDay === day;
-                        const cityObj = getCityObj(item.city_id) || { emoji: '📍', name: '', light: '#E1F5EE', dark: '#0F6E56' };
+                  // Calculate day duration
+                  const totalMin = items.reduce((s, x) => s + x.dur, 0);
+                  const hourCount = Math.floor(totalMin / 60);
+                  const minCount = totalMin % 60;
+                  const durationLabel = `${hourCount}h${minCount ? minCount + 'm' : ''}`;
 
-                        const htmlElements = [];
+                  let [sh, sm] = (startTime || '09:00').split(':').map(Number);
+                  if (isNaN(sh) || isNaN(sm)) {
+                    sh = 9;
+                    sm = 0;
+                  }
+                  let currentTimeInMin = sh * 60 + sm;
+                  let lunchAdded = false;
 
-                        // Inject Lunch time placeholder
-                        if (!lunchAdded && currentTimeInMin >= 12 * 60 && idx > 0) {
-                          htmlElements.push(
-                            <div className="travel-row" key={`lunch_${idx}`}>
-                              <div className="tline" />
-                              <span className="tlabel">🍽 90m พักกลางวัน</span>
-                              <div className="tline" />
-                            </div>
-                          );
-                          currentTimeInMin += 90;
-                          lunchAdded = true;
-                        }
-
-                        // Inject Travel separation placeholder
-                        if (idx > 0) {
-                          htmlElements.push(
-                            <div className="travel-row" key={`travel_${idx}`}>
-                              <div className="tline" />
-                              <span className="tlabel">🚗 20m เดินทาง</span>
-                              <div className="tline" />
-                            </div>
-                          );
-                          currentTimeInMin += 20;
-                        }
-
-                        const startT = toT(currentTimeInMin);
-                        const endT = toT(currentTimeInMin + item.dur);
-                        currentTimeInMin += item.dur;
-
-                        htmlElements.push(
-                          <div
-                            key={item.itinId || `${item.id}_${day}_${idx}`}
-                            className={`it-item ${isLastAdded ? 'last-added' : ''}`}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, item, day, idx)}
-                            style={{ padding: 0 }}
-                          >
-                            <div className="it-cover-strip">
-                              <img src={getCoverImage(item)} alt="" />
-                              <span className="it-cover-icon">{item.icon}</span>
-                            </div>
-                            <div style={{ padding: '6px 8px' }}>
-                              <div className="it-top">
-                                <div className="it-name" onClick={() => handleOpenDetail(landmarks.find(l => l.id === item.id) || item)}>
-                                  {(item.names && item.names[activeLang]) || item.name}
-                                </div>
-                                <div className="it-actions">
-                                  {idx > 0 && <button className="mvbtn" onClick={() => moveItinItem(day, idx, -1)}>↑</button>}
-                                  {idx < items.length - 1 && <button className="mvbtn" onClick={() => moveItinItem(day, idx, 1)}>↓</button>}
-                                  <button className="xbtn" onClick={() => removeItinItem(day, idx)}>✕</button>
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0' }}>
-                                <div className="it-time">{startT} – {endT}</div>
-                                <button
-                                  className="it-dur-badge"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    promptEditDuration(day, idx, item);
-                                  }}
-                                  title={activeLang === 'th' ? 'แก้ไขเวลาเที่ยว' : 'Edit Visit Duration'}
-                                >
-                                  ⏱ {item.dur}m
-                                </button>
-                              </div>
-                              <span className="it-chip" style={{ background: cityObj.light, color: cityObj.dark }}>
-                                {cityObj.emoji} {cityObj.name}
-                              </span>
-                            </div>
-                          </div>
-                        );
-
-                        return htmlElements;
-                      })
-                    ) : (
-                      <div className="zone-empty">
-                        <div className="zone-empty-icon">✈</div>
-                        <span>{t('dragHere')}</span>
+                  return (
+                    <div className="day-col" key={day}>
+                      <div className="day-hd">
+                        <span className="day-lbl" style={{ background: dayColor.bg, color: dayColor.t, border: `1px solid ${dayColor.b}` }}>
+                          {t('dayLabel')} {day} · {getLocalDate(day)}
+                        </span>
+                        <span className="day-info">
+                          {items.length} · {durationLabel}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                      
+                      <div
+                        className="day-zone drop-zone"
+                        onDragOver={(e) => handleDragOver(e, day)}
+                        onDrop={(e) => handleDrop(e, day)}
+                        data-day={day}
+                      >
+                        {items.length > 0 ? (
+                          items.map((item, idx) => {
+                            // Render travel separation between items
+                            const isLastAdded = lastId === item.id && lastDay === day;
+                            const cityObj = getCityObj(item.city_id) || { emoji: '📍', name: '', light: '#E1F5EE', dark: '#0F6E56' };
+
+                            const htmlElements = [];
+
+                            // Inject Lunch time placeholder
+                            if (!lunchAdded && currentTimeInMin >= 12 * 60 && idx > 0) {
+                              htmlElements.push(
+                                <div className="travel-row" key={`lunch_${idx}`}>
+                                  <div className="tline" />
+                                  <span className="tlabel">🍽 90m พักกลางวัน</span>
+                                  <div className="tline" />
+                                </div>
+                              );
+                              currentTimeInMin += 90;
+                              lunchAdded = true;
+                            }
+
+                            // Inject Travel separation placeholder
+                            if (idx > 0) {
+                              htmlElements.push(
+                                <div className="travel-row" key={`travel_${idx}`}>
+                                  <div className="tline" />
+                                  <span className="tlabel">🚗 20m เดินทาง</span>
+                                  <div className="tline" />
+                                </div>
+                              );
+                              currentTimeInMin += 20;
+                            }
+
+                            const startT = toT(currentTimeInMin);
+                            const endT = toT(currentTimeInMin + item.dur);
+                            currentTimeInMin += item.dur;
+                            const actualLandmark = findLandmarkGlobally(item.id, item.city_id) || item;
+
+                            htmlElements.push(
+                              <div
+                                key={item.itinId || `${item.id}_${day}_${idx}`}
+                                className={`it-item ${isLastAdded ? 'last-added' : ''}`}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, item, day, idx)}
+                                style={{ padding: 0 }}
+                              >
+                                <div className="it-cover-strip">
+                                  <img src={getCoverImage(actualLandmark)} alt="" />
+                                  <span className="it-cover-icon">{actualLandmark.icon}</span>
+                                </div>
+                                <div style={{ padding: '6px 8px' }}>
+                                  <div className="it-top">
+                                    <div className="it-name" onClick={() => handleOpenDetail(actualLandmark)}>
+                                      {(actualLandmark.names && actualLandmark.names[activeLang]) || actualLandmark.name}
+                                      {item.rating && <span style={{ color: '#EF9F27', fontSize: '9px', fontWeight: 'bold', marginLeft: '5px', whiteSpace: 'nowrap' }}>⭐ {item.rating}</span>}
+                                    </div>
+                                    <div className="it-actions">
+                                      {idx > 0 && <button className="mvbtn" onClick={() => moveItinItem(day, idx, -1)}>↑</button>}
+                                      {idx < items.length - 1 && <button className="mvbtn" onClick={() => moveItinItem(day, idx, 1)}>↓</button>}
+                                      <button className="xbtn" onClick={() => removeItinItem(day, idx)}>✕</button>
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0' }}>
+                                    <div className="it-time">{startT} – {endT}</div>
+                                    <button
+                                      className="it-dur-badge"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        promptEditDuration(day, idx, item);
+                                      }}
+                                      title={activeLang === 'th' ? 'แก้ไขเวลาเที่ยว' : 'Edit Visit Duration'}
+                                    >
+                                      ⏱ {item.dur}m
+                                    </button>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                                    <span className="it-chip" style={{ background: cityObj.light, color: cityObj.dark }}>
+                                      {cityObj.emoji} {cityObj.name}
+                                    </span>
+                                    <a
+                                      href={item.gmaps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((item.names && item.names[activeLang]) || item.name)}+${item.lat},${item.lng}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={activeLang === 'th' ? 'เปิดใน Google Maps' : 'Open in Google Maps'}
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '9px', color: 'var(--teal)', fontWeight: '600', textDecoration: 'underline' }}
+                                    >
+                                      🗺️ Maps
+                                    </a>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+
+                            return htmlElements;
+                          })
+                        ) : (
+                          <div className="zone-empty">
+                            <div className="zone-empty-icon">✈</div>
+                            <span>{t('dragHere')}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {showMap && (
+              <div className="map-sidebar-wrapper">
+                <MapComponent
+                  itin={itin}
+                  nDays={nDays}
+                  activeCity={activeCity}
+                  activeLang={activeLang}
+                />
+              </div>
+            )}
           </div>
         </main>
 
@@ -2505,48 +2563,62 @@ function TripBuilderApp() {
                   <div className="form-group">
                     <label className="form-label">เลือกรูปภาพที่ต้องการแสดง (คลิกเพื่อเลือก):</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '6px' }}>
-                      {[1, 2, 3, 4, 5, 6].map(lock => {
-                        const cityKey = CITY_KEYWORDS[selectedPlace.city_id || activeCity] || 'travel';
-                        const url = `https://loremflickr.com/400/300/${cityKey},${editKeywords || 'travel'}/all?lock=${lock}`;
-                        const isSelected = editSelectedImage === url;
+                      {searchingPhotos ? (
+                        <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '15px 0', fontSize: '12px', color: 'var(--muted)' }}>
+                          🔄 กำลังค้นหาภาพจริงของสถานที่...
+                        </div>
+                      ) : (() => {
+                        const placePhotos = (selectedPlace.photos && selectedPlace.photos.length > 0)
+                          ? selectedPlace.photos
+                          : searchedPhotos;
+                        const displayUrls = placePhotos.length > 0 
+                          ? placePhotos.slice(0, 6) 
+                          : [1, 2, 3, 4, 5, 6].map(lock => {
+                              const cityKey = CITY_KEYWORDS[selectedPlace.city_id || activeCity] || 'travel';
+                              return `https://loremflickr.com/400/300/${cityKey}?lock=${lock}`;
+                            });
 
-                        return (
-                          <div
-                            key={lock}
-                            onClick={() => setEditSelectedImage(url)}
-                            style={{
-                              position: 'relative',
-                              cursor: 'pointer',
-                              borderRadius: '8px',
-                              overflow: 'hidden',
-                              border: isSelected ? '3px solid var(--teal)' : '2px solid var(--border)',
-                              transform: isSelected ? 'scale(0.98)' : 'none',
-                              transition: 'all 0.15s'
-                            }}
-                          >
-                            <img src={url} alt="" style={{ width: '100%', height: '80px', objectFit: 'cover' }} />
-                            {isSelected && (
-                              <div style={{
-                                position: 'absolute',
-                                top: '4px',
-                                right: '4px',
-                                background: 'var(--teal)',
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: '18px',
-                                height: '18px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '10px',
-                                fontWeight: 'bold'
-                              }}>
-                                ✓
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                        return displayUrls.map((url, idx) => {
+                          const isSelected = editSelectedImage === url;
+
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => setEditSelectedImage(url)}
+                              style={{
+                                position: 'relative',
+                                cursor: 'pointer',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                border: isSelected ? '3px solid var(--teal)' : '2px solid var(--border)',
+                                transform: isSelected ? 'scale(0.98)' : 'none',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              <img src={url} alt="" style={{ width: '100%', height: '80px', objectFit: 'cover' }} />
+                              {isSelected && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '4px',
+                                  right: '4px',
+                                  background: 'var(--teal)',
+                                  color: 'white',
+                                  borderRadius: '50%',
+                                  width: '18px',
+                                  height: '18px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '10px',
+                                  fontWeight: 'bold'
+                                }}>
+                                  ✓
+                                </div>
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
 
@@ -2652,7 +2724,7 @@ function TripBuilderApp() {
                 </>
               ) : (
                 <>
-                  <button className="btn btn-ghost" style={{ marginRight: 'auto' }} onClick={() => setIsEditing(true)}>✏️ แก้ไขข้อมูล</button>
+                  <button className="btn btn-ghost" style={{ marginRight: 'auto' }} onClick={() => handleStartEditing(selectedPlace)}>✏️ แก้ไขข้อมูล</button>
                   <button className="btn btn-ghost" onClick={() => setSelectedPlace(null)}>{t('close')}</button>
                 </>
               )}
@@ -2675,6 +2747,7 @@ function TripBuilderApp() {
                 <button className={`tab-btn ${activeAddTab === 'manual' ? 'active' : ''}`} onClick={() => setActiveAddTab('manual')}>{t('tabManual')}</button>
                 <button className={`tab-btn ${activeAddTab === 'ai' ? 'active' : ''}`} onClick={() => setActiveAddTab('ai')}>{t('tabAI')}</button>
                 <button className={`tab-btn ${activeAddTab === 'gmaps' ? 'active' : ''}`} onClick={() => setActiveAddTab('gmaps')}>{t('tabGmaps')}</button>
+                <button className={`tab-btn ${activeAddTab === 'json' ? 'active' : ''}`} onClick={() => setActiveAddTab('json')}>{t('tabJson')}</button>
               </div>
 
               {/* MANUAL TAB */}
@@ -2732,8 +2805,10 @@ function TripBuilderApp() {
                         <option>พิพิธภัณฑ์</option>
                         <option>ธรรมชาติ</option>
                         <option>ช้อปปิ้ง</option>
+                        <option>ห้างสรรพสินค้า</option>
                         <option>ร้านอาหาร</option>
                         <option>คาเฟ่</option>
+                        <option>โรงแรม / ที่พัก</option>
                         <option>วิวทิวทัศน์</option>
                         <option>อื่นๆ</option>
                       </select>
@@ -2771,13 +2846,17 @@ function TripBuilderApp() {
                       <input className="form-input" value={fIcon} onChange={(e) => setFIcon(e.target.value)} maxLength={2} />
                     </div>
                     <div className="form-group">
-                      <div className="form-label">{t('fCity')}</div>
-                      <select className="form-input" value={fCity} onChange={(e) => setFCity(e.target.value)}>
-                        {COUNTRIES.flatMap(co => co.cities).map(ci => (
-                          <option key={ci.id} value={ci.id}>{ci.emoji} {ci.name}</option>
-                        ))}
-                      </select>
+                      <div className="form-label">{activeLang === 'th' ? 'คะแนนรีวิว (0 - 5)' : 'Rating (0 - 5)'}</div>
+                      <input className="form-input" type="number" min="0" max="5" step="0.1" value={fRating} onChange={(e) => setFRating(e.target.value)} placeholder="เช่น 4.5" />
                     </div>
+                  </div>
+                  <div className="form-group" style={{ marginTop: '10px' }}>
+                    <div className="form-label">{t('fCity')}</div>
+                    <select className="form-input" value={fCity} onChange={(e) => setFCity(e.target.value)}>
+                      {COUNTRIES.flatMap(co => co.cities).map(ci => (
+                        <option key={ci.id} value={ci.id}>{ci.emoji} {ci.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
@@ -2840,11 +2919,157 @@ function TripBuilderApp() {
                         <div className="info-box">
                           <div style={{ fontSize: '12px', fontWeight: '500' }}>{gmapsResult.name || 'สถานที่ดึงจาก Maps'}</div>
                           <div style={{ fontSize: '10px', color: 'var(--muted)' }}>GPS: {gmapsResult.lat.toFixed(5)}, {gmapsResult.lng.toFixed(5)}</div>
-                          <button className="btn btn-primary btn-sm" style={{ marginTop: '6px' }} onClick={() => fillFromMaps(gmapsResult.name, gmapsResult.lat, gmapsResult.lng)}>กรอกในฟอร์ม →</button>
+                          <button className="btn btn-primary btn-sm" style={{ marginTop: '6px' }} onClick={() => fillFromMaps(gmapsResult.name, gmapsResult.lat, gmapsResult.lng, gmapsResult.address, gmapsResult.category, gmapsResult.icon, gmapsResult.gmaps_url, gmapsResult.rating, gmapsResult.photos)}>กรอกในฟอร์ม →</button>
                         </div>
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* JSON IMPORT TAB */}
+              {activeAddTab === 'json' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: '1.4' }}>
+                    {activeLang === 'th' 
+                      ? 'วางข้อความ JSON ที่ได้จาก Google Maps Console Script ของคุณ เพื่อนำเข้าข้อมูลทั้งหมดทีเดียว:' 
+                      : 'Paste the JSON array extracted from Google Maps Console Script to import all places at once:'}
+                  </div>
+                  
+                  <div className="form-group">
+                    <div className="form-label">{activeLang === 'th' ? 'เลือกเมืองที่ต้องการนำเข้าสถานที่ *:' : 'Select Target City *:'}</div>
+                    <select className="form-input" id="bulk-import-city" defaultValue={activeCity}>
+                      {COUNTRIES.map(country => 
+                        country.cities.map(city => (
+                          <option key={city.id} value={city.id}>
+                            {country.flag} {city.emoji} {city.name} ({city.id})
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+
+                  <textarea
+                    className="form-input"
+                    rows={6}
+                    placeholder='[{"name": "APA HOTEL...", "address": "...", "lat": 35.69, "lng": 139.66}, ...]'
+                    id="bulk-json-input"
+                    style={{ fontFamily: 'monospace', fontSize: '11px' }}
+                  />
+                  <button 
+                    className="btn btn-primary"
+                    onClick={async () => {
+                      const input = document.getElementById('bulk-json-input');
+                      if (!input || !input.value.trim()) return;
+                      try {
+                        const parsed = JSON.parse(input.value.trim());
+                        if (!Array.isArray(parsed)) {
+                          toast(activeLang === 'th' ? 'ข้อมูลต้องอยู่ในรูปแบบ Array [ ... ]' : 'Data must be a JSON Array');
+                          return;
+                        }
+                        
+                        setAuthLoading(true);
+                        let successCount = 0;
+                        const targetCity = document.getElementById('bulk-import-city')?.value || activeCity;
+                        const customList = [...(customPlaces[targetCity] || [])];
+                        
+                        const landmarksToInsert = [];
+                        const placesObjList = [];
+                        
+                        for (let i = 0; i < parsed.length; i++) {
+                          const item = parsed[i];
+                          if (!item.name) continue;
+                          
+                          const localId = `lm_${Date.now()}_${Math.floor(Math.random() * 10000)}_${i}`;
+                          const placeObj = {
+                            id: localId,
+                            name: item.name,
+                            cat: 'อื่นๆ',
+                            dur: 90,
+                            icon: '📍',
+                            desc: item.description || item.address || '',
+                            addr: item.address || '',
+                            lat: item.lat ? parseFloat(item.lat) : null,
+                            lng: item.lng ? parseFloat(item.lng) : null,
+                            fee: '',
+                            transport: [],
+                            cover_image: null,
+                            names: {},
+                            descriptions: {},
+                            city_id: targetCity,
+                            _custom: true
+                          };
+                          
+                          placesObjList.push(placeObj);
+                          
+                          landmarksToInsert.push({
+                            id: String(localId),
+                            name: placeObj.name,
+                            cat: placeObj.cat,
+                            icon: placeObj.icon,
+                            city_id: placeObj.city_id,
+                            address: placeObj.addr,
+                            lat: placeObj.lat,
+                            lng: placeObj.lng,
+                            description: placeObj.desc,
+                            duration_min: placeObj.dur,
+                            fee: placeObj.fee,
+                            transport: placeObj.transport,
+                            status: 'user_custom'
+                          });
+                        }
+
+                        if (googleSheets && user && landmarksToInsert.length > 0) {
+                          try {
+                            const res = await googleSheets.bulkInsertLandmarks(user.email, landmarksToInsert);
+                            if (res.success) {
+                              successCount = landmarksToInsert.length;
+                            }
+                          } catch (err) {
+                            console.warn('Failed to save to Google Sheets:', err);
+                          }
+                        } else {
+                          successCount = landmarksToInsert.length;
+                        }
+
+                        if (successCount > 0) {
+                          const finalCustomList = [...customList, ...placesObjList];
+                          const updatedCustom = { ...customPlaces, [targetCity]: finalCustomList };
+                          setCustomPlaces(updatedCustom);
+                          localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: updatedCustom }));
+                          
+                          // Force refresh landmarks state if current active city matches
+                          if (targetCity === activeCity) {
+                            setLandmarks(prev => {
+                              const sheetIds = new Set(placesObjList.map(d => String(d.id)));
+                              const filteredPrev = prev.filter(p => !sheetIds.has(String(p.id)));
+                              return [...filteredPrev, ...placesObjList.map(item => ({
+                                ...item,
+                                dur: item.dur || 90,
+                                icon: item.icon || '📍',
+                                _custom: true
+                              }))];
+                            });
+                          }
+                        }
+                        
+                        toast(activeLang === 'th' ? `นำเข้าสำเร็จ ${successCount} รายการ! กรุณารอสักครู่ขณะระบบดึงข้อมูลใหม่...` : `Imported ${successCount} places! Refreshing...`);
+                        setAddModalOpen(false);
+                        
+                        if (googleSheets && user) {
+                          setTimeout(() => {
+                            window.location.reload();
+                          }, 1500);
+                        }
+                      } catch (e) {
+                        toast(activeLang === 'th' ? 'JSON ไม่ถูกต้อง: ' + e.message : 'Invalid JSON: ' + e.message);
+                      } finally {
+                        setAuthLoading(false);
+                      }
+                    }}
+                  >
+                    {activeLang === 'th' ? 'นำเข้าสถานที่ทั้งหมด' : 'Import All Places'}
+                  </button>
                 </div>
               )}
             </div>

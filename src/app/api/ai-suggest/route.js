@@ -65,7 +65,7 @@ export async function POST(req) {
     }
 
     const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-3.5-flash' });
 
     const prompt = `You are a helpful travel assistant.
 The user is asking: "${query}"
