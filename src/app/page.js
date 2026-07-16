@@ -575,9 +575,7 @@ function TripBuilderApp() {
     };
     
     setChecklist(prev => [...prev, newItem]);
-    if (typeof text !== 'string') {
-      setNewChecklistItem('');
-    }
+    setNewChecklistItem('');
     toast(activeLang === 'th' ? `➕ เพิ่มรายการเรียบร้อย` : `➕ Added checklist item`);
   };
 
