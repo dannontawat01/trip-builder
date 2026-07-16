@@ -54,7 +54,7 @@ const LANG_STRINGS = {
     checklistEmpty: 'ยังไม่มีรายการ ตรวจสอบหรือนำเข้าเทมเพลตเพื่อเริ่มต้น!',
     checklistCatDocuments: '📄 เอกสาร & การเงิน',
     checklistCatClothing: '👕 เสื้อผ้า & เครื่องแต่งกาย',
-    checklistCatToiletries: '🧴 อุปกรณ์อาบน้ำ & ยา',
+    checklistCatToiletries: '🧴 อุปกรณ์ของใช้ส่วนตัว & ยา',
     checklistCatElectronics: '🔌 อุปกรณ์ไอที / ไฟฟ้า',
     checklistCatOthers: '🎒 อื่นๆ',
   },
@@ -100,7 +100,7 @@ const LANG_STRINGS = {
     checklistEmpty: 'No items yet. Add or import templates!',
     checklistCatDocuments: '📄 Docs & Finance',
     checklistCatClothing: '👕 Clothing & Apparel',
-    checklistCatToiletries: '🧴 Toiletries & Meds',
+    checklistCatToiletries: '🧴 Personal Care',
     checklistCatElectronics: '🔌 Electronics',
     checklistCatOthers: '🎒 Others',
   }
@@ -221,36 +221,33 @@ const CITY_COVER_IMAGES = {
 const CHECKLIST_CATEGORIES = [
   { id: 'documents', label: { th: '📄 เอกสาร & การเงิน', en: '📄 Docs & Finance' }, color: '#378ADD' },
   { id: 'clothing', label: { th: '👕 เสื้อผ้า & เครื่องแต่งกาย', en: '👕 Clothing & Apparel' }, color: '#EF9F27' },
-  { id: 'toiletries', label: { th: '🧴 อุปกรณ์อาบน้ำ & ยา', en: '🧴 Toiletries & Meds' }, color: '#1D9E75' },
+  { id: 'toiletries', label: { th: '🧴 อุปกรณ์ของใช้ส่วนตัว & ยา', en: '🧴 Personal Care' }, color: '#1D9E75' },
   { id: 'electronics', label: { th: '🔌 อุปกรณ์ไอที / ไฟฟ้า', en: '🔌 Electronics' }, color: '#7F77DD' },
   { id: 'others', label: { th: '🎒 อื่นๆ', en: '🎒 Others' }, color: '#993556' }
 ];
 
 const CHECKLIST_TEMPLATES = {
   documents: [
-    { text: { th: 'หนังสือเดินทาง (Passport) / วีซ่า', en: 'Passport / Visa' } },
-    { text: { th: 'ตั๋วเครื่องบิน / ใบจองโรงแรม', en: 'Flight Tickets / Hotel Bookings' } },
-    { text: { th: 'เงินสด / บัตรเครดิต', en: 'Cash / Credit Cards' } },
-    { text: { th: 'ประกันการเดินทาง', en: 'Travel Insurance' } }
+    { text: { th: 'หนังสือเดินทาง (Passports)', en: 'Passports' } },
+    { text: { th: 'ตั๋วเครื่องบิน (Flight tickets)', en: 'Flight tickets' } },
+    { text: { th: 'ใบจองโรงแรม (Hotel reservations)', en: 'Hotel reservations' } },
+    { text: { th: 'เงินสด / บัตร (Cash/cards)', en: 'Cash/cards' } }
   ],
   clothing: [
-    { text: { th: 'เสื้อยืด / เสื้อเชิ้ต', en: 'T-Shirts / Shirts' } },
-    { text: { th: 'กางเกง / กระโปรง', en: 'Pants / Shorts / Skirts' } },
-    { text: { th: 'ชุดชั้นใน & ถุงเท้า', en: 'Underwear & Socks' } },
-    { text: { th: 'เสื้อกันหนาว / แจ็กเก็ต', en: 'Jacket / Outerwear' } },
-    { text: { th: 'รองเท้าเดินสบาย', en: 'Comfortable Walking Shoes' } }
+    { text: { th: 'ชุดชั้นใน (Underwear)', en: 'Underwear' } },
+    { text: { th: 'เสื้อกันหนาว / แจ็กเก็ต (Jackets)', en: 'Jackets' } },
+    { text: { th: 'เสื้อเชิ้ต / เสื้อยืด (Shirts)', en: 'Shirts' } },
+    { text: { th: 'รองเท้าเดินสบาย (Comfortable shoes)', en: 'Comfortable shoes' } }
   ],
   toiletries: [
-    { text: { th: 'แปรงสีฟัน & ยาสีฟัน', en: 'Toothbrush & Toothpaste' } },
-    { text: { th: 'สบู่ / แชมพู', en: 'Soap / Shampoo' } },
-    { text: { th: 'ครีมกันแดด', en: 'Sunscreen' } },
-    { text: { th: 'ยาสามัญประจำตัว', en: 'Personal Medications' } }
+    { text: { th: 'แปรงสีฟัน (Toothbrush)', en: 'Toothbrush' } },
+    { text: { th: 'ยาสามัญประจำตัว (Medicine)', en: 'Medicine' } },
+    { text: { th: 'อุปกรณ์อาบน้ำ (Toiletries)', en: 'Toiletries' } }
   ],
   electronics: [
-    { text: { th: 'สายชาร์จโทรศัพท์', en: 'Phone Charger' } },
-    { text: { th: 'พาวเวอร์แบงค์ (Power Bank)', en: 'Power Bank' } },
-    { text: { th: 'หัวแปลงปลั๊กไฟ (Universal Adapter)', en: 'Universal Travel Adapter' } },
-    { text: { th: 'กล้องถ่ายรูป', en: 'Camera' } }
+    { text: { th: 'สายชาร์จ / ที่ชาร์จ (Chargers)', en: 'Chargers' } },
+    { text: { th: 'หัวแปลงปลั๊กไฟ (Universal adapters)', en: 'Universal adapters' } },
+    { text: { th: 'พาวเวอร์แบงค์ (Power bank)', en: 'Power bank' } }
   ],
   others: [
     { text: { th: 'ร่ม / เสื้อกันฝน', en: 'Umbrella / Raincoat' } },
@@ -560,33 +557,37 @@ function TripBuilderApp() {
     setIsEditing(false);
   };
 
-  const handleAddChecklistItem = (e) => {
-    if (e) e.preventDefault();
-    if (!newChecklistItem.trim()) return;
+  const handleAddChecklistItem = (text, category) => {
+    const textVal = (typeof text === 'string') ? text : newChecklistItem;
+    const catVal = (typeof category === 'string') ? category : newChecklistCat;
+    
+    if (!textVal || !textVal.trim()) return;
     
     const newItem = {
-      id: `item_${Date.now()}`,
-      text: newChecklistItem.trim(),
-      category: newChecklistCat,
+      id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      text: textVal.trim(),
+      category: catVal,
       checked: false
     };
     
     setChecklist(prev => [...prev, newItem]);
-    setNewChecklistItem('');
+    if (typeof text !== 'string') {
+      setNewChecklistItem('');
+    }
     toast(activeLang === 'th' ? `➕ เพิ่มรายการเรียบร้อย` : `➕ Added checklist item`);
   };
 
-  const handleToggleChecklist = (itemId) => {
+  const handleToggleChecklistItem = (id) => {
     setChecklist(prev => prev.map(item => 
-      item.id === itemId ? { ...item, checked: !item.checked } : item
+      item.id === id ? { ...item, checked: !item.checked } : item
     ));
   };
 
-  const handleDeleteChecklist = (itemId) => {
-    setChecklist(prev => prev.filter(item => item.id !== itemId));
+  const handleDeleteChecklistItem = (id) => {
+    setChecklist(prev => prev.filter(item => item.id !== id));
   };
 
-  const importTemplate = (catId) => {
+  const handleImportTemplate = (type) => {
     const itemsToAdd = [];
     const existingTexts = checklist.map(item => item.text.toLowerCase());
     
@@ -605,12 +606,12 @@ function TripBuilderApp() {
       });
     };
 
-    if (catId === 'all') {
+    if (type === 'all') {
       Object.keys(CHECKLIST_TEMPLATES).forEach(cid => {
         addItemsFromCat(cid);
       });
     } else {
-      addItemsFromCat(catId);
+      addItemsFromCat(type);
     }
 
     if (itemsToAdd.length > 0) {
@@ -772,6 +773,7 @@ function TripBuilderApp() {
   const loadGuestPlan = () => {
     try {
       const raw = localStorage.getItem('trip_builder_itin_v1');
+      let loadedChecklist = [];
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed.nDays) setNDays(parsed.nDays);
@@ -782,17 +784,21 @@ function TripBuilderApp() {
           setItin(parsed.itin);
         }
         if (parsed.checklist) {
-          setChecklist(parsed.checklist);
-        } else {
-          setChecklist([]);
+          loadedChecklist = parsed.checklist;
         }
       } else {
         setItin({ 1: [], 2: [], 3: [] });
-        setChecklist([]);
         setNDays(3);
         setHotel('');
         setStartTime('09:00');
       }
+      try {
+        const localCheck = localStorage.getItem('checklist_guest') || localStorage.getItem('trip_builder_checklist_guest');
+        if (localCheck) {
+          loadedChecklist = JSON.parse(localCheck);
+        }
+      } catch (_) {}
+      setChecklist(loadedChecklist);
       setActivePlanId('guest');
     } catch (_) {
       setActivePlanId('guest');
@@ -811,7 +817,16 @@ function TripBuilderApp() {
       if (activePlan) {
         setActivePlanId(activePlan.id);
         setItin(activePlan.itin || { 1: [], 2: [], 3: [] });
-        setChecklist(activePlan.checklist || []);
+        
+        let loadedChecklist = activePlan.checklist || [];
+        try {
+          const localCheck = localStorage.getItem(`checklist_${activePlan.id}`) || localStorage.getItem(`trip_builder_checklist_${activePlan.id}`);
+          if (localCheck) {
+            loadedChecklist = JSON.parse(localCheck);
+          }
+        } catch (_) {}
+        setChecklist(loadedChecklist);
+        
         setNDays(activePlan.nDays || 3);
         setStartDate(activePlan.start || new Date().toISOString().split('T')[0]);
         setStartTime(activePlan.time || '09:00');
@@ -835,7 +850,16 @@ function TripBuilderApp() {
         
         setActivePlanId(defaultPlanId);
         setItin(newPlan.itin);
-        setChecklist(newPlan.checklist);
+        
+        let loadedChecklist = newPlan.checklist;
+        try {
+          const localCheck = localStorage.getItem(`checklist_${defaultPlanId}`) || localStorage.getItem(`trip_builder_checklist_${defaultPlanId}`);
+          if (localCheck) {
+            loadedChecklist = JSON.parse(localCheck);
+          }
+        } catch (_) {}
+        setChecklist(loadedChecklist);
+        
         setNDays(newPlan.nDays);
         setStartDate(newPlan.start);
         setStartTime(newPlan.time);
@@ -874,7 +898,16 @@ function TripBuilderApp() {
       if (activePlan) {
         setActivePlanId(activePlan.id);
         setItin(activePlan.itin);
-        setChecklist(activePlan.checklist);
+        
+        let loadedChecklist = activePlan.checklist;
+        try {
+          const localCheck = localStorage.getItem(`checklist_${activePlan.id}`) || localStorage.getItem(`trip_builder_checklist_${activePlan.id}`);
+          if (localCheck) {
+            loadedChecklist = JSON.parse(localCheck);
+          }
+        } catch (_) {}
+        setChecklist(loadedChecklist);
+        
         setNDays(activePlan.nDays);
         setStartDate(activePlan.start);
         setStartTime(activePlan.time);
@@ -1052,7 +1085,16 @@ function TripBuilderApp() {
     
     setActivePlanId(planId);
     setItin(plan.itin || { 1: [], 2: [], 3: [] });
-    setChecklist(plan.checklist || []);
+    
+    let loadedChecklist = plan.checklist || [];
+    try {
+      const localCheck = localStorage.getItem(`checklist_${planId}`) || localStorage.getItem(`trip_builder_checklist_${planId}`);
+      if (localCheck) {
+        loadedChecklist = JSON.parse(localCheck);
+      }
+    } catch (_) {}
+    setChecklist(loadedChecklist);
+    
     setNDays(plan.nDays || 3);
     setStartDate(plan.start || new Date().toISOString().split('T')[0]);
     setStartTime(plan.time || '09:00');
@@ -1351,6 +1393,16 @@ function TripBuilderApp() {
     }, 500);
     return () => clearTimeout(timer);
   }, [itin, nDays, startDate, startTime, hotel, checklist]);
+
+  // Sync checklist state to localStorage based on active plan ID
+  useEffect(() => {
+    if (activePlanId) {
+      try {
+        localStorage.setItem(`checklist_${activePlanId}`, JSON.stringify(checklist));
+        localStorage.setItem(`trip_builder_checklist_${activePlanId}`, JSON.stringify(checklist));
+      } catch (_) {}
+    }
+  }, [activePlanId, checklist]);
 
   // Sync dates from start/end input
   const handleDateSync = (startVal, endVal) => {
@@ -2738,7 +2790,7 @@ function TripBuilderApp() {
             ) : (
               <div>
                 {/* Form to add new item */}
-                <form onSubmit={handleAddChecklistItem} className="checklist-add-form">
+                <form onSubmit={(e) => { e.preventDefault(); handleAddChecklistItem(newChecklistItem, newChecklistCat); }} className="checklist-add-form">
                   <input 
                     type="text" 
                     value={newChecklistItem}
@@ -2769,7 +2821,7 @@ function TripBuilderApp() {
                     onChange={(e) => {
                       const val = e.target.value;
                       if (val) {
-                        importTemplate(val);
+                        handleImportTemplate(val);
                         setSelectedTemplate('');
                       }
                     }}
@@ -2808,14 +2860,14 @@ function TripBuilderApp() {
                                 <input 
                                   type="checkbox" 
                                   checked={item.checked} 
-                                  onChange={() => handleToggleChecklist(item.id)}
+                                  onChange={() => handleToggleChecklistItem(item.id)}
                                   className="checklist-checkbox"
                                   id={`checklist-checkbox-${item.id}`}
                                 />
                                 <span className="checklist-text">{item.text}</span>
                               </label>
                               <button 
-                                onClick={() => handleDeleteChecklist(item.id)} 
+                                onClick={() => handleDeleteChecklistItem(item.id)} 
                                 className="checklist-delete-btn"
                                 title={activeLang === 'th' ? 'ลบ' : 'Delete'}
                                 id={`checklist-delete-${item.id}`}
