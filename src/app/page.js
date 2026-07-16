@@ -389,6 +389,8 @@ function TripBuilderApp() {
   const dragOverDay = useRef();
   const dragIdx = useRef();
   const dragFromDay = useRef(); // Number or 'sidebar'
+  const lastActivePlanIdRef = useRef(activePlanId);
+
 
   const t = (key) => (LANG_STRINGS[activeLang] || LANG_STRINGS.en)[key] || key;
   const getCityObj = (cid) => COUNTRIES.flatMap(c => c.cities).find(c => c.id === cid) || null;
@@ -600,7 +602,7 @@ function TripBuilderApp() {
         const text = tItem.text[activeLang] || tItem.text.en;
         if (!existingTexts.includes(text.toLowerCase())) {
           itemsToAdd.push({
-            id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: generateChecklistId(),
             text: text,
             category: cid,
             checked: false
@@ -1400,6 +1402,10 @@ function TripBuilderApp() {
   // Sync checklist state to localStorage based on active plan ID
   useEffect(() => {
     if (activePlanId) {
+      if (lastActivePlanIdRef.current !== activePlanId) {
+        lastActivePlanIdRef.current = activePlanId;
+        return;
+      }
       try {
         localStorage.setItem(`checklist_${activePlanId}`, JSON.stringify(checklist));
         localStorage.setItem(`trip_builder_checklist_${activePlanId}`, JSON.stringify(checklist));

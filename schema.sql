@@ -83,3 +83,7 @@ CREATE POLICY "Allow individual update access" ON public.itineraries
 CREATE POLICY "Allow individual delete access" ON public.itineraries
     FOR DELETE USING (auth.uid() = user_id);
 
+-- Migration/Upgrade Helper (For existing installations before the Packing & Travel Checklist feature):
+-- ALTER TABLE public.itineraries ADD COLUMN IF NOT EXISTS checklist jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+
