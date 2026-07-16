@@ -2663,12 +2663,14 @@ function TripBuilderApp() {
             <button 
               className={`sidebar-tab-btn ${activeRightTab === 'nearby' ? 'active' : ''}`}
               onClick={() => setActiveRightTab('nearby')}
+              id="tab-nearby"
             >
               💡 {t('tabNearby')}
             </button>
             <button 
               className={`sidebar-tab-btn ${activeRightTab === 'checklist' ? 'active' : ''}`}
               onClick={() => setActiveRightTab('checklist')}
+              id="tab-checklist"
             >
               📋 {t('tabChecklist')}
             </button>
@@ -2743,11 +2745,13 @@ function TripBuilderApp() {
                     onChange={(e) => setNewChecklistItem(e.target.value)}
                     placeholder={t('checklistAddPh')}
                     className="checklist-input"
+                    id="checklist-text-input"
                   />
                   <select 
                     value={newChecklistCat} 
                     onChange={(e) => setNewChecklistCat(e.target.value)}
                     className="checklist-cat-select"
+                    id="checklist-category-select"
                   >
                     {CHECKLIST_CATEGORIES.map(cat => (
                       <option key={cat.id} value={cat.id}>
@@ -2755,7 +2759,7 @@ function TripBuilderApp() {
                       </option>
                     ))}
                   </select>
-                  <button type="submit" className="checklist-add-btn">+</button>
+                  <button type="submit" className="checklist-add-btn" id="checklist-add-btn">+</button>
                 </form>
 
                 {/* Template selector */}
@@ -2770,6 +2774,7 @@ function TripBuilderApp() {
                       }
                     }}
                     className="checklist-template-select"
+                    id="checklist-template-select"
                   >
                     <option value="">📋 {t('checklistImportBtn')}...</option>
                     <option value="all">🌟 {activeLang === 'th' ? 'นำเข้าทั้งหมด' : 'Import All'}</option>
@@ -2799,12 +2804,13 @@ function TripBuilderApp() {
                         <div className="checklist-items-list">
                           {items.map(item => (
                             <div key={item.id} className={`checklist-item ${item.checked ? 'checked' : ''}`}>
-                              <label className="checklist-item-label">
+                              <label className="checklist-item-label" htmlFor={`checklist-checkbox-${item.id}`}>
                                 <input 
                                   type="checkbox" 
                                   checked={item.checked} 
                                   onChange={() => handleToggleChecklist(item.id)}
                                   className="checklist-checkbox"
+                                  id={`checklist-checkbox-${item.id}`}
                                 />
                                 <span className="checklist-text">{item.text}</span>
                               </label>
@@ -2812,6 +2818,7 @@ function TripBuilderApp() {
                                 onClick={() => handleDeleteChecklist(item.id)} 
                                 className="checklist-delete-btn"
                                 title={activeLang === 'th' ? 'ลบ' : 'Delete'}
+                                id={`checklist-delete-${item.id}`}
                               >
                                 🗑️
                               </button>
