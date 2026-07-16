@@ -707,6 +707,15 @@ body {
   border-radius: 8px;
   white-space: nowrap;
 }
+.tlabel-interactive {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tlabel-interactive:hover {
+  background: var(--border);
+  color: var(--text);
+  transform: scale(1.05);
+}
 .xbtn, .mvbtn {
   background: none;
   border: none;
@@ -2117,11 +2126,16 @@ textarea.form-input {
 .map-component-wrapper.fullscreen {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 10000 !important;
+  z-index: 100000 !important;
   width: 100vw !important;
   height: 100vh !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+/* Elevate sticky parent stacking context when map is fullscreen to prevent sidebar elements leaking */
+.map-sidebar-wrapper:has(.map-component-wrapper.fullscreen) {
+  z-index: 100000 !important;
 }
 
 .map-fullscreen-btn {

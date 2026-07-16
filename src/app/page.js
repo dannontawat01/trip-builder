@@ -466,6 +466,28 @@ function TripBuilderApp() {
     }
   };
 
+  const promptEditTravelTime = (day, idx, item) => {
+    const travelTime = item.travelTime !== undefined ? item.travelTime : 20;
+    const val = prompt(
+      activeLang === 'th' 
+        ? `ระบุเวลาเดินทางไปยัง ${(item.names && item.names[activeLang]) || item.name} (นาที):` 
+        : `Enter travel time to ${(item.names && item.names[activeLang]) || item.name} (minutes):`, 
+      travelTime
+    );
+    if (val === null) return;
+    const num = parseInt(val);
+    if (!isNaN(num) && num >= 0) {
+      const updatedItin = { ...itin };
+      updatedItin[day] = [...updatedItin[day]];
+      updatedItin[day][idx] = { ...updatedItin[day][idx], travelTime: num };
+      setItin(updatedItin);
+      saveItinData(updatedItin, nDays);
+      toast(activeLang === 'th' ? `💾 ปรับเวลาเดินทางเป็น ${num} นาทีแล้ว` : `💾 Updated travel time to ${num} minutes`);
+    } else {
+      toast(activeLang === 'th' ? '❌ กรุณากรอกตัวเลขที่ถูกต้อง' : '❌ Please enter a valid number');
+    }
+  };
+
   // Helper function for Toast
   const toast = (msg) => {
     setToastMessage(msg);
@@ -1648,8 +1670,9 @@ function TripBuilderApp() {
           foodAdded = true;
         }
         if (i > 0) {
-          out += `  🚗  เดินทาง (~20 นาที)\n`;
-          cur += 20;
+          const travelTime = item.travelTime !== undefined ? item.travelTime : 20;
+          out += `  🚗  เดินทาง (~${travelTime} นาที)\n`;
+          cur += travelTime;
         }
         const cityObj = getCityObj(item.city_id);
         out += `${toT(cur)}–${toT(cur + item.dur)}  ${item.icon} ${item.name}  [${cityObj ? cityObj.emoji + cityObj.name : ''}]\n`;
@@ -1777,9 +1800,12 @@ function TripBuilderApp() {
     for (let d = 1; d <= nDays; d++) {
       const items = itin[d] || [];
       if (items.length) activeDays++;
-      items.forEach(item => {
+      items.forEach((item, idx) => {
         placesCount++;
         totalMinutes += item.dur;
+        if (idx > 0) {
+          totalMinutes += item.travelTime !== undefined ? item.travelTime : 20;
+        }
         const cityObj = getCityObj(item.city_id);
         if (cityObj) citiesSet.add(cityObj.name);
       });
@@ -2298,14 +2324,21 @@ function TripBuilderApp() {
 
                             // Inject Travel separation placeholder
                             if (idx > 0) {
+                              const travelTime = item.travelTime !== undefined ? item.travelTime : 20;
                               htmlElements.push(
                                 <div className="travel-row" key={`travel_${idx}`}>
                                   <div className="tline" />
-                                  <span className="tlabel">🚗 20m เดินทาง</span>
+                                  <span 
+                                    className="tlabel tlabel-interactive" 
+                                    onClick={() => promptEditTravelTime(day, idx, item)}
+                                    title={activeLang === 'th' ? 'คลิกเพื่อแก้ไขเวลาเดินทาง' : 'Click to edit travel time'}
+                                  >
+                                    🚗 {travelTime}m {activeLang === 'th' ? 'เดินทาง' : 'Travel'}
+                                  </span>
                                   <div className="tline" />
                                 </div>
                               );
-                              currentTimeInMin += 20;
+                              currentTimeInMin += travelTime;
                             }
 
                             const startT = toT(currentTimeInMin);
