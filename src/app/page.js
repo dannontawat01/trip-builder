@@ -256,6 +256,10 @@ const CHECKLIST_TEMPLATES = {
   ]
 };
 
+const generateChecklistId = () => {
+  return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
 export default function Page() {
   return (
     <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>Loading...</div>}>
@@ -564,7 +568,7 @@ function TripBuilderApp() {
     if (!textVal || !textVal.trim()) return;
     
     const newItem = {
-      id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateChecklistId(),
       text: textVal.trim(),
       category: catVal,
       checked: false
