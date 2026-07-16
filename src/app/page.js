@@ -1957,12 +1957,14 @@ function TripBuilderApp() {
               <button className={`theme-mode-btn ${theme === 'colorful' ? 'active' : ''}`} onClick={() => setTheme('colorful')} title="Colorful">🎨</button>
             </div>
 
-            <button className={`btn btn-sm ${showMap ? 'btn-primary' : 'btn-ghost'} topbar-map-btn`} onClick={() => setShowMap(!showMap)}>
-              <span className="map-btn-icon">🗺️</span>
-              <span className="map-btn-text"> {activeLang === 'th' ? 'แผนที่' : 'Map'}</span>
-            </button>
-            <button className="btn btn-ghost btn-sm topbar-clear-btn" onClick={clearAll}>{t('clear')}</button>
-            <button className="btn btn-primary btn-sm topbar-export-btn" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
+            <div className="topbar-action-group" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button className={`btn btn-sm ${showMap ? 'btn-primary' : 'btn-ghost'} topbar-map-btn`} onClick={() => setShowMap(!showMap)}>
+                <span className="map-btn-icon">🗺️</span>
+                <span className="map-btn-text"> {activeLang === 'th' ? 'แผนที่' : 'Map'}</span>
+              </button>
+              <button className="btn btn-ghost btn-sm topbar-clear-btn" onClick={clearAll}>{t('clear')}</button>
+              <button className="btn btn-primary btn-sm topbar-export-btn" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
+            </div>
 
             {/* User Profile / Login Panel */}
             <div className="user-menu-container">
@@ -2529,7 +2531,9 @@ function TripBuilderApp() {
                         <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' }} onClick={() => handleOpenDetail(n)}>ℹ</button>
                       </div>
                       <div className="n-meta">
-                        <span className="badge" style={{ background: getCityObj(n.city_id)?.light, color: getCityObj(n.city_id)?.dark }}>{n.cat}</span>
+                        <span className="badge" style={{ background: getCityObj(n.city_id)?.light, color: getCityObj(n.city_id)?.dark }}>
+                          {translateCategory(n.cat, activeLang)}
+                        </span>
                         <span style={{ fontSize: '10px', color: 'var(--muted)' }}>⏱ {n.dur}m</span>
                         {n.distKm !== null && <span style={{ fontSize: '10px', color: 'var(--muted)' }}>📍 {n.distKm < 1 ? `${Math.round(n.distKm * 1000)}m` : `${n.distKm.toFixed(1)}km`}</span>}
                       </div>

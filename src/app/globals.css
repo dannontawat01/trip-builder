@@ -390,18 +390,20 @@ body {
   background: var(--teal);
 }
 .lm-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 10px;
+  background: var(--card-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--r-lg);
+  padding: 0; /* Clear padding to align image edge */
   cursor: grab;
-  transition: all .18s;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s;
   user-select: none;
   position: relative;
+  overflow: hidden;
 }
 .lm-card:hover {
+  transform: translateY(-2px) scale(1.02);
   border-color: var(--teal);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-lg);
 }
 .lm-card.selected {
   border-color: rgba(29, 158, 117, 0.45);
@@ -461,11 +463,11 @@ body {
 }
 
 .lm-cover-strip {
-  height: 52px;
+  height: 110px; /* INCREASED FROM 52px */
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r) var(--r) 0 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
   overflow: hidden;
   position: relative;
 }
@@ -475,6 +477,10 @@ body {
   object-fit: cover;
   position: absolute;
   inset: 0;
+  transition: transform 0.3s ease;
+}
+.lm-card:hover .lm-cover-strip img {
+  transform: scale(1.05); /* Slight zoom on hover */
 }
 .lm-cover-icon {
   position: relative;
@@ -2197,11 +2203,6 @@ textarea.form-input {
   transform: scale(1.05);
 }
 
-/* Hide topbar clear and export buttons on standard desktops and laptops */
-@media (max-width: 1300px) {
-  .topbar-actions .topbar-clear-btn,
-  .topbar-actions .topbar-export-btn {
-    display: none !important;
-  }
-}
+
+
 
