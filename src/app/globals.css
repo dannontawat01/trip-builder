@@ -402,23 +402,26 @@ body {
   border-radius: var(--r-lg);
   padding: 0; /* Clear padding to align image edge */
   cursor: grab;
+  /* Premium Soft Shadow */
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 16px -8px rgba(0,0,0,0.05);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s;
   user-select: none;
   position: relative;
   overflow: hidden;
 }
 .lm-card:hover {
-  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-4px) scale(1.02);
   border-color: var(--teal);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 20px 35px -10px rgba(0,0,0,0.1), 0 12px 24px -12px rgba(0,0,0,0.1);
 }
 .lm-card.selected {
-  border-color: rgba(29, 158, 117, 0.45);
+  border-color: transparent;
+  box-shadow: 0 0 0 2.5px var(--teal-m), 0 10px 30px -5px rgba(29, 158, 117, 0.2);
 }
 .lm-card.highlight {
   border-color: var(--teal);
   background: var(--teal-l);
-  box-shadow: 0 0 0 2px var(--teal-m);
+  box-shadow: 0 0 0 2px var(--teal-m), 0 10px 30px -5px rgba(29, 158, 117, 0.15);
 }
 .lm-name {
   font-size: 12px;
@@ -489,11 +492,8 @@ body {
 .lm-card:hover .lm-cover-strip img {
   transform: scale(1.05); /* Slight zoom on hover */
 }
-.lm-cover-icon {
-  position: relative;
-  z-index: 1;
-  font-size: 22px;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.2));
+.lm-cover-icon, .it-cover-icon {
+  display: none !important; /* Hide emoji from photo center */
 }
 
 /* --- Main --- */
@@ -661,17 +661,17 @@ body {
 }
 
 .it-item {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 8px;
+  background: var(--card-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--r-lg);
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 16px -8px rgba(0,0,0,0.05);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  overflow: hidden;
   cursor: grab;
-  transition: all .15s;
-  box-shadow: var(--shadow);
 }
 .it-item:hover {
-  border-color: var(--teal-m);
-  box-shadow: 0 2px 8px rgba(29, 158, 117, .12);
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px -10px rgba(0,0,0,0.08), 0 10px 20px -12px rgba(0,0,0,0.08);
 }
 .it-item.last-added {
   border: 1.5px solid var(--teal);
@@ -694,11 +694,7 @@ body {
   position: absolute;
   inset: 0;
 }
-.it-cover-icon {
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.2));
-}
+
 .it-top {
   display: flex;
   justify-content: space-between;
@@ -1686,17 +1682,17 @@ textarea.form-input {
 
 .lm-count-badge {
   position: absolute;
-  top: 7px;
+  top: 8px;
   left: 8px;
-  background: var(--teal);
-  color: white;
+  background: rgba(29, 158, 117, 0.85);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
   font-size: 9px;
-  font-weight: bold;
-  padding: 2px 7px;
+  font-weight: 600;
+  padding: 3px 8px;
   border-radius: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-  z-index: 12;
-  font-family: 'DM Sans', sans-serif;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 /* --- Quick Duration Edit Modal & AI Planner Styles --- */
