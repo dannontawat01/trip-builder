@@ -37,6 +37,14 @@
   --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
   --r: 10px;
   --r-lg: 16px;
+
+  /* Translucent & Glass Tokens */
+  --card-glass: rgba(255, 255, 255, 0.7);
+  --border-glass: rgba(255, 255, 255, 0.3);
+  --bg-gradient: linear-gradient(135deg, #F7F6F2 0%, #EFECE3 100%);
+  --shadow-premium: 0 8px 32px 0 rgba(31, 38, 135, 0.06);
+  --shadow-glass-inset: inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  --border-muted: rgba(0, 0, 0, 0.06);
 }
 
 /* --- Themes --- */
@@ -70,6 +78,23 @@ body.theme-dark {
   --amber-d: #EF9F27;
   --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
   --shadow-lg: 0 8px 32px rgba(0,0,0,.4);
+
+  /* Translucent & Glass Dark Tokens */
+  --card-glass: rgba(36, 36, 34, 0.75);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --bg-gradient: linear-gradient(135deg, #1C1C1A 0%, #121211 100%);
+  --shadow-premium: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --shadow-glass-inset: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  --border-muted: rgba(255, 255, 255, 0.08);
+}
+
+/* Glassmorphism Panel Helper */
+.glass-panel {
+  background: var(--card-glass) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--border-glass) !important;
+  box-shadow: var(--shadow-premium), var(--shadow-glass-inset) !important;
 }
 
 /* --- Base --- */
@@ -93,8 +118,10 @@ body {
 
 /* --- Topbar --- */
 .topbar {
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
+  background: var(--card-glass);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid var(--border-glass);
   padding: 0 16px;
   display: flex;
   align-items: center;
@@ -102,6 +129,7 @@ body {
   height: 56px;
   flex-shrink: 0;
   z-index: 10;
+  box-shadow: var(--shadow-premium);
 }
 .logo {
   font-family: var(--font-fraunces), serif;
@@ -208,8 +236,10 @@ body {
   overflow: hidden;
 }
 .sidebar {
-  border-right: 1px solid var(--border);
-  background: var(--card);
+  border-right: 1px solid var(--border-muted);
+  background: var(--card-glass);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -236,8 +266,10 @@ body {
   background: var(--muted);
 }
 .nearby {
-  border-left: 1px solid var(--border);
-  background: var(--card);
+  border-left: 1px solid var(--border-muted);
+  background: var(--card-glass);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
