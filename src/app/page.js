@@ -1957,7 +1957,7 @@ function TripBuilderApp() {
               <button className={`theme-mode-btn ${theme === 'colorful' ? 'active' : ''}`} onClick={() => setTheme('colorful')} title="Colorful">🎨</button>
             </div>
 
-            <div className="topbar-action-group" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="topbar-action-group">
               <button className={`btn btn-sm ${showMap ? 'btn-primary' : 'btn-ghost'} topbar-map-btn`} onClick={() => setShowMap(!showMap)}>
                 <span className="map-btn-icon">🗺️</span>
                 <span className="map-btn-text"> {activeLang === 'th' ? 'แผนที่' : 'Map'}</span>
