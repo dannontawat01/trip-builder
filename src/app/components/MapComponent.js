@@ -79,7 +79,17 @@ export default function MapComponent({ itin, nDays, activeCity, activeLang }) {
     markersLayerRef.current = markersLayer;
     pathsLayerRef.current = pathsLayer;
 
+    const resizeObserver = new ResizeObserver(() => {
+      if (map) {
+        map.invalidateSize();
+      }
+    });
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
     return () => {
+      resizeObserver.disconnect();
       map.remove();
     };
   }, []);

@@ -639,9 +639,11 @@ body {
   position: relative;
 }
 .day-zone.over {
-  border-color: var(--teal-m);
-  background: var(--teal-l);
-  box-shadow: 0 0 0 3px rgba(29, 158, 117, .12);
+  border-color: var(--teal);
+  background: rgba(29, 158, 117, 0.08);
+  box-shadow: 0 0 16px rgba(29, 158, 117, 0.25);
+  transform: scale(1.01);
+  transition: all 0.2s ease;
 }
 .zone-empty {
   display: flex;
@@ -2208,6 +2210,29 @@ textarea.form-input {
   color: var(--teal);
   border-color: var(--teal-m);
   transform: scale(1.05);
+}
+
+/* Stacking Layer Settings */
+.user-dropdown {
+  z-index: 9999 !important;
+}
+.overlay {
+  z-index: 9999 !important;
+}
+.map-component-wrapper.fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important; /* Keep below toast but above everything else */
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.map-sidebar-wrapper:has(.map-component-wrapper.fullscreen) {
+  z-index: 10000 !important;
+}
+.toast {
+  z-index: 10001 !important; /* Topmost alerts */
 }
 
 
