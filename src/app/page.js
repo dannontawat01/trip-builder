@@ -218,6 +218,7 @@ function TripBuilderApp() {
   const [hotel, setHotel] = useState('');
   
   const [itin, setItin] = useState({ 1: [], 2: [], 3: [] });
+  const [checklist, setChecklist] = useState([]);
   const [showMap, setShowMap] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCat, setFilterCat] = useState('__all__');
@@ -650,8 +651,14 @@ function TripBuilderApp() {
         if (parsed.itin) {
           setItin(parsed.itin);
         }
+        if (parsed.checklist) {
+          setChecklist(parsed.checklist);
+        } else {
+          setChecklist([]);
+        }
       } else {
         setItin({ 1: [], 2: [], 3: [] });
+        setChecklist([]);
         setNDays(3);
         setHotel('');
         setStartTime('09:00');
@@ -674,6 +681,7 @@ function TripBuilderApp() {
       if (activePlan) {
         setActivePlanId(activePlan.id);
         setItin(activePlan.itin || { 1: [], 2: [], 3: [] });
+        setChecklist(activePlan.checklist || []);
         setNDays(activePlan.nDays || 3);
         setStartDate(activePlan.start || new Date().toISOString().split('T')[0]);
         setStartTime(activePlan.time || '09:00');
@@ -685,6 +693,7 @@ function TripBuilderApp() {
           name: 'My Saved Plan 1',
           city_id: activeCity,
           itin: { 1: [], 2: [], 3: [] },
+          checklist: [],
           nDays: 3,
           start: new Date().toISOString().split('T')[0],
           time: '09:00',
@@ -696,6 +705,7 @@ function TripBuilderApp() {
         
         setActivePlanId(defaultPlanId);
         setItin(newPlan.itin);
+        setChecklist(newPlan.checklist);
         setNDays(newPlan.nDays);
         setStartDate(newPlan.start);
         setStartTime(newPlan.time);
@@ -716,6 +726,7 @@ function TripBuilderApp() {
         name: item.name,
         city_id: item.city_id,
         itin: item.itin,
+        checklist: item.checklist || [],
         nDays: item.n_days,
         start: item.start_date,
         time: item.start_time,
@@ -733,6 +744,7 @@ function TripBuilderApp() {
       if (activePlan) {
         setActivePlanId(activePlan.id);
         setItin(activePlan.itin);
+        setChecklist(activePlan.checklist);
         setNDays(activePlan.nDays);
         setStartDate(activePlan.start);
         setStartTime(activePlan.time);
@@ -755,7 +767,8 @@ function TripBuilderApp() {
       start_time: '09:00',
       hotel: '',
       n_days: 3,
-      itin: { 1: [], 2: [], 3: [] }
+      itin: { 1: [], 2: [], 3: [] },
+      checklist: []
     };
     
     try {
@@ -766,6 +779,7 @@ function TripBuilderApp() {
           name: defaultPlan.name,
           city_id: defaultPlan.city_id,
           itin: defaultPlan.itin,
+          checklist: defaultPlan.checklist,
           nDays: defaultPlan.n_days,
           start: defaultPlan.start_date,
           time: defaultPlan.start_time,
@@ -774,6 +788,7 @@ function TripBuilderApp() {
         setPlansList(prev => [newPlan, ...prev]);
         setActivePlanId(newPlan.id);
         setItin(newPlan.itin);
+        setChecklist(newPlan.checklist);
         setNDays(newPlan.nDays);
         setStartDate(newPlan.start);
         setStartTime(newPlan.time);
@@ -797,6 +812,7 @@ function TripBuilderApp() {
           name: planName,
           city_id: activeCity,
           itin: { 1: [], 2: [], 3: [] },
+          checklist: [],
           nDays: 3,
           start: new Date().toISOString().split('T')[0],
           time: '09:00',
@@ -808,6 +824,7 @@ function TripBuilderApp() {
         
         setActivePlanId(defaultPlanId);
         setItin(newPlan.itin);
+        setChecklist(newPlan.checklist);
         setNDays(newPlan.nDays);
         setStartDate(newPlan.start);
         setStartTime(newPlan.time);
@@ -885,7 +902,8 @@ function TripBuilderApp() {
             start_time: plan.time,
             hotel: plan.hotel,
             n_days: plan.nDays,
-            itin: plan.itin
+            itin: plan.itin,
+            checklist: plan.checklist || []
           });
           
           setPlansList(prev => prev.map(p => p.id === planId ? { ...p, name: newName } : p));
@@ -904,6 +922,7 @@ function TripBuilderApp() {
     
     setActivePlanId(planId);
     setItin(plan.itin || { 1: [], 2: [], 3: [] });
+    setChecklist(plan.checklist || []);
     setNDays(plan.nDays || 3);
     setStartDate(plan.start || new Date().toISOString().split('T')[0]);
     setStartTime(plan.time || '09:00');
@@ -1127,14 +1146,15 @@ function TripBuilderApp() {
   }, [activeCity, customPlaces, user]);
 
   // Save itinerary to LocalStorage or Cloud
-  const saveItinData = async (newItin, newNDays) => {
+  const saveItinData = async (newItin, newNDays, currentChecklist = checklist) => {
     try {
       const data = {
         itin: newItin,
         nDays: newNDays,
         start: startDate,
         time: startTime,
-        hotel: hotel
+        hotel: hotel,
+        checklist: currentChecklist
       };
       localStorage.setItem('trip_builder_itin_v1', JSON.stringify(data));
     } catch (_) {}
@@ -1149,7 +1169,8 @@ function TripBuilderApp() {
               nDays: newNDays,
               start: startDate,
               time: startTime,
-              hotel: hotel
+              hotel: hotel,
+              checklist: currentChecklist
             };
           }
           return p;
@@ -1164,7 +1185,8 @@ function TripBuilderApp() {
             n_days: newNDays,
             start_date: startDate,
             start_time: startTime,
-            hotel: hotel
+            hotel: hotel,
+            checklist: currentChecklist
           });
           
           setPlansList(prev => prev.map(p => {
@@ -1175,7 +1197,8 @@ function TripBuilderApp() {
                 nDays: newNDays,
                 start: startDate,
                 time: startTime,
-                hotel: hotel
+                hotel: hotel,
+                checklist: currentChecklist
               };
             }
             return p;
@@ -1194,10 +1217,10 @@ function TripBuilderApp() {
       return;
     }
     const timer = setTimeout(() => {
-      saveItinData(itin, nDays);
+      saveItinData(itin, nDays, checklist);
     }, 500);
     return () => clearTimeout(timer);
-  }, [itin, nDays, startDate, startTime, hotel]);
+  }, [itin, nDays, startDate, startTime, hotel, checklist]);
 
   // Sync dates from start/end input
   const handleDateSync = (startVal, endVal) => {

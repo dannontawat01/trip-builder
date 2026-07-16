@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS public.itineraries (
     hotel text,
     n_days integer DEFAULT 3,
     itin jsonb NOT NULL DEFAULT '{}'::jsonb,
+    checklist jsonb NOT NULL DEFAULT '[]'::jsonb,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
