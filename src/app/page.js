@@ -85,29 +85,74 @@ const LANG_STRINGS = {
 // ─── STATIC DATA ────────────────────────────────────────────────────
 const COUNTRIES = [
   {
-    id: 'th', name: 'ไทย', flag: '🇹🇭', cities: [
-      { id: 'bkk', name: 'กรุงเทพ', emoji: '🏙', color: '#1D9E75', light: '#E1F5EE', dark: '#0F6E56' },
-      { id: 'cnx', name: 'เชียงใหม่', emoji: '🌸', color: '#D4537E', light: '#FBEAF0', dark: '#993556' },
-      { id: 'hkt', name: 'ภูเก็ต', emoji: '🏖', color: '#378ADD', light: '#E6F1FB', dark: '#185FA5' },
-      { id: 'ptt', name: 'พัทยา', emoji: '🌊', color: '#EF9F27', light: '#FAEEDA', dark: '#854F0B' },
-      { id: 'aya', name: 'อยุธยา', emoji: '🏛', color: '#7F77DD', light: '#EEEDFE', dark: '#534AB7' },
+    id: 'th', name: { th: 'ไทย', en: 'Thailand' }, flag: '🇹🇭', cities: [
+      { id: 'bkk', name: { th: 'กรุงเทพ', en: 'Bangkok' }, emoji: '🏙', color: '#1D9E75', light: '#E1F5EE', dark: '#0F6E56' },
+      { id: 'cnx', name: { th: 'เชียงใหม่', en: 'Chiang Mai' }, emoji: '🌸', color: '#D4537E', light: '#FBEAF0', dark: '#993556' },
+      { id: 'hkt', name: { th: 'ภูเก็ต', en: 'Phuket' }, emoji: '🏖', color: '#378ADD', light: '#E6F1FB', dark: '#185FA5' },
+      { id: 'ptt', name: { th: 'พัทยา', en: 'Pattaya' }, emoji: '🌊', color: '#EF9F27', light: '#FAEEDA', dark: '#854F0B' },
+      { id: 'aya', name: { th: 'อยุธยา', en: 'Ayutthaya' }, emoji: '🏛', color: '#7F77DD', light: '#EEEDFE', dark: '#534AB7' },
     ]
   },
   {
-    id: 'kr', name: 'เกาหลี', flag: '🇰🇷', cities: [
-      { id: 'sel', name: 'โซล', emoji: '🏙', color: '#E24B4A', light: '#FCEBEB', dark: '#A32D2D' },
-      { id: 'bus', name: 'ปูซาน', emoji: '🌊', color: '#185FA5', light: '#E6F1FB', dark: '#0C447C' },
-      { id: 'jej', name: 'เจจู', emoji: '🌋', color: '#3B6D11', light: '#EAF3DE', dark: '#27500A' },
+    id: 'kr', name: { th: 'เกาหลี', en: 'South Korea' }, flag: '🇰🇷', cities: [
+      { id: 'sel', name: { th: 'โซล', en: 'Seoul' }, emoji: '🏙', color: '#E24B4A', light: '#FCEBEB', dark: '#A32D2D' },
+      { id: 'bus', name: { th: 'ปูซาน', en: 'Busan' }, emoji: '🌊', color: '#185FA5', light: '#E6F1FB', dark: '#0C447C' },
+      { id: 'jej', name: { th: 'เจจู', en: 'Jeju' }, emoji: '🌋', color: '#3B6D11', light: '#EAF3DE', dark: '#27500A' },
     ]
   },
   {
-    id: 'jp', name: 'ญี่ปุ่น', flag: '🇯🇵', cities: [
-      { id: 'tky', name: 'โตเกียว', emoji: '🗼', color: '#E24B4A', light: '#FCEBEB', dark: '#A32D2D' },
-      { id: 'kyo', name: 'เกียวโต', emoji: '⛩', color: '#854F0B', light: '#FAEEDA', dark: '#633806' },
-      { id: 'osk', name: 'โอซาก้า', emoji: '🏯', color: '#7F77DD', light: '#EEEDFE', dark: '#534AB7' },
+    id: 'jp', name: { th: 'ญี่ปุ่น', en: 'Japan' }, flag: '🇯🇵', cities: [
+      { id: 'tky', name: { th: 'โตเกียว', en: 'Tokyo' }, emoji: '🗼', color: '#E24B4A', light: '#FCEBEB', dark: '#A32D2D' },
+      { id: 'kyo', name: { th: 'เกียวโต', en: 'Kyoto' }, emoji: '⛩', color: '#854F0B', light: '#FAEEDA', dark: '#633806' },
+      { id: 'osk', name: { th: 'โอซาก้า', en: 'Osaka' }, emoji: '🏯', color: '#7F77DD', light: '#EEEDFE', dark: '#534AB7' },
     ]
   },
 ];
+
+const CAT_TRANSLATIONS = {
+  'วัด': { th: 'วัด', en: 'Temple' },
+  'พระราชวัง': { th: 'พระราชวัง', en: 'Palace' },
+  'ตลาด': { th: 'ตลาด', en: 'Market' },
+  'ย่าน': { th: 'ย่าน', en: 'District' },
+  'พิพิธภัณฑ์': { th: 'พิพิธภัณฑ์', en: 'Museum' },
+  'ธรรมชาติ': { th: 'ธรรมชาติ', en: 'Nature' },
+  'ช้อปปิ้ง': { th: 'ช้อปปิ้ง', en: 'Shopping' },
+  'ห้างสรรพสินค้า': { th: 'ห้างสรรพสินค้า', en: 'Department Store' },
+  'ร้านอาหาร': { th: 'ร้านอาหาร', en: 'Restaurant' },
+  'คาเฟ่': { th: 'คาเฟ่', en: 'Café' },
+  'โรงแรม / ที่พัก': { th: 'โรงแรม / ที่พัก', en: 'Hotel / Base' },
+  'วิวทิวทัศน์': { th: 'วิวทิวทัศน์', en: 'Scenic View' },
+  'อื่นๆ': { th: 'อื่นๆ', en: 'Others' }
+};
+
+const translateCategory = (cat, lang) => {
+  if (!cat) return lang === 'th' ? 'อื่นๆ' : 'Others';
+  if (CAT_TRANSLATIONS[cat]) {
+    return CAT_TRANSLATIONS[cat][lang] || cat;
+  }
+  for (const key in CAT_TRANSLATIONS) {
+    if (CAT_TRANSLATIONS[key].en.toLowerCase() === cat.toLowerCase()) {
+      return CAT_TRANSLATIONS[key][lang] || cat;
+    }
+  }
+  return cat;
+};
+
+const getCityName = (cityObj, lang = 'th') => {
+  if (!cityObj) return '';
+  if (typeof cityObj.name === 'object') {
+    return cityObj.name[lang] || cityObj.name.en || '';
+  }
+  return cityObj.name || '';
+};
+
+const getCountryName = (countryObj, lang = 'th') => {
+  if (!countryObj) return '';
+  if (typeof countryObj.name === 'object') {
+    return countryObj.name[lang] || countryObj.name.en || '';
+  }
+  return countryObj.name || '';
+};
 
 
 const DAY_COLORS = [
@@ -193,6 +238,8 @@ function TripBuilderApp() {
   const [aiPlanModalOpen, setAiPlanModalOpen] = useState(false);
   const [editDurationModalOpen, setEditDurationModalOpen] = useState(false);
   const [editDurationTarget, setEditDurationTarget] = useState(null);
+  const [editTravelModalOpen, setEditTravelModalOpen] = useState(false);
+  const [editTravelTarget, setEditTravelTarget] = useState(null);
   
   // Auth states
   const [user, setUser] = useState(null);
@@ -334,7 +381,7 @@ function TripBuilderApp() {
       const res = await fetch('/api/search-photos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: `${place.name} ${getCityObj(place.city_id || activeCity)?.name || ''}`.trim() })
+        body: JSON.stringify({ query: `${place.name} ${getCityName(getCityObj(place.city_id || activeCity), 'en')}`.trim() })
       });
       if (res.ok) {
         const data = await res.json();
@@ -466,22 +513,47 @@ function TripBuilderApp() {
     }
   };
 
+  const formatMinutesToHours = (minutesStr) => {
+    const mins = parseInt(minutesStr);
+    if (isNaN(mins) || mins < 0) return '';
+    if (mins === 0) return activeLang === 'th' ? '0 นาที' : '0 mins';
+    
+    const hrs = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    
+    if (hrs > 0) {
+      if (remainingMins > 0) {
+        return activeLang === 'th' 
+          ? `~ ${hrs} ชม. ${remainingMins} นาที (${mins} นาที)` 
+          : `~ ${hrs}h ${remainingMins}m (${mins} mins)`;
+      } else {
+        return activeLang === 'th' 
+          ? `~ ${hrs} ชม. (${mins} นาที)` 
+          : `~ ${hrs}h (${mins} mins)`;
+      }
+    }
+    
+    return activeLang === 'th' ? `~ ${mins} นาที` : `~ ${mins} mins`;
+  };
+
   const promptEditTravelTime = (day, idx, item) => {
     const travelTime = item.travelTime !== undefined ? item.travelTime : 20;
-    const val = prompt(
-      activeLang === 'th' 
-        ? `ระบุเวลาเดินทางไปยัง ${(item.names && item.names[activeLang]) || item.name} (นาที):` 
-        : `Enter travel time to ${(item.names && item.names[activeLang]) || item.name} (minutes):`, 
-      travelTime
-    );
-    if (val === null) return;
-    const num = parseInt(val);
+    setEditTravelTarget({ day, idx, item, value: String(travelTime) });
+    setEditTravelModalOpen(true);
+  };
+
+  const handleSaveTravelTimeQuick = () => {
+    if (!editTravelTarget) return;
+    const { day, idx, item, value } = editTravelTarget;
+    const num = parseInt(value);
     if (!isNaN(num) && num >= 0) {
       const updatedItin = { ...itin };
       updatedItin[day] = [...updatedItin[day]];
       updatedItin[day][idx] = { ...updatedItin[day][idx], travelTime: num };
       setItin(updatedItin);
       saveItinData(updatedItin, nDays);
+      setEditTravelModalOpen(false);
+      setEditTravelTarget(null);
       toast(activeLang === 'th' ? `💾 ปรับเวลาเดินทางเป็น ${num} นาทีแล้ว` : `💾 Updated travel time to ${num} minutes`);
     } else {
       toast(activeLang === 'th' ? '❌ กรุณากรอกตัวเลขที่ถูกต้อง' : '❌ Please enter a valid number');
@@ -1657,7 +1729,7 @@ function TripBuilderApp() {
       if (!items.length) continue;
       
       const dateText = startDate ? getLocalDate(d) : `${t('dayLabel')} ${d}`;
-      out += `\n📅 วันที่ ${d} — ${dateText}\n${'─'.repeat(30)}\n`;
+      out += activeLang === 'th' ? `\n📅 วันที่ ${d} — ${dateText}\n${'─'.repeat(30)}\n` : `\n📅 Day ${d} — ${dateText}\n${'─'.repeat(30)}\n`;
       
       let [sh, sm] = st.split(':').map(Number);
       let cur = sh * 60 + sm;
@@ -1665,17 +1737,17 @@ function TripBuilderApp() {
 
       items.forEach((item, i) => {
         if (!foodAdded && cur >= 12 * 60 && i > 0) {
-          out += `  🍽  พักกลางวัน\n`;
+          out += activeLang === 'th' ? `  🍽  พักกลางวัน\n` : `  🍽  Lunch Break\n`;
           cur += 90;
           foodAdded = true;
         }
         if (i > 0) {
           const travelTime = item.travelTime !== undefined ? item.travelTime : 20;
-          out += `  🚗  เดินทาง (~${travelTime} นาที)\n`;
+          out += activeLang === 'th' ? `  🚗  เดินทาง (~${travelTime} นาที)\n` : `  🚗  Travel (~${travelTime} mins)\n`;
           cur += travelTime;
         }
         const cityObj = getCityObj(item.city_id);
-        out += `${toT(cur)}–${toT(cur + item.dur)}  ${item.icon} ${item.name}  [${cityObj ? cityObj.emoji + cityObj.name : ''}]\n`;
+        out += `${toT(cur)}–${toT(cur + item.dur)}  ${item.icon} ${item.name}  [${cityObj ? cityObj.emoji + getCityName(cityObj, activeLang) : ''}]\n`;
         if (item.addr) out += `  📍 ${item.addr}\n`;
         if (item.lat && item.lng) out += `  🗺 GPS: ${item.lat}, ${item.lng}\n`;
         if (item.fee) out += `  💰 ${item.fee}\n`;
@@ -1684,7 +1756,7 @@ function TripBuilderApp() {
         cur += item.dur;
       });
     }
-    return out.trim() || 'ยังไม่มีสถานที่ในแผน';
+    return out.trim() || (activeLang === 'th' ? 'ยังไม่มีสถานที่ในแผน' : 'No places in itinerary yet');
   };
 
   const getLocalDate = (dayNum) => {
@@ -1807,7 +1879,7 @@ function TripBuilderApp() {
           totalMinutes += item.travelTime !== undefined ? item.travelTime : 20;
         }
         const cityObj = getCityObj(item.city_id);
-        if (cityObj) citiesSet.add(cityObj.name);
+        if (cityObj) citiesSet.add(getCityName(cityObj, activeLang));
       });
     }
 
@@ -1991,7 +2063,7 @@ function TripBuilderApp() {
                 style={activeCountry === c.id ? { background: getCityObj(activeCity)?.color || '#1D9E75' } : {}}
                 onClick={() => handleCountrySelect(c.id)}
               >
-                {c.flag} {c.name}
+                {c.flag} {getCountryName(c, activeLang)}
               </button>
             ))}
           </div>
@@ -2010,7 +2082,7 @@ function TripBuilderApp() {
                   setFilterCat('__all__');
                 }}
               >
-                {c.emoji} {c.name}
+                {c.emoji} {getCityName(c, activeLang)}
               </button>
             ))}
           </div>
@@ -2059,7 +2131,7 @@ function TripBuilderApp() {
           {/* Categories select */}
           <div className="cat-wrap">
             {getCategories().map(c => {
-              const label = c === '__all__' ? (activeLang === 'th' ? 'ทั้งหมด' : 'All') : c;
+              const label = c === '__all__' ? (activeLang === 'th' ? 'ทั้งหมด' : 'All') : translateCategory(c, activeLang);
               return (
                 <button
                   key={c}
@@ -2137,7 +2209,7 @@ function TripBuilderApp() {
                       <div className="lm-name">{(l.names && l.names[activeLang]) || l.name}</div>
                       <div className="lm-sub">
                         <span className="badge" style={{ background: getCityObj(activeCity)?.light || '#E1F5EE', color: getCityObj(activeCity)?.dark || '#0F6E56' }}>
-                          {l.cat}
+                          {translateCategory(l.cat, activeLang)}
                         </span>
                         <span className="lm-dur">⏱ {l.dur}m</span>
                       </div>
@@ -2246,7 +2318,7 @@ function TripBuilderApp() {
             </div>
             <div className="div-v" />
             <div>
-              <div className="stat-val">{stats.hours} ชม.</div>
+              <div className="stat-val">{stats.hours} {activeLang === 'th' ? 'ชม.' : 'hrs'}</div>
               <div className="stat-lbl">{t('statHours')}</div>
             </div>
             <div className="div-v" />
@@ -2385,7 +2457,7 @@ function TripBuilderApp() {
                                   </div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                                     <span className="it-chip" style={{ background: cityObj.light, color: cityObj.dark }}>
-                                      {cityObj.emoji} {cityObj.name}
+                                      {cityObj.emoji} {getCityName(cityObj, activeLang)}
                                     </span>
                                     <a
                                       href={item.gmaps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((item.names && item.names[activeLang]) || item.name)}+${item.lat},${item.lng}`}
@@ -2528,12 +2600,12 @@ function TripBuilderApp() {
             <div className="modal-head">
               <div>
                 <div className="modal-title">
-                  {isEditing ? '✏️ แก้ไขข้อมูลสถานที่' : `${selectedPlace.icon} ${selectedPlace.name}`}
+                  {isEditing ? (activeLang === 'th' ? '✏️ แก้ไขข้อมูลสถานที่' : '✏️ Edit Place Info') : `${selectedPlace.icon} ${(selectedPlace.names && selectedPlace.names[activeLang]) || selectedPlace.name}`}
                 </div>
                 {!isEditing && (
                   <div className="chip-row">
-                    <span className="chip">{getCityObj(selectedPlace.city_id || activeCity)?.emoji} {getCityObj(selectedPlace.city_id || activeCity)?.name}</span>
-                    <span className="chip">{selectedPlace.cat}</span>
+                    <span className="chip">{getCityObj(selectedPlace.city_id || activeCity)?.emoji} {getCityName(getCityObj(selectedPlace.city_id || activeCity), activeLang)}</span>
+                    <span className="chip">{translateCategory(selectedPlace.cat, activeLang)}</span>
                     <span className="chip">⏱ {selectedPlace.dur}m</span>
                   </div>
                 )}
@@ -2556,17 +2628,17 @@ function TripBuilderApp() {
                     <div className="form-group">
                       <label className="form-label">{t('fCat')}</label>
                       <select className="form-input" value={editCat} onChange={(e) => setEditCat(e.target.value)}>
-                        <option>วัด</option>
-                        <option>พระราชวัง</option>
-                        <option>ตลาด</option>
-                        <option>ย่าน</option>
-                        <option>พิพิธภัณฑ์</option>
-                        <option>ธรรมชาติ</option>
-                        <option>ช้อปปิ้ง</option>
-                        <option>ร้านอาหาร</option>
-                        <option>คาเฟ่</option>
-                        <option>วิวทิวทัศน์</option>
-                        <option>อื่นๆ</option>
+                        <option value="วัด">{activeLang === 'th' ? 'วัด' : 'Temple'}</option>
+                        <option value="พระราชวัง">{activeLang === 'th' ? 'พระราชวัง' : 'Palace'}</option>
+                        <option value="ตลาด">{activeLang === 'th' ? 'ตลาด' : 'Market'}</option>
+                        <option value="ย่าน">{activeLang === 'th' ? 'ย่าน' : 'District'}</option>
+                        <option value="พิพิธภัณฑ์">{activeLang === 'th' ? 'พิพิธภัณฑ์' : 'Museum'}</option>
+                        <option value="ธรรมชาติ">{activeLang === 'th' ? 'ธรรมชาติ' : 'Nature'}</option>
+                        <option value="ช้อปปิ้ง">{activeLang === 'th' ? 'ช้อปปิ้ง' : 'Shopping'}</option>
+                        <option value="ร้านอาหาร">{activeLang === 'th' ? 'ร้านอาหาร' : 'Restaurant'}</option>
+                        <option value="คาเฟ่">{activeLang === 'th' ? 'คาเฟ่' : 'Café'}</option>
+                        <option value="วิวทิวทัศน์">{activeLang === 'th' ? 'วิวทิวทัศน์' : 'Scenic View'}</option>
+                        <option value="อื่นๆ">{activeLang === 'th' ? 'อื่นๆ' : 'Others'}</option>
                       </select>
                     </div>
                     <div className="form-group">
@@ -2686,13 +2758,13 @@ function TripBuilderApp() {
                   <div style={{ height: '180px', borderRadius: '8px', overflow: 'hidden', position: 'relative', marginBottom: '4px' }}>
                     <img src={getCoverImage(selectedPlace)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '12px' }}>
-                      {selectedPlace.icon} {selectedPlace.name}
+                      {selectedPlace.icon} {(selectedPlace.names && selectedPlace.names[activeLang]) || selectedPlace.name}
                     </div>
                   </div>
-                  {selectedPlace.desc && (
+                  {((selectedPlace.descriptions && selectedPlace.descriptions[activeLang]) || selectedPlace.desc) && (
                     <div className="detail-section">
                       <div className="detail-label">{t('fDesc')}</div>
-                      <div className="detail-value">{selectedPlace.desc}</div>
+                      <div className="detail-value">{(selectedPlace.descriptions && selectedPlace.descriptions[activeLang]) || selectedPlace.desc}</div>
                     </div>
                   )}
                   {selectedPlace.addr && (
@@ -2846,19 +2918,19 @@ function TripBuilderApp() {
                     <div className="form-group">
                       <div className="form-label">{t('fCat')}</div>
                       <select className="form-input" value={fCat} onChange={(e) => setFCat(e.target.value)}>
-                        <option>วัด</option>
-                        <option>พระราชวัง</option>
-                        <option>ตลาด</option>
-                        <option>ย่าน</option>
-                        <option>พิพิธภัณฑ์</option>
-                        <option>ธรรมชาติ</option>
-                        <option>ช้อปปิ้ง</option>
-                        <option>ห้างสรรพสินค้า</option>
-                        <option>ร้านอาหาร</option>
-                        <option>คาเฟ่</option>
-                        <option>โรงแรม / ที่พัก</option>
-                        <option>วิวทิวทัศน์</option>
-                        <option>อื่นๆ</option>
+                        <option value="วัด">{activeLang === 'th' ? 'วัด' : 'Temple'}</option>
+                        <option value="พระราชวัง">{activeLang === 'th' ? 'พระราชวัง' : 'Palace'}</option>
+                        <option value="ตลาด">{activeLang === 'th' ? 'ตลาด' : 'Market'}</option>
+                        <option value="ย่าน">{activeLang === 'th' ? 'ย่าน' : 'District'}</option>
+                        <option value="พิพิธภัณฑ์">{activeLang === 'th' ? 'พิพิธภัณฑ์' : 'Museum'}</option>
+                        <option value="ธรรมชาติ">{activeLang === 'th' ? 'ธรรมชาติ' : 'Nature'}</option>
+                        <option value="ช้อปปิ้ง">{activeLang === 'th' ? 'ช้อปปิ้ง' : 'Shopping'}</option>
+                        <option value="ห้างสรรพสินค้า">{activeLang === 'th' ? 'ห้างสรรพสินค้า' : 'Department Store'}</option>
+                        <option value="ร้านอาหาร">{activeLang === 'th' ? 'ร้านอาหาร' : 'Restaurant'}</option>
+                        <option value="คาเฟ่">{activeLang === 'th' ? 'คาเฟ่' : 'Café'}</option>
+                        <option value="โรงแรม / ที่พัก">{activeLang === 'th' ? 'โรงแรม / ที่พัก' : 'Hotel / Base'}</option>
+                        <option value="วิวทิวทัศน์">{activeLang === 'th' ? 'วิวทิวทัศน์' : 'Scenic View'}</option>
+                        <option value="อื่นๆ">{activeLang === 'th' ? 'อื่นๆ' : 'Others'}</option>
                       </select>
                     </div>
                     <div className="form-group">
@@ -2902,7 +2974,7 @@ function TripBuilderApp() {
                     <div className="form-label">{t('fCity')}</div>
                     <select className="form-input" value={fCity} onChange={(e) => setFCity(e.target.value)}>
                       {COUNTRIES.flatMap(co => co.cities).map(ci => (
-                        <option key={ci.id} value={ci.id}>{ci.emoji} {ci.name}</option>
+                        <option key={ci.id} value={ci.id}>{ci.emoji} {getCityName(ci, activeLang)}</option>
                       ))}
                     </select>
                   </div>
@@ -2935,7 +3007,7 @@ function TripBuilderApp() {
                           <div key={idx} className="ai-place-row">
                             <div>
                               <div className="ai-place-name">{place.icon} {place.name}</div>
-                              <div className="ai-place-sub">{place.cat} · {place.dur}น.</div>
+                              <div className="ai-place-sub">{translateCategory(place.cat, activeLang)} · {place.dur}{activeLang === 'th' ? 'น.' : 'm'}</div>
                             </div>
                             <button className="btn btn-primary btn-sm" onClick={() => addAIPlace(place)}>+ เพิ่ม</button>
                           </div>
@@ -2990,7 +3062,7 @@ function TripBuilderApp() {
                       {COUNTRIES.map(country => 
                         country.cities.map(city => (
                           <option key={city.id} value={city.id}>
-                            {country.flag} {city.emoji} {city.name} ({city.id})
+                            {country.flag} {city.emoji} {getCityName(city, activeLang)} ({city.id})
                           </option>
                         ))
                       )}
@@ -3326,6 +3398,61 @@ function TripBuilderApp() {
             <div className="modal-foot">
               <button className="btn btn-ghost" onClick={() => setEditDurationModalOpen(false)}>{activeLang === 'th' ? 'ยกเลิก' : 'Cancel'}</button>
               <button className="btn btn-primary" onClick={handleSaveDurationQuick}>{activeLang === 'th' ? 'บันทึก' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── QUICK TRAVEL TIME EDIT MODAL ────────────────────────────── */}
+      {editTravelModalOpen && editTravelTarget && (
+        <div className="overlay show" onClick={() => setEditTravelModalOpen(false)}>
+          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div className="modal-title">🚗 {activeLang === 'th' ? 'แก้ไขเวลาเดินทาง' : 'Edit Travel Time'}</div>
+              <button className="modal-close" onClick={() => setEditTravelModalOpen(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '14px', lineHeight: '1.4' }}>
+                {activeLang === 'th' 
+                  ? `แก้ไขระยะเวลาเดินทางไปยัง "${(editTravelTarget.item.names && editTravelTarget.item.names[activeLang]) || editTravelTarget.item.name}"`
+                  : `Change travel time to "${(editTravelTarget.item.names && editTravelTarget.item.names[activeLang]) || editTravelTarget.item.name}"`}
+              </p>
+              <div className="form-group">
+                <label className="form-label">{activeLang === 'th' ? 'ระยะเวลาเดินทาง (นาที):' : 'Travel Duration (minutes):'}</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={editTravelTarget.value}
+                    onChange={(e) => setEditTravelTarget({ ...editTravelTarget, value: e.target.value })}
+                    style={{ flex: 1, fontSize: '15px', fontWeight: '500', padding: '10px' }}
+                    min="0"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveTravelTimeQuick();
+                    }}
+                  />
+                  <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--muted)' }}>
+                    {activeLang === 'th' ? 'นาที' : 'mins'}
+                  </span>
+                </div>
+                <div style={{ 
+                  marginTop: '8px', 
+                  fontSize: '13px', 
+                  fontWeight: '600', 
+                  color: 'var(--teal)', 
+                  background: 'var(--teal-l)', 
+                  padding: '8px 12px', 
+                  borderRadius: '8px',
+                  display: editTravelTarget.value ? 'block' : 'none'
+                }}>
+                  {formatMinutesToHours(editTravelTarget.value)}
+                </div>
+              </div>
+            </div>
+            <div className="modal-foot">
+              <button className="btn btn-ghost" onClick={() => setEditTravelModalOpen(false)}>{activeLang === 'th' ? 'ยกเลิก' : 'Cancel'}</button>
+              <button className="btn btn-primary" onClick={handleSaveTravelTimeQuick}>{activeLang === 'th' ? 'บันทึก' : 'Save'}</button>
             </div>
           </div>
         </div>
