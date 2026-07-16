@@ -2214,10 +2214,10 @@ textarea.form-input {
 
 /* Stacking Layer Settings */
 .user-dropdown {
-  z-index: 9999 !important;
+  z-index: 10010 !important;
 }
 .overlay {
-  z-index: 9999 !important;
+  z-index: 10010 !important;
 }
 .map-component-wrapper.fullscreen {
   position: fixed !important;
@@ -2232,7 +2232,7 @@ textarea.form-input {
   z-index: 10000 !important;
 }
 .toast {
-  z-index: 10001 !important; /* Topmost alerts */
+  z-index: 10020 !important; /* Topmost alerts */
 }
 
 

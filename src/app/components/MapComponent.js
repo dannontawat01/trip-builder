@@ -80,8 +80,8 @@ export default function MapComponent({ itin, nDays, activeCity, activeLang }) {
     pathsLayerRef.current = pathsLayer;
 
     const resizeObserver = new ResizeObserver(() => {
-      if (map) {
-        map.invalidateSize();
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
       }
     });
     if (mapContainerRef.current) {
@@ -92,6 +92,7 @@ export default function MapComponent({ itin, nDays, activeCity, activeLang }) {
       resizeObserver.disconnect();
       map.remove();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle City Change
@@ -105,6 +106,7 @@ export default function MapComponent({ itin, nDays, activeCity, activeLang }) {
         mapRef.current.setView(center, 13);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCity]);
 
   // Update Markers & Paths when itinerary changes
@@ -190,6 +192,7 @@ export default function MapComponent({ itin, nDays, activeCity, activeLang }) {
     if (hasCoords) {
       mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itin, nDays, activeLang]);
 
   return (
