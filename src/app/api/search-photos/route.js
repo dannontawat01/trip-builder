@@ -1,5 +1,75 @@
 import { NextResponse } from 'next/server';
 
+function extractEnglishQuery(query) {
+  // Extract text inside parentheses if it contains English characters
+  const match = query.match(/\(([^)]+)\)/);
+  if (match && match[1]) {
+    const candidate = match[1].trim();
+    if (/[a-zA-Z]/.test(candidate)) {
+      return candidate;
+    }
+  }
+  
+  // Or, extract English words from the query if any
+  const englishWords = query.match(/[a-zA-Z0-9\s]{3,}/g);
+  if (englishWords) {
+    const cleaned = englishWords.join(' ').trim();
+    if (cleaned.length > 2) return cleaned;
+  }
+  
+  return null;
+}
+
+async function searchWikimedia(query) {
+  const attempts = [query];
+  
+  const engQuery = extractEnglishQuery(query);
+  if (engQuery && engQuery !== query) {
+    attempts.push(engQuery);
+  }
+  
+  const parts = query.split(/\s+/);
+  if (parts.length > 1) {
+    attempts.push(parts[0]);
+  }
+
+  for (const q of attempts) {
+    if (!q) continue;
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(q)}&gsrlimit=12&prop=imageinfo&iiprop=url|size&iiurlwidth=400&format=json&origin=*`;
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'TripBuilder/1.0 (contact@tripbuilder-app.com)'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.query && data.query.pages) {
+          const pages = Object.values(data.query.pages)
+            .sort((a, b) => (a.index || 0) - (b.index || 0));
+          
+          const photos = [];
+          for (const page of pages) {
+            if (page.imageinfo && page.imageinfo[0]) {
+              const info = page.imageinfo[0];
+              const imgUrl = info.thumburl || info.url;
+              if (imgUrl && imgUrl.startsWith('http')) {
+                photos.push(imgUrl);
+              }
+            }
+          }
+          if (photos.length > 0) {
+            return photos;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(`Wikimedia search failed for query "${q}":`, e.message);
+    }
+  }
+  return [];
+}
+
 async function getVqd(query) {
   const url = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
   try {
@@ -21,7 +91,7 @@ async function getVqd(query) {
   return null;
 }
 
-async function fetchPhotos(query) {
+async function fetchPhotosDDG(query) {
   if (!query) return [];
   const vqd = await getVqd(query);
   if (!vqd) return [];
@@ -52,9 +122,18 @@ export async function POST(req) {
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
-    const photos = await fetchPhotos(query);
+    
+    // Try Wikimedia Commons first
+    let photos = await searchWikimedia(query);
+    
+    // Fallback to DuckDuckGo if no images found
+    if (!photos || photos.length === 0) {
+      photos = await fetchPhotosDDG(query);
+    }
+    
     return NextResponse.json({ photos });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

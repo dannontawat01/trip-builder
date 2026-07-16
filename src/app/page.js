@@ -134,6 +134,21 @@ const CITY_KEYWORDS = {
   osk: 'osaka'
 };
 
+const CITY_COVER_IMAGES = {
+  bangkok: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=600&q=80',
+  chiangmai: 'https://images.unsplash.com/photo-1548685913-fe6574340a49?auto=format&fit=crop&w=600&q=80',
+  phuket: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=600&q=80',
+  pattaya: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=600&q=80',
+  ayutthaya: 'https://images.unsplash.com/photo-1601058334419-5d3c8c7f766e?auto=format&fit=crop&w=600&q=80',
+  seoul: 'https://images.unsplash.com/photo-1538669715516-5c51a140f7b0?auto=format&fit=crop&w=600&q=80',
+  busan: 'https://images.unsplash.com/photo-1577971158586-fb7c6d66e855?auto=format&fit=crop&w=600&q=80',
+  jeju: 'https://images.unsplash.com/photo-1549693578-d683be217e58?auto=format&fit=crop&w=600&q=80',
+  tokyo: 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&w=600&q=80',
+  kyoto: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
+  osaka: 'https://images.unsplash.com/photo-1590250596356-a6c22c075775?auto=format&fit=crop&w=600&q=80',
+  travel: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=80'
+};
+
 export default function Page() {
   return (
     <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>Loading...</div>}>
@@ -267,7 +282,7 @@ function TripBuilderApp() {
     if (place && localCoverOverrides[place.id]) return localCoverOverrides[place.id];
     if (place && place.cover_image) return place.cover_image;
     const cityKey = place ? (CITY_KEYWORDS[place.city_id || activeCity] || 'travel') : 'travel';
-    return `https://loremflickr.com/400/300/${cityKey}`;
+    return CITY_COVER_IMAGES[cityKey] || CITY_COVER_IMAGES.travel;
   };
 
   const findLandmarkGlobally = (id, cityId) => {
@@ -2575,7 +2590,7 @@ function TripBuilderApp() {
                           ? placePhotos.slice(0, 6) 
                           : [1, 2, 3, 4, 5, 6].map(lock => {
                               const cityKey = CITY_KEYWORDS[selectedPlace.city_id || activeCity] || 'travel';
-                              return `https://loremflickr.com/400/300/${cityKey}?lock=${lock}`;
+                              return `https://picsum.photos/seed/${cityKey}-${lock}/400/300`;
                             });
 
                         return displayUrls.map((url, idx) => {
