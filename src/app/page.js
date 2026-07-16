@@ -2207,8 +2207,11 @@ function TripBuilderApp() {
                         </span>
                       )}
                     </div>
-                    <div style={{ padding: '6px 8px' }}>
-                      <div className="lm-name">{(l.names && l.names[activeLang]) || l.name}</div>
+                    <div style={{ padding: '8px 10px' }}>
+                      <div className="lm-name">
+                        <span style={{ marginRight: '6px' }}>{l.icon}</span>
+                        {(l.names && l.names[activeLang]) || l.name}
+                      </div>
                       <div className="lm-sub">
                         <span className="badge" style={{ background: getCityObj(activeCity)?.light || '#E1F5EE', color: getCityObj(activeCity)?.dark || '#0F6E56' }}>
                           {translateCategory(l.cat, activeLang)}
@@ -2435,6 +2438,7 @@ function TripBuilderApp() {
                                 <div style={{ padding: '6px 8px' }}>
                                   <div className="it-top">
                                     <div className="it-name" onClick={() => handleOpenDetail(actualLandmark)}>
+                                      <span style={{ marginRight: '6px' }}>{actualLandmark.icon}</span>
                                       {(actualLandmark.names && actualLandmark.names[activeLang]) || actualLandmark.name}
                                       {item.rating && <span style={{ color: '#EF9F27', fontSize: '9px', fontWeight: 'bold', marginLeft: '5px', whiteSpace: 'nowrap' }}>⭐ {item.rating}</span>}
                                     </div>
