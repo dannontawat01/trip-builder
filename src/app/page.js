@@ -45,6 +45,18 @@ const LANG_STRINGS = {
     scoreTotal: 'คะแนนรวม', reasonWalk: 'เดินถึงกันได้', reasonNear: 'ใกล้กัน ขนส่งสะดวก',
     reasonCat: 'ประเภทเดียวกัน', reasonCity: 'เมืองเดียวกัน', reasonRoute: 'แนะนำในเส้นทาง',
     addBtn: '+ เพิ่มวันที่', addedBtn: 'เพิ่มแล้ว', gmapsPullBtn: 'ดึงข้อมูล',
+    tabNearby: 'แนะนำใกล้เคียง',
+    tabChecklist: 'สิ่งที่ต้องเตรียม',
+    checklistHeader: 'รายการตรวจสอบสำหรับทริป',
+    checklistAddPh: 'เพิ่มรายการใหม่...',
+    checklistCategory: 'หมวดหมู่',
+    checklistImportBtn: 'นำเข้าเทมเพลต',
+    checklistEmpty: 'ยังไม่มีรายการ ตรวจสอบหรือนำเข้าเทมเพลตเพื่อเริ่มต้น!',
+    checklistCatDocuments: '📄 เอกสาร & การเงิน',
+    checklistCatClothing: '👕 เสื้อผ้า & เครื่องแต่งกาย',
+    checklistCatToiletries: '🧴 อุปกรณ์อาบน้ำ & ยา',
+    checklistCatElectronics: '🔌 อุปกรณ์ไอที / ไฟฟ้า',
+    checklistCatOthers: '🎒 อื่นๆ',
   },
   en: {
     places: 'Attractions', search: 'Search...', addManual: 'Manual', addAI: 'AI Add', addGmaps: 'Google Maps',
@@ -79,6 +91,18 @@ const LANG_STRINGS = {
     scoreTotal: 'Match Score', reasonWalk: 'Walkable distance', reasonNear: 'Nearby, easy transit',
     reasonCat: 'Same category', reasonCity: 'Same city', reasonRoute: 'Suggested on route',
     addBtn: '+ Add Day', addedBtn: 'Added', gmapsPullBtn: 'Extract',
+    tabNearby: 'Nearby Suggestions',
+    tabChecklist: 'Trip Checklist',
+    checklistHeader: 'Trip Checklist',
+    checklistAddPh: 'Add new item...',
+    checklistCategory: 'Category',
+    checklistImportBtn: 'Import Template',
+    checklistEmpty: 'No items yet. Add or import templates!',
+    checklistCatDocuments: '📄 Docs & Finance',
+    checklistCatClothing: '👕 Clothing & Apparel',
+    checklistCatToiletries: '🧴 Toiletries & Meds',
+    checklistCatElectronics: '🔌 Electronics',
+    checklistCatOthers: '🎒 Others',
   }
 };
 
@@ -194,6 +218,47 @@ const CITY_COVER_IMAGES = {
   travel: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=80'
 };
 
+const CHECKLIST_CATEGORIES = [
+  { id: 'documents', label: { th: '📄 เอกสาร & การเงิน', en: '📄 Docs & Finance' }, color: '#378ADD' },
+  { id: 'clothing', label: { th: '👕 เสื้อผ้า & เครื่องแต่งกาย', en: '👕 Clothing & Apparel' }, color: '#EF9F27' },
+  { id: 'toiletries', label: { th: '🧴 อุปกรณ์อาบน้ำ & ยา', en: '🧴 Toiletries & Meds' }, color: '#1D9E75' },
+  { id: 'electronics', label: { th: '🔌 อุปกรณ์ไอที / ไฟฟ้า', en: '🔌 Electronics' }, color: '#7F77DD' },
+  { id: 'others', label: { th: '🎒 อื่นๆ', en: '🎒 Others' }, color: '#993556' }
+];
+
+const CHECKLIST_TEMPLATES = {
+  documents: [
+    { text: { th: 'หนังสือเดินทาง (Passport) / วีซ่า', en: 'Passport / Visa' } },
+    { text: { th: 'ตั๋วเครื่องบิน / ใบจองโรงแรม', en: 'Flight Tickets / Hotel Bookings' } },
+    { text: { th: 'เงินสด / บัตรเครดิต', en: 'Cash / Credit Cards' } },
+    { text: { th: 'ประกันการเดินทาง', en: 'Travel Insurance' } }
+  ],
+  clothing: [
+    { text: { th: 'เสื้อยืด / เสื้อเชิ้ต', en: 'T-Shirts / Shirts' } },
+    { text: { th: 'กางเกง / กระโปรง', en: 'Pants / Shorts / Skirts' } },
+    { text: { th: 'ชุดชั้นใน & ถุงเท้า', en: 'Underwear & Socks' } },
+    { text: { th: 'เสื้อกันหนาว / แจ็กเก็ต', en: 'Jacket / Outerwear' } },
+    { text: { th: 'รองเท้าเดินสบาย', en: 'Comfortable Walking Shoes' } }
+  ],
+  toiletries: [
+    { text: { th: 'แปรงสีฟัน & ยาสีฟัน', en: 'Toothbrush & Toothpaste' } },
+    { text: { th: 'สบู่ / แชมพู', en: 'Soap / Shampoo' } },
+    { text: { th: 'ครีมกันแดด', en: 'Sunscreen' } },
+    { text: { th: 'ยาสามัญประจำตัว', en: 'Personal Medications' } }
+  ],
+  electronics: [
+    { text: { th: 'สายชาร์จโทรศัพท์', en: 'Phone Charger' } },
+    { text: { th: 'พาวเวอร์แบงค์ (Power Bank)', en: 'Power Bank' } },
+    { text: { th: 'หัวแปลงปลั๊กไฟ (Universal Adapter)', en: 'Universal Travel Adapter' } },
+    { text: { th: 'กล้องถ่ายรูป', en: 'Camera' } }
+  ],
+  others: [
+    { text: { th: 'ร่ม / เสื้อกันฝน', en: 'Umbrella / Raincoat' } },
+    { text: { th: 'กระเป๋าเป้ใบเล็ก', en: 'Daypack / Small Bag' } },
+    { text: { th: 'ขวดน้ำพกพา', en: 'Water Bottle' } }
+  ]
+};
+
 export default function Page() {
   return (
     <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>Loading...</div>}>
@@ -219,6 +284,10 @@ function TripBuilderApp() {
   
   const [itin, setItin] = useState({ 1: [], 2: [], 3: [] });
   const [checklist, setChecklist] = useState([]);
+  const [activeRightTab, setActiveRightTab] = useState('nearby');
+  const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [newChecklistCat, setNewChecklistCat] = useState('documents');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [showMap, setShowMap] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCat, setFilterCat] = useState('__all__');
@@ -489,6 +558,67 @@ function TripBuilderApp() {
     saveEditedPlace(editedPlace);
     setSelectedPlace(editedPlace);
     setIsEditing(false);
+  };
+
+  const handleAddChecklistItem = (e) => {
+    if (e) e.preventDefault();
+    if (!newChecklistItem.trim()) return;
+    
+    const newItem = {
+      id: `item_${Date.now()}`,
+      text: newChecklistItem.trim(),
+      category: newChecklistCat,
+      checked: false
+    };
+    
+    setChecklist(prev => [...prev, newItem]);
+    setNewChecklistItem('');
+    toast(activeLang === 'th' ? `➕ เพิ่มรายการเรียบร้อย` : `➕ Added checklist item`);
+  };
+
+  const handleToggleChecklist = (itemId) => {
+    setChecklist(prev => prev.map(item => 
+      item.id === itemId ? { ...item, checked: !item.checked } : item
+    ));
+  };
+
+  const handleDeleteChecklist = (itemId) => {
+    setChecklist(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const importTemplate = (catId) => {
+    const itemsToAdd = [];
+    const existingTexts = checklist.map(item => item.text.toLowerCase());
+    
+    const addItemsFromCat = (cid) => {
+      const templates = CHECKLIST_TEMPLATES[cid] || [];
+      templates.forEach(tItem => {
+        const text = tItem.text[activeLang] || tItem.text.en;
+        if (!existingTexts.includes(text.toLowerCase())) {
+          itemsToAdd.push({
+            id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            text: text,
+            category: cid,
+            checked: false
+          });
+        }
+      });
+    };
+
+    if (catId === 'all') {
+      Object.keys(CHECKLIST_TEMPLATES).forEach(cid => {
+        addItemsFromCat(cid);
+      });
+    } else {
+      addItemsFromCat(catId);
+    }
+
+    if (itemsToAdd.length > 0) {
+      setChecklist(prev => [...prev, ...itemsToAdd]);
+      toast(activeLang === 'th' ? `📥 นำเข้ารายการแม่แบบเรียบร้อย` : `📥 Imported template items`);
+    } else {
+      toast(activeLang === 'th' ? `⚠️ รายการมีอยู่แล้ว` : `⚠️ Items already exist`);
+    }
   };
 
   const promptEditDuration = (day, idx, item) => {
@@ -2529,65 +2659,174 @@ function TripBuilderApp() {
 
         {/* ─── RECOMMENDATIONS PANEL ─── */}
         <aside className={`nearby ${mobileTab === 'nearby' ? 'mob-active' : ''}`}>
-          <div className="nearby-head">
-            <div className="nearby-title">{t('nearby')}</div>
+          <div className="sidebar-tabs">
+            <button 
+              className={`sidebar-tab-btn ${activeRightTab === 'nearby' ? 'active' : ''}`}
+              onClick={() => setActiveRightTab('nearby')}
+            >
+              💡 {t('tabNearby')}
+            </button>
+            <button 
+              className={`sidebar-tab-btn ${activeRightTab === 'checklist' ? 'active' : ''}`}
+              onClick={() => setActiveRightTab('checklist')}
+            >
+              📋 {t('tabChecklist')}
+            </button>
           </div>
           <div className="nearby-body">
-            {!lastId ? (
-              <div className="nearby-empty">
-                {t('nearbyEmpty').split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
-              </div>
-            ) : (
-              <div>
-                <div className="nearby-ctx">
-                  {t('nearbyFrom')}<br />
-                  <strong>{landmarks.find(l => l.id === lastId)?.icon} {landmarks.find(l => l.id === lastId)?.name}</strong>
-                  <span style={{ fontSize: '9px', color: 'var(--muted)', display: 'block', marginTop: '4px' }}>
-                    {t('nearbySort')}
-                  </span>
+            {activeRightTab === 'nearby' ? (
+              !lastId ? (
+                <div className="nearby-empty">
+                  {t('nearbyEmpty').split('\n').map((line, i) => <span key={i}>{line}<br /></span>)}
                 </div>
-                
-                {nearbySuggestions.length > 0 ? (
-                  nearbySuggestions.map(n => (
-                    <div className="n-item" key={n.id}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div className="n-name">{n.icon} {n.name}</div>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' }} onClick={() => handleOpenDetail(n)}>ℹ</button>
-                      </div>
-                      <div className="n-meta">
-                        <span className="badge" style={{ background: getCityObj(n.city_id)?.light, color: getCityObj(n.city_id)?.dark }}>
-                          {translateCategory(n.cat, activeLang)}
-                        </span>
-                        <span style={{ fontSize: '10px', color: 'var(--muted)' }}>⏱ {n.dur}m</span>
-                        {n.distKm !== null && <span style={{ fontSize: '10px', color: 'var(--muted)' }}>📍 {n.distKm < 1 ? `${Math.round(n.distKm * 1000)}m` : `${n.distKm.toFixed(1)}km`}</span>}
-                      </div>
-                      
-                      {/* Match Score bar */}
-                      <div style={{ marginTop: '6px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-                          <span style={{ fontSize: '9px', color: 'var(--muted)' }}>{t('scoreTotal')}</span>
-                          <span style={{ fontSize: '11px', fontWeight: '500' }}>{Math.round(n.total * 100)}%</span>
+              ) : (
+                <div>
+                  <div className="nearby-ctx">
+                    {t('nearbyFrom')}<br />
+                    <strong>{landmarks.find(l => l.id === lastId)?.icon} {landmarks.find(l => l.id === lastId)?.name}</strong>
+                    <span style={{ fontSize: '9px', color: 'var(--muted)', display: 'block', marginTop: '4px' }}>
+                      {t('nearbySort')}
+                    </span>
+                  </div>
+                  
+                  {nearbySuggestions.length > 0 ? (
+                    nearbySuggestions.map(n => (
+                      <div className="n-item" key={n.id}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div className="n-name">{n.icon} {n.name}</div>
+                          <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)' }} onClick={() => handleOpenDetail(n)}>ℹ</button>
                         </div>
-                        <div className="score-bar">
-                          <div style={{ height: '100%', display: 'flex', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ width: `${Math.round(n.distScore * 60)}%`, background: '#1D9E75' }} />
-                            <div style={{ width: `${Math.round(n.catScore * 25)}%`, background: '#378ADD' }} />
-                            <div style={{ width: `${Math.round(n.cityScore * 15)}%`, background: '#EF9F27' }} />
+                        <div className="n-meta">
+                          <span className="badge" style={{ background: getCityObj(n.city_id)?.light, color: getCityObj(n.city_id)?.dark }}>
+                            {translateCategory(n.cat, activeLang)}
+                          </span>
+                          <span style={{ fontSize: '10px', color: 'var(--muted)' }}>⏱ {n.dur}m</span>
+                          {n.distKm !== null && <span style={{ fontSize: '10px', color: 'var(--muted)' }}>📍 {n.distKm < 1 ? `${Math.round(n.distKm * 1000)}m` : `${n.distKm.toFixed(1)}km`}</span>}
+                        </div>
+                        
+                        {/* Match Score bar */}
+                        <div style={{ marginTop: '6px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                            <span style={{ fontSize: '9px', color: 'var(--muted)' }}>{t('scoreTotal')}</span>
+                            <span style={{ fontSize: '11px', fontWeight: '500' }}>{Math.round(n.total * 100)}%</span>
+                          </div>
+                          <div className="score-bar">
+                            <div style={{ height: '100%', display: 'flex', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.round(n.distScore * 60)}%`, background: '#1D9E75' }} />
+                              <div style={{ width: `${Math.round(n.catScore * 25)}%`, background: '#378ADD' }} />
+                              <div style={{ width: `${Math.round(n.cityScore * 15)}%`, background: '#EF9F27' }} />
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <button
-                        className="n-addbtn"
-                        style={{ background: getCityObj(n.city_id)?.color }}
-                        onClick={() => addToDay(n, lastDay || 1)}
-                      >
-                        {t('addBtn')} {lastDay || 1}
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="nearby-empty">{t('noNearby')}</div>
+                        <button
+                          className="n-addbtn"
+                          style={{ background: getCityObj(n.city_id)?.color }}
+                          onClick={() => addToDay(n, lastDay || 1)}
+                        >
+                          {t('addBtn')} {lastDay || 1}
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="nearby-empty">{t('noNearby')}</div>
+                  )}
+                </div>
+              )
+            ) : (
+              <div>
+                {/* Form to add new item */}
+                <form onSubmit={handleAddChecklistItem} className="checklist-add-form">
+                  <input 
+                    type="text" 
+                    value={newChecklistItem}
+                    onChange={(e) => setNewChecklistItem(e.target.value)}
+                    placeholder={t('checklistAddPh')}
+                    className="checklist-input"
+                  />
+                  <select 
+                    value={newChecklistCat} 
+                    onChange={(e) => setNewChecklistCat(e.target.value)}
+                    className="checklist-cat-select"
+                  >
+                    {CHECKLIST_CATEGORIES.map(cat => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.label[activeLang] || cat.label.en}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit" className="checklist-add-btn">+</button>
+                </form>
+
+                {/* Template selector */}
+                <div className="checklist-templates">
+                  <select 
+                    value={selectedTemplate}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val) {
+                        importTemplate(val);
+                        setSelectedTemplate('');
+                      }
+                    }}
+                    className="checklist-template-select"
+                  >
+                    <option value="">📋 {t('checklistImportBtn')}...</option>
+                    <option value="all">🌟 {activeLang === 'th' ? 'นำเข้าทั้งหมด' : 'Import All'}</option>
+                    {CHECKLIST_CATEGORIES.map(cat => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.label[activeLang] || cat.label.en}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Item lists grouped by category */}
+                {(() => {
+                  const groupedItems = CHECKLIST_CATEGORIES.reduce((acc, cat) => {
+                    acc[cat.id] = checklist.filter(item => item.category === cat.id);
+                    return acc;
+                  }, {});
+
+                  return CHECKLIST_CATEGORIES.map(cat => {
+                    const items = groupedItems[cat.id] || [];
+                    if (items.length === 0) return null;
+                    return (
+                      <div key={cat.id} className="checklist-group">
+                        <div className="checklist-group-title" style={{ color: cat.color }}>
+                          {cat.label[activeLang] || cat.label.en} ({items.length})
+                        </div>
+                        <div className="checklist-items-list">
+                          {items.map(item => (
+                            <div key={item.id} className={`checklist-item ${item.checked ? 'checked' : ''}`}>
+                              <label className="checklist-item-label">
+                                <input 
+                                  type="checkbox" 
+                                  checked={item.checked} 
+                                  onChange={() => handleToggleChecklist(item.id)}
+                                  className="checklist-checkbox"
+                                />
+                                <span className="checklist-text">{item.text}</span>
+                              </label>
+                              <button 
+                                onClick={() => handleDeleteChecklist(item.id)} 
+                                className="checklist-delete-btn"
+                                title={activeLang === 'th' ? 'ลบ' : 'Delete'}
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+
+                {checklist.length === 0 && (
+                  <div className="checklist-empty">
+                    {t('checklistEmpty')}
+                  </div>
                 )}
               </div>
             )}
