@@ -272,6 +272,7 @@ function TripBuilderApp() {
   // ─── STATES ────────────────────────────────────────────────────────
   const searchParams = useSearchParams();
   const tripParam = searchParams.get('trip');
+  const chkParam = searchParams.get('chk');
   const [activeLang, setActiveLang] = useState('th');
   const [activeCountry, setActiveCountry] = useState('th');
   const [activeCity, setActiveCity] = useState('bkk');
@@ -2002,7 +2003,12 @@ function TripBuilderApp() {
     }
     try {
       const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-      return window.location.href.split('?')[0] + '?trip=' + encoded;
+      let url = window.location.href.split('?')[0] + '?trip=' + encoded;
+      if (checklist && checklist.length > 0) {
+        const chkEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(checklist))));
+        url += '&chk=' + chkEncoded;
+      }
+      return url;
     } catch (_) {
       return window.location.href;
     }
@@ -2068,6 +2074,20 @@ function TripBuilderApp() {
       console.warn('Share link decoding failed:', e);
     }
   }, [tripParam]);
+
+  // Load checklist from Share Link on startup
+  useEffect(() => {
+    if (!chkParam) return;
+    try {
+      const cleanParam = chkParam.replace(/ /g, '+');
+      const loadedChecklist = JSON.parse(decodeURIComponent(escape(atob(cleanParam))));
+      if (Array.isArray(loadedChecklist)) {
+        setChecklist(loadedChecklist);
+      }
+    } catch (e) {
+      console.warn('Checklist share link decoding failed:', e);
+    }
+  }, [chkParam]);
 
   // ─── CALCULATE SUMMARY STATS ───────────────────────────────────────
   const getSummaryStats = () => {
