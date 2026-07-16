@@ -35,6 +35,8 @@
   
   --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
   --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
+  --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 16px -8px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 20px 35px -10px rgba(0, 0, 0, 0.1), 0 12px 24px -12px rgba(0, 0, 0, 0.1);
   --r: 10px;
   --r-lg: 16px;
 
@@ -78,6 +80,8 @@ body.theme-dark {
   --amber-d: #EF9F27;
   --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
   --shadow-lg: 0 8px 32px rgba(0,0,0,.4);
+  --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 16px -8px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 20px 35px -10px rgba(0, 0, 0, 0.65), 0 12px 24px -12px rgba(0, 0, 0, 0.65);
 
   /* Translucent & Glass Dark Tokens */
   --card-glass: rgba(36, 36, 34, 0.75);
@@ -403,7 +407,7 @@ body {
   padding: 0; /* Clear padding to align image edge */
   cursor: grab;
   /* Premium Soft Shadow */
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 16px -8px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-card);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s;
   user-select: none;
   position: relative;
@@ -412,7 +416,7 @@ body {
 .lm-card:hover {
   transform: translateY(-4px) scale(1.02);
   border-color: var(--teal);
-  box-shadow: 0 20px 35px -10px rgba(0,0,0,0.1), 0 12px 24px -12px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-card-hover);
 }
 .lm-card.selected {
   border-color: transparent;
@@ -664,14 +668,15 @@ body {
   background: var(--card-glass);
   border: 1px solid var(--border-glass);
   border-radius: var(--r-lg);
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 16px -8px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-card);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
   overflow: hidden;
   cursor: grab;
+  padding: 0;
 }
 .it-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 15px 30px -10px rgba(0,0,0,0.08), 0 10px 20px -12px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-card-hover);
 }
 .it-item.last-added {
   border: 1.5px solid var(--teal);

@@ -2200,7 +2200,6 @@ function TripBuilderApp() {
                     </button>
                     <div className="lm-cover-strip">
                       <img src={getCoverImage(l)} alt="" />
-                      <span className="lm-cover-icon">{l.icon}</span>
                       {count > 0 && (
                         <span className="lm-count-badge">
                           {activeLang === 'th' ? `เลือกแล้ว ${count} ครั้ง` : `${count}x selected`}
@@ -2209,7 +2208,7 @@ function TripBuilderApp() {
                     </div>
                     <div style={{ padding: '8px 10px' }}>
                       <div className="lm-name">
-                        <span style={{ marginRight: '6px' }}>{l.icon}</span>
+                        {l.icon && <span style={{ marginRight: '6px' }}>{l.icon}</span>}
                         {(l.names && l.names[activeLang]) || l.name}
                       </div>
                       <div className="lm-sub">
@@ -2429,16 +2428,14 @@ function TripBuilderApp() {
                                 className={`it-item ${isLastAdded ? 'last-added' : ''}`}
                                 draggable
                                 onDragStart={(e) => handleDragStart(e, item, day, idx)}
-                                style={{ padding: 0 }}
                               >
                                 <div className="it-cover-strip">
                                   <img src={getCoverImage(actualLandmark)} alt="" />
-                                  <span className="it-cover-icon">{actualLandmark.icon}</span>
                                 </div>
                                 <div style={{ padding: '6px 8px' }}>
                                   <div className="it-top">
                                     <div className="it-name" onClick={() => handleOpenDetail(actualLandmark)}>
-                                      <span style={{ marginRight: '6px' }}>{actualLandmark.icon}</span>
+                                      {actualLandmark.icon && <span style={{ marginRight: '6px' }}>{actualLandmark.icon}</span>}
                                       {(actualLandmark.names && actualLandmark.names[activeLang]) || actualLandmark.name}
                                       {item.rating && <span style={{ color: '#EF9F27', fontSize: '9px', fontWeight: 'bold', marginLeft: '5px', whiteSpace: 'nowrap' }}>⭐ {item.rating}</span>}
                                     </div>
