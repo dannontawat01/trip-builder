@@ -2762,6 +2762,9 @@ function TripBuilderApp() {
               <div className="stat-lbl">{t('statCities')}</div>
             </div>
           </div>
+          <div style={{ padding: '8px', fontSize: '11px', background: 'rgba(0,0,0,0.2)', border: '1px dashed var(--border)', borderRadius: '8px', color: 'var(--text)', margin: '10px 0', textAlign: 'center', fontFamily: 'monospace' }}>
+            [DEBUG] City: {activeCity} | Date: {startDate || 'EMPTY'} | Days: {nDays} | Weather Keys: {Object.keys(weatherData).join(', ') || 'NONE'}
+          </div>
 
           <div className={`builder-split-layout ${showMap ? 'has-map' : ''}`}>
             <div className="days-grid-wrapper">
