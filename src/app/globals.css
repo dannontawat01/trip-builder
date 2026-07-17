@@ -1979,9 +1979,22 @@ textarea.form-input {
   .topbar-actions .theme-mode-btn:not(.active) {
     display: none;
   }
+  .topbar-actions .theme-toggle-container {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  .topbar-actions .theme-mode-btn.active {
+    box-shadow: none !important;
+    background: none !important;
+  }
   .topbar-actions .btn {
     padding: 5px 8px;
     font-size: 11px;
+  }
+  .topbar-clear-btn,
+  .topbar-export-btn {
+    display: none !important;
   }
 
   /* Responsive Icon-only optimizations */
@@ -2087,10 +2100,17 @@ textarea.form-input {
     }
   }
 
+  .overlay {
+    align-items: flex-start !important;
+    padding: 20px 10px 88px !important;
+    overflow-y: auto !important;
+  }
+
   .modal {
     width: 96vw;
-    max-height: 88vh;
+    max-height: calc(100vh - 120px) !important;
     border-radius: 16px;
+    margin: 0 auto;
   }
   
   .mob-nav {
@@ -2119,6 +2139,7 @@ textarea.form-input {
     width: 100%;
     height: 400px;
     position: static;
+    margin-bottom: 24px; /* Space above mobile bottom navigation bar */
   }
 }
 
@@ -2287,10 +2308,10 @@ textarea.form-input {
   z-index: 10010 !important;
 }
 .overlay {
-  z-index: 10010 !important;
+  z-index: 10030 !important; /* Overlay above dropdown menu */
 }
 .toast {
-  z-index: 10020 !important; /* Topmost alerts */
+  z-index: 10040 !important; /* Topmost alerts */
 }
 
 /* --- Checklist UI & Sidebar Tabs --- */
