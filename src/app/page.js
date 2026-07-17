@@ -479,7 +479,6 @@ function TripBuilderApp() {
 
   // Weather states
   const [weatherData, setWeatherData] = useState({});
-  const [weatherLoading, setWeatherLoading] = useState(false);
 
   // Drag and Drop Ref tracking
   const dragItem = useRef();
@@ -1346,7 +1345,7 @@ function TripBuilderApp() {
   // Sync end date and sync with nDays
   useEffect(() => {
     if (startDate) {
-      const ds = new Date(startDate);
+      const ds = new Date(startDate + 'T00:00:00Z');
       ds.setUTCDate(ds.getUTCDate() + nDays - 1);
       setEndDate(ds.toISOString().split('T')[0]);
     }
@@ -1435,7 +1434,7 @@ function TripBuilderApp() {
       const datesList = [];
       if (startDate && nDays > 0) {
         for (let i = 0; i < nDays; i++) {
-          const d = new Date(startDate);
+          const d = new Date(startDate + 'T00:00:00Z');
           d.setUTCDate(d.getUTCDate() + i);
           datesList.push(d.toISOString().split('T')[0]);
         }
@@ -1554,8 +1553,8 @@ function TripBuilderApp() {
   // Sync dates from start/end input
   const handleDateSync = (startVal, endVal) => {
     if (startVal && endVal) {
-      const ds = new Date(startVal);
-      const de = new Date(endVal);
+      const ds = new Date(startVal + 'T00:00:00Z');
+      const de = new Date(endVal + 'T00:00:00Z');
       if (de >= ds) {
         const diffDays = Math.round((de - ds) / 864e5) + 1;
         const days = Math.min(diffDays, 7);
@@ -2113,7 +2112,7 @@ function TripBuilderApp() {
 
   const getLocalDate = (dayNum) => {
     if (!startDate) return '';
-    const dt = new Date(startDate);
+    const dt = new Date(startDate + 'T00:00:00Z');
     dt.setUTCDate(dt.getUTCDate() + dayNum - 1);
     const locale = activeLang === 'th' ? 'th-TH' : 'en-US';
     return dt.toLocaleDateString(locale, {
@@ -2745,7 +2744,7 @@ function TripBuilderApp() {
                         {(() => {
                           if (!startDate) return null;
                           try {
-                            const dObj = new Date(startDate);
+                            const dObj = new Date(startDate + 'T00:00:00Z');
                             dObj.setUTCDate(dObj.getUTCDate() + (day - 1));
                             const dateStr = dObj.toISOString().split('T')[0];
                             const weather = weatherData[dateStr];
@@ -2775,12 +2774,12 @@ function TripBuilderApp() {
                       {(() => {
                         if (!startDate) return null;
                         try {
-                          const dObj = new Date(startDate);
+                          const dObj = new Date(startDate + 'T00:00:00Z');
                           dObj.setUTCDate(dObj.getUTCDate() + (day - 1));
                           const dateStr = dObj.toISOString().split('T')[0];
                           const weather = weatherData[dateStr];
                           if (weather && weather.code >= 50) {
-                            const outdoorCategories = ['วัด', 'ธรรมชาติ', 'วิวทิวทัศน์', 'ชายหาด', 'temple', 'nature', 'scenic view', 'beach'];
+                            const outdoorCategories = ['วัด', 'ธรรมชาติ', 'วิวทิวทัศน์', 'ชายหาด', 'ตลาด', 'ย่าน', 'temple', 'nature', 'scenic view', 'beach', 'market', 'district'];
                             const hasOutdoorLandmark = items.some(item => {
                               const actualLandmark = findLandmarkGlobally(item.id, item.city_id) || item;
                               const category = (actualLandmark.cat || '').trim().toLowerCase();
