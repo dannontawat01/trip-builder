@@ -101,6 +101,22 @@ body.theme-dark {
   box-shadow: var(--shadow-premium), var(--shadow-glass-inset) !important;
 }
 
+.ambient-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  filter: blur(60px) brightness(0.95);
+  opacity: 0.15;
+  transition: background-image 1.2s ease-in-out;
+  pointer-events: none;
+}
+body.theme-dark .ambient-background {
+  filter: blur(60px) brightness(0.35);
+  opacity: 0.18;
+}
+
 /* --- Base --- */
 * {
   box-sizing: border-box;
@@ -372,8 +388,13 @@ body {
   color: var(--muted);
   transition: all .15s;
 }
-.cat-btn.active, .cat-btn:hover {
+.cat-btn.active {
   color: #fff;
+  border-color: transparent;
+}
+.cat-btn:hover {
+  color: #fff;
+  background: var(--teal) !important;
   border-color: transparent;
 }
 .lm-list {
@@ -382,7 +403,8 @@ body {
   padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 12px; /* Increased from 5px for breathing room */
+  user-select: none;
   scrollbar-width: thin;
   scrollbar-color: var(--teal-m) transparent;
 }
@@ -477,11 +499,11 @@ body {
 }
 
 .lm-cover-strip {
-  height: 110px; /* INCREASED FROM 52px */
+  height: 85px; /* Reduced from 110px to reduce visual bulk */
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  border-radius: var(--r) var(--r) 0 0;
   overflow: hidden;
   position: relative;
 }
@@ -515,8 +537,11 @@ body {
   font-weight: 600;
 }
 .trip-bar {
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: var(--card-glass) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--border-glass) !important;
+  box-shadow: var(--shadow-premium), var(--shadow-glass-inset) !important;
   border-radius: var(--r-lg);
   padding: 13px 16px;
   display: flex;
@@ -524,7 +549,6 @@ body {
   align-items: flex-end;
   flex-wrap: wrap;
   margin-bottom: 14px;
-  box-shadow: var(--shadow);
 }
 .cfg {
   display: flex;
@@ -541,13 +565,16 @@ body {
 .cfg input, .cfg select {
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-glass);
   border-radius: 7px;
   padding: 5px 8px;
-  background: var(--card);
+  background: rgba(255, 255, 255, 0.4);
   color: var(--dark);
   outline: none;
-  transition: border .15s;
+  transition: all .15s;
+}
+body.theme-dark .cfg input, body.theme-dark .cfg select {
+  background: rgba(0, 0, 0, 0.2);
 }
 .cfg input:focus, .cfg select:focus {
   border-color: var(--teal);
@@ -579,8 +606,11 @@ body {
 }
 
 .summary-bar {
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: var(--card-glass) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--border-glass) !important;
+  box-shadow: var(--shadow-premium), var(--shadow-glass-inset) !important;
   border-radius: var(--r-lg);
   padding: 12px 16px;
   display: flex;
@@ -588,7 +618,6 @@ body {
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: 16px;
-  box-shadow: var(--shadow);
 }
 .stat-val {
   font-family: 'Fraunces', serif;
@@ -929,15 +958,19 @@ body.theme-dark .day-weather-badge:hover {
   align-items: center;
   justify-content: center;
   background: rgba(28, 28, 26, .5);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .overlay.show {
   display: flex;
 }
 .modal {
-  background: var(--card);
+  background: var(--card-glass) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--border-glass) !important;
+  box-shadow: var(--shadow-premium), var(--shadow-glass-inset) !important;
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow-lg);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -2337,6 +2370,8 @@ body.theme-dark .sidebar-tab-btn.active {
   background: var(--card);
   color: var(--dark);
   cursor: pointer;
+  min-width: 120px; /* Prevent text squishing */
+  flex-shrink: 0;
 }
 .checklist-cat-select:focus {
   outline: none;
@@ -2374,6 +2409,95 @@ body.theme-dark .sidebar-tab-btn.active {
   border-top: 1px dashed var(--border);
   padding-top: 4px;
   margin-top: 4px;
+}
+.checklist-template-select:hover {
+  background: var(--teal);
+  color: #fff;
+}
+body.theme-dark .checklist-template-select {
+  background: rgba(29, 158, 117, 0.1);
+  color: var(--teal-m);
+  border-color: var(--teal-m);
+}
+body.theme-dark .checklist-template-select:hover {
+  background: var(--teal);
+  color: #fff;
+}
+
+.checklist-group {
+  margin-bottom: 16px;
+}
+.checklist-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.checklist-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.checklist-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+.checklist-item:hover {
+  border-color: var(--muted);
+}
+.checklist-item.checked {
+  opacity: 0.6;
+}
+.checklist-item-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex: 1;
+  font-size: 12px;
+  color: var(--dark);
+}
+.checklist-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--teal);
+  cursor: pointer;
+}
+.checklist-text {
+  transition: text-decoration 0.2s;
+}
+.checklist-item.checked .checklist-text {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.checklist-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px;
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.checklist-delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+.checklist-empty {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  padding: 30px 10px;
+  line-height: 1.6;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
 }
 
 /* Animated Polylines */
@@ -2466,196 +2590,7 @@ body.theme-dark .sidebar-tab-btn.active {
   z-index: 10020 !important; /* Topmost alerts */
 }
 
-/* --- Checklist UI & Sidebar Tabs --- */
-.sidebar-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  background: var(--card);
-}
-.sidebar-tab-btn {
-  flex: 1;
-  padding: 12px 6px;
-  background: none;
-  border: none;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-  border-bottom: 2px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-.sidebar-tab-btn:hover {
-  color: var(--dark);
-  background: rgba(0, 0, 0, 0.02);
-}
-.sidebar-tab-btn.active {
-  color: var(--teal);
-  border-bottom-color: var(--teal);
-  background: rgba(29, 158, 117, 0.04);
-}
-body.theme-dark .sidebar-tab-btn:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-body.theme-dark .sidebar-tab-btn.active {
-  background: rgba(29, 158, 117, 0.08);
-}
 
-.checklist-add-form {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.checklist-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 12px;
-  background: var(--card);
-  color: var(--dark);
-}
-.checklist-input:focus {
-  outline: none;
-  border-color: var(--teal);
-}
-.checklist-cat-select {
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 12px;
-  background: var(--card);
-  color: var(--dark);
-  cursor: pointer;
-}
-.checklist-cat-select:focus {
-  outline: none;
-  border-color: var(--teal);
-}
-.checklist-add-btn {
-  padding: 8px 12px;
-  background: var(--teal);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-.checklist-add-btn:hover {
-  opacity: 0.9;
-}
-
-.checklist-templates {
-  margin-bottom: 12px;
-}
-.checklist-template-select {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px dashed var(--teal);
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--teal-l);
-  color: var(--teal-d);
-  cursor: pointer;
-  transition: all 0.2s;
-  outline: none;
-}
-.checklist-template-select:hover {
-  background: var(--teal);
-  color: #fff;
-}
-body.theme-dark .checklist-template-select {
-  background: rgba(29, 158, 117, 0.1);
-  color: var(--teal-m);
-  border-color: var(--teal-m);
-}
-body.theme-dark .checklist-template-select:hover {
-  background: var(--teal);
-  color: #fff;
-}
-
-.checklist-group {
-  margin-bottom: 16px;
-}
-.checklist-group-title {
-  font-size: 11px;
-  font-weight: 600;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.checklist-items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.checklist-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 10px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-.checklist-item:hover {
-  border-color: var(--muted);
-}
-.checklist-item.checked {
-  opacity: 0.6;
-}
-.checklist-item-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  flex: 1;
-  font-size: 12px;
-  color: var(--dark);
-}
-.checklist-checkbox {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--teal);
-  cursor: pointer;
-}
-.checklist-text {
-  transition: text-decoration 0.2s;
-}
-.checklist-item.checked .checklist-text {
-  text-decoration: line-through;
-  color: var(--muted);
-}
-.checklist-delete-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-  padding: 4px;
-  opacity: 0.5;
-  transition: opacity 0.2s, transform 0.2s;
-}
-.checklist-delete-btn:hover {
-  opacity: 1;
-  transform: scale(1.1);
-}
-.checklist-empty {
-  font-size: 11px;
-  color: var(--muted);
-  text-align: center;
-  padding: 30px 10px;
-  line-height: 1.6;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-}
 
 /* Smart Alert Banner Styles */
 .day-weather-alert {
