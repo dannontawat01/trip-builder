@@ -2378,6 +2378,10 @@ function TripBuilderApp() {
 
   return (
     <>
+      <div 
+        className="ambient-background" 
+        style={{ backgroundImage: activeCity ? `url(${CITY_COVER_IMAGES[activeCity] || CITY_COVER_IMAGES.travel})` : 'none' }} 
+      />
       {/* ─── TOPBAR ─────────────────────────────────────────────────── */}
       <div className="topbar">
         <div className="topbar-main-row">
@@ -3880,7 +3884,7 @@ function TripBuilderApp() {
                     value={buildShareLink()}
                     onClick={(e) => e.target.select()}
                   />
-                  <button className="btn btn-primary btn-sm" onClick={() => { navigator.clipboard.writeText(buildShareLink()); toast('คัดลอกลิงก์แชร์แล้ว!'); }}>คัดลอก</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => { navigator.clipboard.writeText(buildShareLink()); toast(activeLang === 'th' ? 'คัดลอกลิงก์แชร์แล้ว!' : 'Share link copied!'); }}>{activeLang === 'th' ? 'คัดลอก' : 'Copy'}</button>
                 </div>
                 <div className="share-note">{t('exportShareNote')}</div>
               </div>
@@ -3893,7 +3897,7 @@ function TripBuilderApp() {
             
             <div className="modal-foot">
               <button className="btn btn-ghost" onClick={() => setExportModalOpen(false)}>{t('close')}</button>
-              <button className="btn btn-ghost" onClick={() => { navigator.clipboard.writeText(getFormattedItinerary()); toast('คัดลอกข้อความแล้ว!'); }}>{t('copyText')}</button>
+              <button className="btn btn-ghost" onClick={() => { navigator.clipboard.writeText(getFormattedItinerary()); toast(activeLang === 'th' ? 'คัดลอกข้อความแล้ว!' : 'Itinerary text copied!'); }}>{t('copyText')}</button>
               <button className="btn btn-primary" onClick={handleDownloadPDF}>{t('downloadPDF')}</button>
             </div>
           </div>
@@ -3931,21 +3935,22 @@ function TripBuilderApp() {
               <div className="form-group">
                 <label className="form-label">{t('aiInterests')} <span style={{ fontWeight: 'normal', color: 'var(--muted)' }}>{t('aiInterestsSub')}</span></label>
                 <div className="interests-wrap">
-                  {['🍜 อาหาร', '🛍 ช้อปปิ้ง', '🛕 วัด/ประวัติศาสตร์', '🌿 ธรรมชาติ', '🎨 ศิลปะ/วัฒนธรรม', '📸 ถ่ายรูป', '☕ คาเฟ่', '🏖 ชายหาด'].map(interest => {
-                    const isActive = selectedInterests.includes(interest);
+                  {['iFood', 'iShop', 'iTemple', 'iNature', 'iArt', 'iPhoto', 'iCafe', 'iBeach'].map(interestKey => {
+                    const interestLabel = t(interestKey);
+                    const isActive = selectedInterests.includes(interestLabel);
                     return (
                       <button
-                        key={interest}
+                        key={interestKey}
                         className={`interest-chip ${isActive ? 'active' : ''}`}
                         onClick={() => {
                           if (isActive) {
-                            setSelectedInterests(selectedInterests.filter(i => i !== interest));
+                            setSelectedInterests(selectedInterests.filter(i => i !== interestLabel));
                           } else {
-                            setSelectedInterests([...selectedInterests, interest]);
+                            setSelectedInterests([...selectedInterests, interestLabel]);
                           }
                         }}
                       >
-                        {interest}
+                        {interestLabel}
                       </button>
                     );
                   })}
