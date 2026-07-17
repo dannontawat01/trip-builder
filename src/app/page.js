@@ -363,10 +363,13 @@ function generateMockWeather(dateStr, lat) {
 }
 
 async function fetchWeatherForecast(lat, lng) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 5000);
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}` +
       `&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(id);
     if (!res.ok) throw new Error('API response not ok');
     const data = await res.json();
     
@@ -382,6 +385,7 @@ async function fetchWeatherForecast(lat, lng) {
     }
     return forecast;
   } catch (error) {
+    clearTimeout(id);
     console.warn('Weather API failed, using fallback mock generator:', error);
     return null;
   }
