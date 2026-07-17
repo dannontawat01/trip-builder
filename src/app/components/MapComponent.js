@@ -161,12 +161,12 @@ export default function MapComponent({ itin, nDays, activeCity, activeLang }) {
         const popupContent = `
           <div class="map-popup-card">
             <div class="popup-title">${item.icon || '📍'} ${placeName} ${item.rating ? `<span style="color: #EF9F27; font-size: 11px; font-weight: bold; margin-left: 4px;">⭐ ${item.rating}</span>` : ''}</div>
-            <div class="popup-day" style="background: ${dayColor}22; color: ${dayColor}">วันที่ ${day} · ลำดับที่ ${index + 1}</div>
-            ${item.dur ? `<div class="popup-time">⏱ ใช้เวลา: ${item.dur} นาที</div>` : ''}
+            <div class="popup-day" style="background: ${dayColor}22; color: ${dayColor}">${activeLang === 'th' ? `วันที่ ${day} · ลำดับที่ ${index + 1}` : `Day ${day} · Stop ${index + 1}`}</div>
+            ${item.dur ? `<div class="popup-time">⏱ ${activeLang === 'th' ? `ใช้เวลา: ${item.dur} นาที` : `Duration: ${item.dur} mins`}</div>` : ''}
             ${item.addr ? `<div class="popup-addr">${item.addr}</div>` : ''}
             <div class="popup-gmaps" style="margin-top: 6px; border-top: 1px dashed var(--border); padding-top: 6px;">
               <a href="${mapsLink}" target="_blank" rel="noopener noreferrer" style="color: #1D9E75; font-size: 11px; font-weight: 600; text-decoration: underline; display: flex; align-items: center; gap: 4px;">
-                🗺️ เปิดใน Google Maps
+                🗺️ ${activeLang === 'th' ? 'เปิดใน Google Maps' : 'Open in Google Maps'}
               </a>
             </div>
           </div>

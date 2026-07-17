@@ -2644,10 +2644,6 @@ function TripBuilderApp() {
               filteredLandmarks.map(l => {
                 const count = getSelectedCount(l.id);
                 const isHighlighted = lastId === l.id;
-                
-                const coverStyle = l.cover_image
-                  ? { backgroundImage: `url(${l.cover_image})` }
-                  : { background: 'linear-gradient(135deg, #F1EFE8, #D3D1C7)' };
 
                 return (
                   <div
@@ -2936,7 +2932,7 @@ function TripBuilderApp() {
                               htmlElements.push(
                                 <div className="travel-row" key={`lunch_${idx}`}>
                                   <div className="tline" />
-                                  <span className="tlabel">🍽 90m พักกลางวัน</span>
+                                  <span className="tlabel">{activeLang === 'th' ? '🍽 90m พักกลางวัน' : '🍽 90m Lunch Break'}</span>
                                   <div className="tline" />
                                 </div>
                               );
@@ -3343,18 +3339,18 @@ function TripBuilderApp() {
                       <input className="form-input" value={editIcon} onChange={(e) => setEditIcon(e.target.value)} maxLength={2} />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">คำค้นหารูปภาพ (Image Keywords)</label>
+                      <label className="form-label">{activeLang === 'th' ? 'คำค้นหารูปภาพ (Image Keywords)' : 'Image Keywords'}</label>
                       <input className="form-input" value={editKeywords} onChange={(e) => setEditKeywords(e.target.value)} />
                     </div>
                   </div>
 
                   {/* IMAGE SELECTOR GRID */}
                   <div className="form-group">
-                    <label className="form-label">เลือกรูปภาพที่ต้องการแสดง (คลิกเพื่อเลือก):</label>
+                    <label className="form-label">{activeLang === 'th' ? 'เลือกรูปภาพที่ต้องการแสดง (คลิกเพื่อเลือก):' : 'Select image to display (click to select):'}</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '6px' }}>
                       {searchingPhotos ? (
                         <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '15px 0', fontSize: '12px', color: 'var(--muted)' }}>
-                          🔄 กำลังค้นหาภาพจริงของสถานที่...
+                          {activeLang === 'th' ? '🔄 กำลังค้นหาภาพจริงของสถานที่...' : '🔄 Searching for real photos...'}
                         </div>
                       ) : (() => {
                         const placePhotos = (selectedPlace.photos && selectedPlace.photos.length > 0)
@@ -3412,7 +3408,7 @@ function TripBuilderApp() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">หรือใส่ลิงก์รูปภาพอื่นๆ (Custom Image URL)</label>
+                    <label className="form-label">{activeLang === 'th' ? 'หรือใส่ลิงก์รูปภาพอื่นๆ (Custom Image URL)' : 'Or paste a custom image URL:'}</label>
                     <input
                       className="form-input"
                       placeholder="https://..."
@@ -3508,12 +3504,12 @@ function TripBuilderApp() {
             <div className="modal-foot">
               {isEditing ? (
                 <>
-                  <button className="btn btn-ghost" onClick={() => setIsEditing(false)}>ยกเลิก</button>
-                  <button className="btn btn-primary" onClick={handleSaveEdit}>บันทึก</button>
+                  <button className="btn btn-ghost" onClick={() => setIsEditing(false)}>{t('cancel')}</button>
+                  <button className="btn btn-primary" onClick={handleSaveEdit}>{activeLang === 'th' ? 'บันทึก' : 'Save'}</button>
                 </>
               ) : (
                 <>
-                  <button className="btn btn-ghost" style={{ marginRight: 'auto' }} onClick={() => handleStartEditing(selectedPlace)}>✏️ แก้ไขข้อมูล</button>
+                  <button className="btn btn-ghost" style={{ marginRight: 'auto' }} onClick={() => handleStartEditing(selectedPlace)}>{activeLang === 'th' ? '✏️ แก้ไขข้อมูล' : '✏️ Edit Info'}</button>
                   <button className="btn btn-ghost" onClick={() => setSelectedPlace(null)}>{t('close')}</button>
                 </>
               )}
@@ -3558,16 +3554,16 @@ function TripBuilderApp() {
                     {osmResults.length > 0 && (
                       <div style={{ marginTop: '6px', maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px' }}>
                         {osmResults[0].loading ? (
-                          <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>กำลังค้นหา...</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>{activeLang === 'th' ? 'กำลังค้นหา...' : 'Searching...'}</div>
                         ) : osmResults[0].empty ? (
-                          <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>ไม่พบผลลัพธ์</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>{activeLang === 'th' ? 'ไม่พบผลลัพธ์' : 'No results found'}</div>
                         ) : osmResults[0].error ? (
-                          <div style={{ fontSize: '11px', color: 'var(--red)', textAlign: 'center' }}>เกิดข้อผิดพลาด</div>
+                          <div style={{ fontSize: '11px', color: 'var(--red)', textAlign: 'center' }}>{activeLang === 'th' ? 'เกิดข้อผิดพลาด' : 'An error occurred'}</div>
                         ) : (
                           osmResults.map((res, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '0.5px solid var(--border)' }}>
                               <div style={{ fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '280px' }}>{res.display_name}</div>
-                              <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => fillFromOSM(res)}>ใช้</button>
+                              <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => fillFromOSM(res)}>{activeLang === 'th' ? 'ใช้' : 'Use'}</button>
                             </div>
                           ))
                         )}
@@ -3992,21 +3988,21 @@ function TripBuilderApp() {
                   {aiPlanStatus === 'generating' && (
                     <div className="ai-generating">
                       <div className="ai-gen-icon" style={{ fontSize: '24px', textAlign: 'center' }}>✦</div>
-                      <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>AI กำลังคำนวณและวางเส้นทางให้คุณอยู่...</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>{activeLang === 'th' ? 'AI กำลังคำนวณและวางเส้นทางให้คุณอยู่...' : 'AI is calculating and planning your route...'}</div>
                     </div>
                   )}
                   {aiPlanStatus === 'error' && (
                     <div style={{ fontSize: '11px', color: 'var(--red)', background: 'var(--red-l)', padding: '8px', borderRadius: '8px' }}>
-                      เกิดข้อผิดพลาดในการสร้างแผน กรุณาลองอีกครั้ง
+                      {activeLang === 'th' ? 'เกิดข้อผิดพลาดในการสร้างแผน กรุณาลองอีกครั้ง' : 'Failed to generate itinerary. Please try again.'}
                     </div>
                   )}
                   {aiPlanStatus === 'done' && aiPlanResult && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: '500' }}>แผนการเดินทางของคุณเสร็จเรียบร้อย!</div>
+                      <div style={{ fontSize: '12px', fontWeight: '500' }}>{activeLang === 'th' ? 'แผนการเดินทางของคุณเสร็จเรียบร้อย!' : 'Your itinerary is ready!'}</div>
                       <div className="ai-result-preview" style={{ fontSize: '11px', background: 'var(--bg)', padding: '10px', borderRadius: '8px', maxHeight: '180px', overflowY: 'auto' }}>
                         {Object.entries(aiPlanResult).map(([d, items]) => (
                           <div key={d} style={{ marginBottom: '8px' }}>
-                            <b>วันทื่ {d}:</b> {items.map(it => it.name).join(' → ')}
+                            <b>{activeLang === 'th' ? `วันที่ ${d}:` : `Day ${d}:`}</b> {items.map(it => it.name).join(' → ')}
                           </div>
                         ))}
                       </div>
@@ -4020,10 +4016,10 @@ function TripBuilderApp() {
               <button className="btn btn-ghost" onClick={() => setAiPlanModalOpen(false)}>{t('close')}</button>
               {aiPlanStatus !== 'done' ? (
                 <button className="btn btn-primary" disabled={aiPlanLoading} onClick={handleAIPlan}>
-                  {aiPlanLoading ? 'กำลังสร้าง...' : t('aiGenerate')}
+                  {aiPlanLoading ? (activeLang === 'th' ? 'กำลังสร้าง...' : 'Generating...') : t('aiGenerate')}
                 </button>
               ) : (
-                <button className="btn btn-primary" onClick={applyAIPlan}>ใช้แผนการเดินทางนี้</button>
+                <button className="btn btn-primary" onClick={applyAIPlan}>{activeLang === 'th' ? 'ใช้แผนการเดินทางนี้' : 'Apply Itinerary'}</button>
               )}
             </div>
           </div>

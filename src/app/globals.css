@@ -390,13 +390,13 @@ body {
 }
 .cat-btn.active {
   color: #fff;
-  background: var(--teal) !important;
+  background: var(--teal);
   border-color: transparent;
 }
-.cat-btn:hover {
-  color: #fff;
-  background: var(--teal) !important;
-  border-color: transparent;
+.cat-btn:hover:not(.active) {
+  background: var(--teal-l);
+  color: var(--teal-d);
+  border-color: var(--teal-m);
 }
 .lm-list {
   flex: 1;
@@ -557,7 +557,7 @@ body {
   gap: 3px;
 }
 .cfg label {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   font-weight: 500;
   letter-spacing: .03em;
@@ -626,7 +626,7 @@ body.theme-dark .cfg input, body.theme-dark .cfg select {
   font-weight: 600;
 }
 .stat-lbl {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   margin-top: 1px;
 }
@@ -654,7 +654,7 @@ body.theme-dark .cfg input, body.theme-dark .cfg select {
   gap: 6px;
 }
 .day-lbl {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   padding: 3px 10px;
   border-radius: 20px;
@@ -690,10 +690,10 @@ body.theme-dark .day-weather-badge:hover {
 .weather-temp {
   font-weight: 500;
   color: var(--dark);
-  font-size: 9.5px;
+  font-size: 10px;
 }
 .day-info {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .day-zone {
@@ -721,12 +721,12 @@ body.theme-dark .day-weather-badge:hover {
   justify-content: center;
   min-height: 70px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   gap: 3px;
-  opacity: .6;
+  opacity: .5;
 }
 .zone-empty-icon {
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .it-item {
@@ -748,7 +748,7 @@ body.theme-dark .day-weather-badge:hover {
   box-shadow: 0 0 0 3px rgba(29, 158, 117, .1);
 }
 .it-cover-strip {
-  height: 36px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -772,7 +772,7 @@ body.theme-dark .day-weather-badge:hover {
   gap: 4px;
 }
 .it-name {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -789,12 +789,12 @@ body.theme-dark .day-weather-badge:hover {
   flex-shrink: 0;
 }
 .it-time {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   margin-top: 2px;
 }
 .it-chip {
-  font-size: 9px;
+  font-size: 10px;
   padding: 1px 6px;
   border-radius: 8px;
   font-weight: 500;
@@ -813,7 +813,7 @@ body.theme-dark .day-weather-badge:hover {
   background: var(--border);
 }
 .tlabel {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
   padding: 0 4px;
   background: var(--bg);
@@ -2243,7 +2243,7 @@ textarea.form-input {
 .map-component-wrapper.fullscreen {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 100000 !important;
+  z-index: 10000 !important; /* Keep below toast but above everything else */
   width: 100vw !important;
   height: 100vh !important;
   border-radius: 0 !important;
@@ -2252,7 +2252,7 @@ textarea.form-input {
 
 /* Elevate sticky parent stacking context when map is fullscreen to prevent sidebar elements leaking */
 .map-sidebar-wrapper:has(.map-component-wrapper.fullscreen) {
-  z-index: 100000 !important;
+  z-index: 10000 !important;
 }
 
 .map-fullscreen-btn {
@@ -2289,18 +2289,6 @@ textarea.form-input {
 .overlay {
   z-index: 10010 !important;
 }
-.map-component-wrapper.fullscreen {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 10000 !important; /* Keep below toast but above everything else */
-  width: 100vw !important;
-  height: 100vh !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-.map-sidebar-wrapper:has(.map-component-wrapper.fullscreen) {
-  z-index: 10000 !important;
-}
 .toast {
   z-index: 10020 !important; /* Topmost alerts */
 }
@@ -2314,10 +2302,10 @@ textarea.form-input {
 }
 .sidebar-tab-btn {
   flex: 1;
-  padding: 12px 6px;
+  padding: 14px 8px;
   background: none;
   border: none;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
@@ -2506,95 +2494,7 @@ body.theme-dark .checklist-template-select:hover {
   border-radius: 8px;
 }
 
-/* Animated Polylines */
-.animated-polyline {
-  stroke-dasharray: 10, 10;
-  animation: dash 30s linear infinite;
-}
-@keyframes dash {
-  to {
-    stroke-dashoffset: -1000;
-  }
-}
 
-.map-loading-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg);
-  color: var(--muted);
-  font-size: 12px;
-  border-radius: 16px;
-  border: 1px dashed var(--border);
-}
-
-/* Fullscreen Map Styles */
-.map-component-wrapper.fullscreen {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 100000 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-/* Elevate sticky parent stacking context when map is fullscreen to prevent sidebar elements leaking */
-.map-sidebar-wrapper:has(.map-component-wrapper.fullscreen) {
-  z-index: 100000 !important;
-}
-
-.map-fullscreen-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10005;
-  width: 34px;
-  height: 34px;
-  background: var(--card);
-  color: var(--dark);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease;
-}
-
-.map-fullscreen-btn:hover {
-  background: var(--teal-l);
-  color: var(--teal);
-  border-color: var(--teal-m);
-  transform: scale(1.05);
-}
-
-/* Stacking Layer Settings */
-.user-dropdown {
-  z-index: 10010 !important;
-}
-.overlay {
-  z-index: 10010 !important;
-}
-.map-component-wrapper.fullscreen {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 10000 !important; /* Keep below toast but above everything else */
-  width: 100vw !important;
-  height: 100vh !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-.map-sidebar-wrapper:has(.map-component-wrapper.fullscreen) {
-  z-index: 10000 !important;
-}
-.toast {
-  z-index: 10020 !important; /* Topmost alerts */
-}
 
 
 
