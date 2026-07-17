@@ -330,7 +330,8 @@ function generateMockWeather(dateStr, lat) {
 
 async function fetchWeatherForecast(lat, lng) {
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=\${lat}&longitude=\${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}` +
+      `&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('API response not ok');
     const data = await res.json();
@@ -1346,7 +1347,7 @@ function TripBuilderApp() {
   useEffect(() => {
     if (startDate) {
       const ds = new Date(startDate);
-      ds.setDate(ds.getDate() + nDays - 1);
+      ds.setUTCDate(ds.getUTCDate() + nDays - 1);
       setEndDate(ds.toISOString().split('T')[0]);
     }
   }, [startDate, nDays]);
@@ -1435,7 +1436,7 @@ function TripBuilderApp() {
       if (startDate && nDays > 0) {
         for (let i = 0; i < nDays; i++) {
           const d = new Date(startDate);
-          d.setDate(d.getDate() + i);
+          d.setUTCDate(d.getUTCDate() + i);
           datesList.push(d.toISOString().split('T')[0]);
         }
       }
@@ -2113,9 +2114,14 @@ function TripBuilderApp() {
   const getLocalDate = (dayNum) => {
     if (!startDate) return '';
     const dt = new Date(startDate);
-    dt.setDate(dt.getDate() + dayNum - 1);
+    dt.setUTCDate(dt.getUTCDate() + dayNum - 1);
     const locale = activeLang === 'th' ? 'th-TH' : 'en-US';
-    return dt.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+    return dt.toLocaleDateString(locale, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC'
+    });
   };
 
   const toT = (m) => {
