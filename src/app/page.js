@@ -2770,6 +2770,47 @@ function TripBuilderApp() {
                           {items.length} · {durationLabel}
                         </span>
                       </div>
+
+                      {/* Smart Alert Banner */}
+                      {(() => {
+                        if (!startDate) return null;
+                        try {
+                          const dObj = new Date(startDate);
+                          dObj.setUTCDate(dObj.getUTCDate() + (day - 1));
+                          const dateStr = dObj.toISOString().split('T')[0];
+                          const weather = weatherData[dateStr];
+                          if (weather && weather.code >= 50) {
+                            const outdoorCategories = ['วัด', 'ธรรมชาติ', 'วิวทิวทัศน์', 'ชายหาด', 'temple', 'nature', 'scenic view', 'beach'];
+                            const hasOutdoorLandmark = items.some(item => {
+                              const actualLandmark = findLandmarkGlobally(item.id, item.city_id) || item;
+                              const category = (actualLandmark.cat || '').trim().toLowerCase();
+                              return outdoorCategories.some(cat => cat.toLowerCase() === category);
+                            });
+                            
+                            if (hasOutdoorLandmark) {
+                              const codeInfo = WEATHER_CODES[weather.code] || { label: { th: 'ฝนตก', en: 'Rainy' }, emoji: '🌧️' };
+                              const weatherTextTh = codeInfo.label.th || 'ฝนตก';
+                              const weatherTextEn = codeInfo.label.en || 'Rainy';
+                              return (
+                                <div className="day-weather-alert" id={`weather-alert-day-${day}`}>
+                                  <span className="day-weather-alert-icon">⚠️</span>
+                                  <div className="day-weather-alert-text">
+                                    <span className="day-weather-alert-th">
+                                      วันนี้อาจมี{weatherTextTh} แต่มีกิจกรรมกลางแจ้งในแผน กรุณาเตรียมร่มหรือพิจารณาเปลี่ยนไปสถานที่ในร่มแทน
+                                    </span>
+                                    <span className="day-weather-alert-en">
+                                      {weatherTextEn} expected today with outdoor activities planned. Please bring an umbrella or consider indoor alternatives.
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          console.warn('Failed to render weather alert:', e);
+                        }
+                        return null;
+                      })()}
                       
                       <div
                         className="day-zone drop-zone"

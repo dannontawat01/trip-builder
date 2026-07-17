@@ -2462,6 +2462,61 @@ body.theme-dark .checklist-template-select:hover {
   border-radius: 8px;
 }
 
+/* Smart Alert Banner Styles */
+.day-weather-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background-color: var(--amber-l);
+  border: 1px solid var(--amber);
+  color: var(--amber-d);
+  padding: 8px 12px;
+  border-radius: var(--r);
+  font-size: 11px;
+  line-height: 1.4;
+  margin-bottom: 2px;
+  animation: fadeInAlert 0.3s ease-out;
+}
 
+@keyframes fadeInAlert {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+.day-weather-alert-icon {
+  font-size: 13px;
+  line-height: 1.2;
+  flex-shrink: 0;
+  color: var(--amber-d);
+}
 
+.day-weather-alert-text {
+  font-weight: 500;
+}
+
+.day-weather-alert-th {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.day-weather-alert-en {
+  display: block;
+  opacity: 0.85;
+  font-size: 10px;
+}
+
+body.theme-dark .day-weather-alert {
+  background-color: var(--amber-l);
+  border-color: rgba(239, 159, 39, 0.4);
+  color: #FFAE33;
+}
+
+body.theme-dark .day-weather-alert-icon {
+  color: #FFAE33;
+}
