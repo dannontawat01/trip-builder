@@ -306,6 +306,40 @@ const WEATHER_CODES = {
   99: { label: { th: 'พายุฝนฟ้าคะนองพร้อมลูกเห็บตกหนัก', en: 'Thunderstorm with heavy hail' }, emoji: '⛈️' }
 };
 
+const parseDateSafe = (dateVal) => {
+  if (!dateVal) return null;
+  const dateStr = String(dateVal).trim();
+  if (!dateStr || dateStr === 'null' || dateStr === 'undefined') return null;
+  
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const d = new Date(dateStr + 'T00:00:00Z');
+    if (!isNaN(d.getTime())) return d;
+  }
+  
+  const dIso = new Date(dateStr);
+  if (!isNaN(dIso.getTime())) return dIso;
+  
+  const parts = dateStr.split(/[-/]/);
+  if (parts.length === 3) {
+    let day = parseInt(parts[0], 10);
+    let month = parseInt(parts[1], 10);
+    let year = parseInt(parts[2], 10);
+    
+    if (parts[0].length === 4) {
+      year = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10);
+      day = parseInt(parts[2], 10);
+    }
+    
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      if (year > 2400) year -= 543;
+      const d = new Date(Date.UTC(year, month - 1, day));
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  return null;
+};
+
 function generateMockWeather(dateStr, lat) {
   const isCold = Math.abs(lat) > 30;
   let hash = 0;
@@ -1344,11 +1378,13 @@ function TripBuilderApp() {
 
   // Sync end date and sync with nDays
   useEffect(() => {
-    if (startDate) {
-      const ds = new Date(startDate + 'T00:00:00Z');
-      ds.setUTCDate(ds.getUTCDate() + nDays - 1);
-      setEndDate(ds.toISOString().split('T')[0]);
-    }
+    try {
+      const ds = parseDateSafe(startDate);
+      if (ds) {
+        ds.setUTCDate(ds.getUTCDate() + nDays - 1);
+        setEndDate(ds.toISOString().split('T')[0]);
+      }
+    } catch (_) {}
   }, [startDate, nDays]);
 
   // Load landmarks when activeCity or customPlaces changes
@@ -1433,11 +1469,16 @@ function TripBuilderApp() {
       const newWeatherData = {};
       const datesList = [];
       if (startDate && nDays > 0) {
-        for (let i = 0; i < nDays; i++) {
-          const d = new Date(startDate + 'T00:00:00Z');
-          d.setUTCDate(d.getUTCDate() + i);
-          datesList.push(d.toISOString().split('T')[0]);
-        }
+        try {
+          const dBase = parseDateSafe(startDate);
+          if (dBase) {
+            for (let i = 0; i < nDays; i++) {
+              const d = new Date(dBase.getTime());
+              d.setUTCDate(d.getUTCDate() + i);
+              datesList.push(d.toISOString().split('T')[0]);
+            }
+          }
+        } catch (_) {}
       }
       
       datesList.forEach(dateStr => {
@@ -1553,14 +1594,16 @@ function TripBuilderApp() {
   // Sync dates from start/end input
   const handleDateSync = (startVal, endVal) => {
     if (startVal && endVal) {
-      const ds = new Date(startVal + 'T00:00:00Z');
-      const de = new Date(endVal + 'T00:00:00Z');
-      if (de >= ds) {
-        const diffDays = Math.round((de - ds) / 864e5) + 1;
-        const days = Math.min(diffDays, 7);
-        setNDays(days);
-        adjustDays(days);
-      }
+      try {
+        const ds = parseDateSafe(startVal);
+        const de = parseDateSafe(endVal);
+        if (ds && de && de >= ds) {
+          const diffDays = Math.round((de - ds) / 864e5) + 1;
+          const days = Math.min(diffDays, 7);
+          setNDays(days);
+          adjustDays(days);
+        }
+      } catch (_) {}
     }
   };
 
@@ -2111,16 +2154,20 @@ function TripBuilderApp() {
   };
 
   const getLocalDate = (dayNum) => {
-    if (!startDate) return '';
-    const dt = new Date(startDate + 'T00:00:00Z');
-    dt.setUTCDate(dt.getUTCDate() + dayNum - 1);
-    const locale = activeLang === 'th' ? 'th-TH' : 'en-US';
-    return dt.toLocaleDateString(locale, {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      timeZone: 'UTC'
-    });
+    try {
+      const dt = parseDateSafe(startDate);
+      if (!dt) return '';
+      dt.setUTCDate(dt.getUTCDate() + dayNum - 1);
+      const locale = activeLang === 'th' ? 'th-TH' : 'en-US';
+      return dt.toLocaleDateString(locale, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC'
+      });
+    } catch (_) {
+      return '';
+    }
   };
 
   const toT = (m) => {
@@ -2742,9 +2789,9 @@ function TripBuilderApp() {
                           {t('dayLabel')} {day} · {getLocalDate(day)}
                         </span>
                         {(() => {
-                          if (!startDate) return null;
                           try {
-                            const dObj = new Date(startDate + 'T00:00:00Z');
+                            const dObj = parseDateSafe(startDate);
+                            if (!dObj) return null;
                             dObj.setUTCDate(dObj.getUTCDate() + (day - 1));
                             const dateStr = dObj.toISOString().split('T')[0];
                             const weather = weatherData[dateStr];
@@ -2772,9 +2819,9 @@ function TripBuilderApp() {
 
                       {/* Smart Alert Banner */}
                       {(() => {
-                        if (!startDate) return null;
                         try {
-                          const dObj = new Date(startDate + 'T00:00:00Z');
+                          const dObj = parseDateSafe(startDate);
+                          if (!dObj) return null;
                           dObj.setUTCDate(dObj.getUTCDate() + (day - 1));
                           const dateStr = dObj.toISOString().split('T')[0];
                           const weather = weatherData[dateStr];
