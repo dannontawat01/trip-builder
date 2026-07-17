@@ -1469,7 +1469,6 @@ function TripBuilderApp() {
       const coords = CITY_COORDINATES[activeCity];
       if (!coords) return;
       
-      setWeatherLoading(true);
       const data = await fetchWeatherForecast(coords.lat, coords.lng);
       
       if (!active) return;
@@ -1498,7 +1497,6 @@ function TripBuilderApp() {
       });
       
       setWeatherData(newWeatherData);
-      setWeatherLoading(false);
     };
     
     loadWeather();
