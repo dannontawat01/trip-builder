@@ -390,6 +390,7 @@ body {
 }
 .cat-btn.active {
   color: #fff;
+  background: var(--teal) !important;
   border-color: transparent;
 }
 .cat-btn:hover {

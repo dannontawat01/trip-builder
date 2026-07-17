@@ -57,6 +57,9 @@ const LANG_STRINGS = {
     checklistCatToiletries: '🧴 อุปกรณ์ของใช้ส่วนตัว & ยา',
     checklistCatElectronics: '🔌 อุปกรณ์ไอที / ไฟฟ้า',
     checklistCatOthers: '🎒 อื่นๆ',
+    copyLink: 'คัดลอก',
+    shareLinkCopied: 'คัดลอกลิงก์แชร์แล้ว!',
+    itineraryCopied: 'คัดลอกข้อความแล้ว!',
   },
   en: {
     places: 'Attractions', search: 'Search...', addManual: 'Manual', addAI: 'AI Add', addGmaps: 'Google Maps',
@@ -103,6 +106,9 @@ const LANG_STRINGS = {
     checklistCatToiletries: '🧴 Personal Care',
     checklistCatElectronics: '🔌 Electronics',
     checklistCatOthers: '🎒 Others',
+    copyLink: 'Copy',
+    shareLinkCopied: 'Share link copied!',
+    itineraryCopied: 'Itinerary text copied!',
   }
 };
 
@@ -2108,7 +2114,7 @@ function TripBuilderApp() {
           country_id: activeCountry,
           start_date: aiStart,
           num_days: daysCount,
-          interests: selectedInterests
+          interests: selectedInterests.map(key => t(key))
         })
       });
       const data = await res.json();
@@ -3884,7 +3890,7 @@ function TripBuilderApp() {
                     value={buildShareLink()}
                     onClick={(e) => e.target.select()}
                   />
-                  <button className="btn btn-primary btn-sm" onClick={() => { navigator.clipboard.writeText(buildShareLink()); toast(activeLang === 'th' ? 'คัดลอกลิงก์แชร์แล้ว!' : 'Share link copied!'); }}>{activeLang === 'th' ? 'คัดลอก' : 'Copy'}</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => { navigator.clipboard.writeText(buildShareLink()); toast(t('shareLinkCopied')); }}>{t('copyLink')}</button>
                 </div>
                 <div className="share-note">{t('exportShareNote')}</div>
               </div>
@@ -3897,7 +3903,7 @@ function TripBuilderApp() {
             
             <div className="modal-foot">
               <button className="btn btn-ghost" onClick={() => setExportModalOpen(false)}>{t('close')}</button>
-              <button className="btn btn-ghost" onClick={() => { navigator.clipboard.writeText(getFormattedItinerary()); toast(activeLang === 'th' ? 'คัดลอกข้อความแล้ว!' : 'Itinerary text copied!'); }}>{t('copyText')}</button>
+              <button className="btn btn-ghost" onClick={() => { navigator.clipboard.writeText(getFormattedItinerary()); toast(t('itineraryCopied')); }}>{t('copyText')}</button>
               <button className="btn btn-primary" onClick={handleDownloadPDF}>{t('downloadPDF')}</button>
             </div>
           </div>
@@ -3936,17 +3942,17 @@ function TripBuilderApp() {
                 <label className="form-label">{t('aiInterests')} <span style={{ fontWeight: 'normal', color: 'var(--muted)' }}>{t('aiInterestsSub')}</span></label>
                 <div className="interests-wrap">
                   {['iFood', 'iShop', 'iTemple', 'iNature', 'iArt', 'iPhoto', 'iCafe', 'iBeach'].map(interestKey => {
+                    const isActive = selectedInterests.includes(interestKey);
                     const interestLabel = t(interestKey);
-                    const isActive = selectedInterests.includes(interestLabel);
                     return (
                       <button
                         key={interestKey}
                         className={`interest-chip ${isActive ? 'active' : ''}`}
                         onClick={() => {
                           if (isActive) {
-                            setSelectedInterests(selectedInterests.filter(i => i !== interestLabel));
+                            setSelectedInterests(selectedInterests.filter(i => i !== interestKey));
                           } else {
-                            setSelectedInterests([...selectedInterests, interestLabel]);
+                            setSelectedInterests([...selectedInterests, interestKey]);
                           }
                         }}
                       >
