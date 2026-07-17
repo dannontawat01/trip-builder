@@ -406,7 +406,11 @@ function TripBuilderApp() {
   const [theme, setTheme] = useState('clean');
   
   const [nDays, setNDays] = useState(3);
-  const [startDate, setStartDate] = useState('');
+  const [startDate, setStartDateInternal] = useState('');
+  const setStartDate = (val) => {
+    const d = parseDateSafe(val);
+    setStartDateInternal(d ? d.toISOString().split('T')[0] : '');
+  };
   const [endDate, setEndDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
   const [hotel, setHotel] = useState('');
