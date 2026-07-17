@@ -3117,14 +3117,17 @@ function TripBuilderApp() {
               <div>
                 {/* Form to add new item */}
                 <form onSubmit={(e) => { e.preventDefault(); handleAddChecklistItem(newChecklistItem, newChecklistCat); }} className="checklist-add-form">
-                  <input 
-                    type="text" 
-                    value={newChecklistItem}
-                    onChange={(e) => setNewChecklistItem(e.target.value)}
-                    placeholder={t('checklistAddPh')}
-                    className="checklist-input"
-                    id="checklist-text-input"
-                  />
+                  <div className="checklist-row">
+                    <input 
+                      type="text" 
+                      value={newChecklistItem}
+                      onChange={(e) => setNewChecklistItem(e.target.value)}
+                      placeholder={t('checklistAddPh')}
+                      className="checklist-input"
+                      id="checklist-text-input"
+                    />
+                    <button type="submit" className="checklist-add-btn" id="checklist-add-btn">+</button>
+                  </div>
                   <select 
                     value={newChecklistCat} 
                     onChange={(e) => setNewChecklistCat(e.target.value)}
@@ -3137,7 +3140,6 @@ function TripBuilderApp() {
                       </option>
                     ))}
                   </select>
-                  <button type="submit" className="checklist-add-btn" id="checklist-add-btn">+</button>
                 </form>
 
                 {/* Template selector */}
