@@ -1485,7 +1485,10 @@ function TripBuilderApp() {
   useEffect(() => {
     let active = true;
     const loadWeather = async () => {
-      const coords = CITY_COORDINATES[activeCity];
+      const activePlan = plansList.find(p => p.id === activePlanId);
+      const targetCity = (activePlanId !== 'guest' && activePlan) ? activePlan.city_id : activeCity;
+      
+      const coords = CITY_COORDINATES[targetCity];
       if (!coords) return;
       
       const data = await fetchWeatherForecast(coords.lat, coords.lng);
@@ -1523,7 +1526,7 @@ function TripBuilderApp() {
     return () => {
       active = false;
     };
-  }, [activeCity, startDate, nDays]);
+  }, [activePlanId, plansList, activeCity, startDate, nDays]);
 
   // Save itinerary to LocalStorage or Cloud
   const saveItinData = async (newItin, newNDays, currentChecklist = checklist) => {
