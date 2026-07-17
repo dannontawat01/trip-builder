@@ -306,6 +306,13 @@ const WEATHER_CODES = {
   99: { label: { th: 'พายุฝนฟ้าคะนองพร้อมลูกเห็บตกหนัก', en: 'Thunderstorm with heavy hail' }, emoji: '⛈️' }
 };
 
+const getCountryOfCity = (cityId) => {
+  if (['bkk', 'cnx', 'hkt', 'ptt', 'aya'].includes(cityId)) return 'th';
+  if (['sel', 'bus', 'jej'].includes(cityId)) return 'kr';
+  if (['tky', 'kyo', 'osk'].includes(cityId)) return 'jp';
+  return 'th';
+};
+
 const parseDateSafe = (dateVal) => {
   if (!dateVal) return null;
   const dateStr = String(dateVal).trim();
@@ -974,6 +981,10 @@ function TripBuilderApp() {
         setStartDate(activePlan.start || new Date().toISOString().split('T')[0]);
         setStartTime(activePlan.time || '09:00');
         setHotel(activePlan.hotel || '');
+        if (activePlan.city_id) {
+          setActiveCity(activePlan.city_id);
+          setActiveCountry(getCountryOfCity(activePlan.city_id));
+        }
       } else {
         const defaultPlanId = `plan_${Date.now()}`;
         const newPlan = {
@@ -1055,6 +1066,10 @@ function TripBuilderApp() {
         setStartDate(activePlan.start);
         setStartTime(activePlan.time);
         setHotel(activePlan.hotel);
+        if (activePlan.city_id) {
+          setActiveCity(activePlan.city_id);
+          setActiveCountry(getCountryOfCity(activePlan.city_id));
+        }
       } else {
         await handleCreatePlanCloud('My Saved Plan 1', email);
       }
@@ -1242,6 +1257,10 @@ function TripBuilderApp() {
     setStartDate(plan.start || new Date().toISOString().split('T')[0]);
     setStartTime(plan.time || '09:00');
     setHotel(plan.hotel || '');
+    if (plan.city_id) {
+      setActiveCity(plan.city_id);
+      setActiveCountry(getCountryOfCity(plan.city_id));
+    }
     
     if (user) {
       if (!googleSheets) {
