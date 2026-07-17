@@ -2162,33 +2162,38 @@ textarea.form-input {
   background: none !important;
   border: none !important;
 }
-.custom-map-pin {
+.custom-map-pin-container {
+  position: relative;
   width: 36px;
   height: 36px;
-  border-radius: 50% 50% 50% 0;
-  position: absolute;
-  transform: rotate(-45deg);
-  left: 50%;
-  top: 50%;
-  margin: -18px 0 0 -18px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.pin-teardrop {
+  position: absolute;
+  inset: 0;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
   border: 2.5px solid #fff;
   box-shadow: 0 4px 10px rgba(0,0,0,0.25);
   transition: transform 0.2s ease;
+  z-index: 1;
 }
-.custom-map-pin:hover {
-  transform: rotate(-45deg) scale(1.15);
+.custom-map-pin-container:hover .pin-teardrop {
+  transform: scale(1.12) rotate(-45deg);
 }
 .pin-icon {
-  transform: rotate(45deg);
   font-size: 16px;
-  margin-top: -1px;
+  z-index: 2;
+  margin-top: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .pin-number {
   position: absolute;
-  bottom: -18px;
+  bottom: -22px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.75);
@@ -2200,6 +2205,7 @@ textarea.form-input {
   border-radius: 8px;
   white-space: nowrap;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 3;
 }
 
 /* Popup style */
@@ -2261,6 +2267,10 @@ textarea.form-input {
 }
 
 /* Fullscreen Map Styles */
+.map-component-wrapper {
+  border-radius: 16px;
+  overflow: hidden;
+}
 .map-component-wrapper.fullscreen {
   position: fixed !important;
   inset: 0 !important;

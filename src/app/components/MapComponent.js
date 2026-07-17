@@ -136,9 +136,9 @@ export default function MapComponent({ itin, nDays, activeCity, activeLang }) {
         bounds.extend(latLng);
         hasCoords = true;
 
-        // Custom DivIcon for Marker
         const iconHtml = `
-          <div class="custom-map-pin" style="background-color: ${dayColor}; border-color: white;">
+          <div class="custom-map-pin-container">
+            <div class="pin-teardrop" style="background-color: ${dayColor};"></div>
             <span class="pin-icon">${item.icon || '📍'}</span>
             <span class="pin-number">${day}-${index + 1}</span>
           </div>
@@ -197,7 +197,7 @@ export default function MapComponent({ itin, nDays, activeCity, activeLang }) {
 
   return (
     <div className={`map-component-wrapper ${isFullscreen ? 'fullscreen' : ''}`} style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div ref={mapContainerRef} style={{ width: '100%', height: '100%', borderRadius: isFullscreen ? '0' : '16px', overflow: 'hidden' }} />
+      <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
       <button
         className="map-fullscreen-btn"
         onClick={toggleFullscreen}
