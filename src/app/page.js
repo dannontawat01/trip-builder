@@ -557,6 +557,12 @@ function TripBuilderApp() {
     return CITY_COVER_IMAGES[cityKey] || CITY_COVER_IMAGES.travel;
   };
 
+  const handleImageError = (e, place) => {
+    e.target.onerror = null;
+    const cityKey = place ? (CITY_KEYWORDS[place.city_id || activeCity] || 'travel') : 'travel';
+    e.target.src = CITY_COVER_IMAGES[cityKey] || CITY_COVER_IMAGES.travel;
+  };
+
   const findLandmarkGlobally = (id, cityId) => {
     let found = landmarks.find(l => String(l.id) === String(id));
     if (found) return found;
@@ -2659,7 +2665,7 @@ function TripBuilderApp() {
                       ℹ
                     </button>
                     <div className="lm-cover-strip">
-                      <img src={getCoverImage(l)} alt="" />
+                      <img src={getCoverImage(l)} alt="" onError={(e) => handleImageError(e, l)} />
                       {count > 0 && (
                         <span className="lm-count-badge">
                           {activeLang === 'th' ? `เลือกแล้ว ${count} ครั้ง` : `${count}x selected`}
@@ -2955,7 +2961,7 @@ function TripBuilderApp() {
                                 onDragStart={(e) => handleDragStart(e, item, day, idx)}
                               >
                                 <div className="it-cover-strip">
-                                  <img src={getCoverImage(actualLandmark)} alt="" />
+                                  <img src={getCoverImage(actualLandmark)} alt="" onError={(e) => handleImageError(e, actualLandmark)} />
                                 </div>
                                 <div style={{ padding: '6px 8px' }}>
                                   <div className="it-top">
@@ -3402,7 +3408,7 @@ function TripBuilderApp() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
                   {/* Render cover image in detail modal */}
                   <div style={{ height: '180px', borderRadius: '8px', overflow: 'hidden', position: 'relative', marginBottom: '4px' }}>
-                    <img src={getCoverImage(selectedPlace)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={getCoverImage(selectedPlace)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => handleImageError(e, selectedPlace)} />
                     <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '12px' }}>
                       {selectedPlace.icon} {(selectedPlace.names && selectedPlace.names[activeLang]) || selectedPlace.name}
                     </div>
