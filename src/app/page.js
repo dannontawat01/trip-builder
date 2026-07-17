@@ -260,6 +260,98 @@ const generateChecklistId = () => {
   return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
+// ─── WEATHER UTILITIES ──────────────────────────────────────────────
+const CITY_COORDINATES = {
+  bkk: { lat: 13.7563, lng: 100.5018 },
+  cnx: { lat: 18.7883, lng: 98.9853 },
+  hkt: { lat: 7.8804, lng: 98.3923 },
+  ptt: { lat: 12.9236, lng: 100.8824 },
+  aya: { lat: 14.3532, lng: 100.5681 },
+  sel: { lat: 37.5665, lng: 126.9780 },
+  bus: { lat: 35.1796, lng: 129.0756 },
+  jej: { lat: 33.4996, lng: 126.5312 },
+  tky: { lat: 35.6762, lng: 139.6503 },
+  kyo: { lat: 35.0116, lng: 135.7681 },
+  osk: { lat: 34.6937, lng: 135.5023 }
+};
+
+const WEATHER_CODES = {
+  0: { label: { th: 'ท้องฟ้าแจ่มใส', en: 'Clear sky' }, emoji: '☀️' },
+  1: { label: { th: 'ท้องฟ้าโปร่งส่วนใหญ่', en: 'Mainly clear' }, emoji: '🌤️' },
+  2: { label: { th: 'มีเมฆบางส่วน', en: 'Partly cloudy' }, emoji: '⛅' },
+  3: { label: { th: 'เมฆครึ้ม', en: 'Overcast' }, emoji: '☁️' },
+  45: { label: { th: 'หมอก', en: 'Fog' }, emoji: '🌫️' },
+  48: { label: { th: 'หมอกน้ำค้างแข็ง', en: 'Depositing rime fog' }, emoji: '🌫️' },
+  51: { label: { th: 'ฝนตกปรอยๆ ขนาดเบา', en: 'Light drizzle' }, emoji: '🌦️' },
+  53: { label: { th: 'ฝนตกปรอยๆ ขนาดปานกลาง', en: 'Moderate drizzle' }, emoji: '🌦️' },
+  55: { label: { th: 'ฝนตกปรอยๆ ขนาดหนาแน่น', en: 'Dense drizzle' }, emoji: '🌦️' },
+  56: { label: { th: 'ฝนละอองแช่แข็ง ขนาดเบา', en: 'Light freezing drizzle' }, emoji: '🌧️' },
+  57: { label: { th: 'ฝนละอองแช่แข็ง ขนาดหนาแน่น', en: 'Dense freezing drizzle' }, emoji: '🌧️' },
+  61: { label: { th: 'ฝนตกเล็กน้อย', en: 'Slight rain' }, emoji: '🌧️' },
+  63: { label: { th: 'ฝนตกปานกลาง', en: 'Moderate rain' }, emoji: '🌧️' },
+  65: { label: { th: 'ฝนตกหนัก', en: 'Heavy rain' }, emoji: '🌧️' },
+  66: { label: { th: 'ฝนแช่แข็ง ตกเล็กน้อย', en: 'Slight freezing rain' }, emoji: '🌧️' },
+  67: { label: { th: 'ฝนแช่แข็ง ตกหนัก', en: 'Heavy freezing rain' }, emoji: '🌧️' },
+  71: { label: { th: 'หิมะตกเล็กน้อย', en: 'Slight snow fall' }, emoji: '🌨️' },
+  73: { label: { th: 'หิมะตกปานกลาง', en: 'Moderate snow fall' }, emoji: '🌨️' },
+  75: { label: { th: 'หิมะตกหนัก', en: 'Heavy snow fall' }, emoji: '🌨️' },
+  77: { label: { th: 'เกล็ดหิมะ', en: 'Snow grains' }, emoji: '🌨️' },
+  80: { label: { th: 'ฝนไล่ช้าง ตกเล็กน้อย', en: 'Slight rain showers' }, emoji: '🌦️' },
+  81: { label: { th: 'ฝนไล่ช้าง ตกปานกลาง', en: 'Moderate rain showers' }, emoji: '🌦️' },
+  82: { label: { th: 'ฝนไล่ช้าง ตกรุนแรง', en: 'Violent rain showers' }, emoji: '🌧️' },
+  85: { label: { th: 'หิมะไล่ช้าง ตกเล็กน้อย', en: 'Slight snow showers' }, emoji: '🌨️' },
+  86: { label: { th: 'หิมะไล่ช้าง ตกหนัก', en: 'Heavy snow showers' }, emoji: '🌨️' },
+  95: { label: { th: 'พายุฝนฟ้าคะนอง', en: 'Thunderstorm' }, emoji: '⛈️' },
+  96: { label: { th: 'พายุฝนฟ้าคะนองพร้อมลูกเห็บตกเล็กน้อย', en: 'Thunderstorm with slight hail' }, emoji: '⛈️' },
+  99: { label: { th: 'พายุฝนฟ้าคะนองพร้อมลูกเห็บตกหนัก', en: 'Thunderstorm with heavy hail' }, emoji: '⛈️' }
+};
+
+function generateMockWeather(dateStr, lat) {
+  const isCold = Math.abs(lat) > 30;
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = dateStr.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const absHash = Math.abs(hash);
+  const codes = [0, 1, 2, 3, 61, 63, 80];
+  if (isCold) {
+    codes.push(71, 73);
+  }
+  const code = codes[absHash % codes.length];
+  
+  let tempBase = isCold ? 12 : 28;
+  const month = parseInt(dateStr.split('-')[1]) || 6;
+  const tempOffset = Math.sin((month - 4) * Math.PI / 6) * (isCold ? 12 : 4);
+  const tempMax = Math.round((tempBase + tempOffset + (absHash % 5)) * 10) / 10;
+  const tempMin = Math.round((tempMax - (5 + (absHash % 4))) * 10) / 10;
+  
+  return { code, tempMax, tempMin };
+}
+
+async function fetchWeatherForecast(lat, lng) {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=\${lat}&longitude=\${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API response not ok');
+    const data = await res.json();
+    
+    const forecast = {};
+    if (data.daily && data.daily.time) {
+      data.daily.time.forEach((dateStr, index) => {
+        forecast[dateStr] = {
+          code: data.daily.weathercode[index],
+          tempMax: data.daily.temperature_2m_max[index],
+          tempMin: data.daily.temperature_2m_min[index]
+        };
+      });
+    }
+    return forecast;
+  } catch (error) {
+    console.warn('Weather API failed, using fallback mock generator:', error);
+    return null;
+  }
+}
+
 export default function Page() {
   return (
     <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>Loading...</div>}>
@@ -383,6 +475,10 @@ function TripBuilderApp() {
   const [aiPlanStatus, setAiPlanStatus] = useState('');
   const [aiPlanResult, setAiPlanResult] = useState(null);
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
+
+  // Weather states
+  const [weatherData, setWeatherData] = useState({});
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
   // Drag and Drop Ref tracking
   const dragItem = useRef();
@@ -1321,6 +1417,47 @@ function TripBuilderApp() {
     fetchLandmarks();
 
   }, [activeCity, customPlaces, user]);
+
+  // Load weather when activeCity or dates change
+  useEffect(() => {
+    let active = true;
+    const loadWeather = async () => {
+      const coords = CITY_COORDINATES[activeCity];
+      if (!coords) return;
+      
+      setWeatherLoading(true);
+      const data = await fetchWeatherForecast(coords.lat, coords.lng);
+      
+      if (!active) return;
+      
+      const newWeatherData = {};
+      const datesList = [];
+      if (startDate && nDays > 0) {
+        for (let i = 0; i < nDays; i++) {
+          const d = new Date(startDate);
+          d.setDate(d.getDate() + i);
+          datesList.push(d.toISOString().split('T')[0]);
+        }
+      }
+      
+      datesList.forEach(dateStr => {
+        if (data && data[dateStr] !== undefined && data[dateStr] !== null) {
+          newWeatherData[dateStr] = data[dateStr];
+        } else {
+          newWeatherData[dateStr] = generateMockWeather(dateStr, coords.lat);
+        }
+      });
+      
+      setWeatherData(newWeatherData);
+      setWeatherLoading(false);
+    };
+    
+    loadWeather();
+    
+    return () => {
+      active = false;
+    };
+  }, [activeCity, startDate, nDays]);
 
   // Save itinerary to LocalStorage or Cloud
   const saveItinData = async (newItin, newNDays, currentChecklist = checklist) => {
