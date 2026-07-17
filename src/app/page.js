@@ -218,7 +218,7 @@ const CITY_COVER_IMAGES = {
   seoul: 'https://images.unsplash.com/photo-1538669715516-5c51a140f7b0?auto=format&fit=crop&w=600&q=80',
   busan: 'https://images.unsplash.com/photo-1577971158586-fb7c6d66e855?auto=format&fit=crop&w=600&q=80',
   jeju: 'https://images.unsplash.com/photo-1549693578-d683be217e58?auto=format&fit=crop&w=600&q=80',
-  tokyo: 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&w=600&q=80',
+  tokyo: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
   kyoto: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
   osaka: 'https://images.unsplash.com/photo-1590250596356-a6c22c075775?auto=format&fit=crop&w=600&q=80',
   travel: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=80'
@@ -558,9 +558,24 @@ function TripBuilderApp() {
   };
 
   const handleImageError = (e, place) => {
-    e.target.onerror = null;
     const cityKey = place ? (CITY_KEYWORDS[place.city_id || activeCity] || 'travel') : 'travel';
-    e.target.src = CITY_COVER_IMAGES[cityKey] || CITY_COVER_IMAGES.travel;
+    const cityFallback = CITY_COVER_IMAGES[cityKey] || CITY_COVER_IMAGES.travel;
+    const travelFallback = CITY_COVER_IMAGES.travel;
+    const svgFallback = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100%" height="100%" fill="%23E2E0D8"/></svg>';
+    
+    const currentSrc = e.target.src;
+    if (currentSrc === svgFallback) {
+      return;
+    }
+    if (currentSrc === travelFallback) {
+      e.target.src = svgFallback;
+      return;
+    }
+    if (currentSrc === cityFallback) {
+      e.target.src = travelFallback;
+      return;
+    }
+    e.target.src = cityFallback;
   };
 
   const findLandmarkGlobally = (id, cityId) => {
