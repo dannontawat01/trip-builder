@@ -2742,6 +2742,30 @@ function TripBuilderApp() {
                         <span className="day-lbl" style={{ background: dayColor.bg, color: dayColor.t, border: `1px solid ${dayColor.b}` }}>
                           {t('dayLabel')} {day} · {getLocalDate(day)}
                         </span>
+                        {(() => {
+                          if (!startDate) return null;
+                          try {
+                            const dObj = new Date(startDate);
+                            dObj.setUTCDate(dObj.getUTCDate() + (day - 1));
+                            const dateStr = dObj.toISOString().split('T')[0];
+                            const weather = weatherData[dateStr];
+                            if (!weather) return null;
+                            const codeInfo = WEATHER_CODES[weather.code] || { label: { th: 'ไม่ระบุ', en: 'Unknown' }, emoji: '❓' };
+                            const label = codeInfo.label[activeLang] || codeInfo.label.th;
+                            return (
+                              <div 
+                                className="day-weather-badge" 
+                                id={`weather-badge-day-${day}`}
+                                title={label}
+                              >
+                                <span className="weather-emoji">{codeInfo.emoji}</span>
+                                <span className="weather-temp">{weather.tempMin}° - {weather.tempMax}°C</span>
+                              </div>
+                            );
+                          } catch (e) {
+                            return null;
+                          }
+                        })()}
                         <span className="day-info">
                           {items.length} · {durationLabel}
                         </span>

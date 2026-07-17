@@ -620,12 +620,47 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 .day-lbl {
   font-size: 11px;
   font-weight: 500;
   padding: 3px 10px;
   border-radius: 20px;
+}
+.day-weather-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 10px;
+  cursor: help;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+body.theme-dark .day-weather-badge {
+  background: rgba(255, 255, 255, 0.05);
+}
+.day-weather-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+  background: rgba(0, 0, 0, 0.08);
+}
+body.theme-dark .day-weather-badge:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.weather-emoji {
+  font-size: 11px;
+  line-height: 1;
+}
+.weather-temp {
+  font-weight: 500;
+  color: var(--dark);
+  font-size: 9.5px;
 }
 .day-info {
   font-size: 10px;
