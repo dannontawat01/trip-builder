@@ -1242,9 +1242,13 @@ function TripBuilderApp() {
           time: defaultPlan.start_time,
           hotel: defaultPlan.hotel
         };
-        const updatedPlans = [newPlan, ...plansList];
-        setPlansList(updatedPlans);
-        localStorage.setItem(`tb_cache_cloud_plans_${email}`, JSON.stringify(updatedPlans));
+        setPlansList(prev => {
+          const updatedPlans = [newPlan, ...prev];
+          try {
+            localStorage.setItem(`tb_cache_cloud_plans_${email}`, JSON.stringify(updatedPlans));
+          } catch (_) {}
+          return updatedPlans;
+        });
         setActivePlanId(newPlan.id);
         setItin(newPlan.itin);
         setChecklist(newPlan.checklist);
@@ -1323,13 +1327,20 @@ function TripBuilderApp() {
         try {
           await googleSheets.deleteItinerary(planId);
           
-          const updatedPlans = plansList.filter(p => p.id !== planId);
-          setPlansList(updatedPlans);
-          localStorage.setItem(`tb_cache_cloud_plans_${user.email}`, JSON.stringify(updatedPlans));
+          let updatedPlans = [];
+          setPlansList(prev => {
+            updatedPlans = prev.filter(p => p.id !== planId);
+            try {
+              localStorage.setItem(`tb_cache_cloud_plans_${user.email}`, JSON.stringify(updatedPlans));
+            } catch (_) {}
+            return updatedPlans;
+          });
           
           if (activePlanId === planId) {
             const nextPlan = updatedPlans[0];
-            loadActivePlan(nextPlan.id, updatedPlans);
+            if (nextPlan) {
+              loadActivePlan(nextPlan.id, updatedPlans);
+            }
           }
           toast(activeLang === 'th' ? 'ลบแผนสำเร็จ' : 'Plan deleted');
         } catch (err) {
@@ -1743,22 +1754,26 @@ function TripBuilderApp() {
             checklist: currentChecklist
           });
           
-          const updatedPlans = plansList.map(p => {
-            if (p.id === activePlanId) {
-              return {
-                ...p,
-                itin: newItin,
-                nDays: newNDays,
-                start: startDate,
-                time: startTime,
-                hotel: hotel,
-                checklist: currentChecklist
-              };
-            }
-            return p;
+          setPlansList(prev => {
+            const updatedPlans = prev.map(p => {
+              if (p.id === activePlanId) {
+                return {
+                  ...p,
+                  itin: newItin,
+                  nDays: newNDays,
+                  start: startDate,
+                  time: startTime,
+                  hotel: hotel,
+                  checklist: currentChecklist
+                };
+              }
+              return p;
+            });
+            try {
+              localStorage.setItem(`tb_cache_cloud_plans_${user.email}`, JSON.stringify(updatedPlans));
+            } catch (_) {}
+            return updatedPlans;
           });
-          setPlansList(updatedPlans);
-          localStorage.setItem(`tb_cache_cloud_plans_${user.email}`, JSON.stringify(updatedPlans));
         } catch (err) {
           console.warn('Failed to update cloud itinerary:', err.message);
         }
