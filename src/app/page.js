@@ -1120,7 +1120,9 @@ function TripBuilderApp() {
         const isDifferent = JSON.stringify(freshPlans) !== JSON.stringify(cachedPlans);
         if (isDifferent) {
           setPlansList(freshPlans);
-          localStorage.setItem(`tb_cache_cloud_plans_${email}`, JSON.stringify(freshPlans));
+          try {
+            localStorage.setItem(`tb_cache_cloud_plans_${email}`, JSON.stringify(freshPlans));
+          } catch (_) {}
           
           const currentActiveId = localStorage.getItem(`tb_active_plan_${email}`);
           const freshActivePlan = freshPlans.find(p => p.id === currentActiveId);
@@ -1150,7 +1152,9 @@ function TripBuilderApp() {
             const fallbackPlan = freshPlans[0];
             if (fallbackPlan) {
               setActivePlanId(fallbackPlan.id);
-              localStorage.setItem(`tb_active_plan_${email}`, fallbackPlan.id);
+              try {
+                localStorage.setItem(`tb_active_plan_${email}`, fallbackPlan.id);
+              } catch (_) {}
               setItin(fallbackPlan.itin);
               
               let loadedChecklist = fallbackPlan.checklist;
@@ -1179,7 +1183,9 @@ function TripBuilderApp() {
       } else {
         // If there was no cached data, populate the cache and load the active plan as usual
         setPlansList(freshPlans);
-        localStorage.setItem(`tb_cache_cloud_plans_${email}`, JSON.stringify(freshPlans));
+        try {
+          localStorage.setItem(`tb_cache_cloud_plans_${email}`, JSON.stringify(freshPlans));
+        } catch (_) {}
         
         const lastActiveId = localStorage.getItem(`tb_active_plan_${email}`);
         const activePlan = freshPlans.find(p => p.id === lastActiveId) || freshPlans[0];
@@ -1327,14 +1333,11 @@ function TripBuilderApp() {
         try {
           await googleSheets.deleteItinerary(planId);
           
-          let updatedPlans = [];
-          setPlansList(prev => {
-            updatedPlans = prev.filter(p => p.id !== planId);
-            try {
-              localStorage.setItem(`tb_cache_cloud_plans_${user.email}`, JSON.stringify(updatedPlans));
-            } catch (_) {}
-            return updatedPlans;
-          });
+          const updatedPlans = plansList.filter(p => p.id !== planId);
+          setPlansList(updatedPlans);
+          try {
+            localStorage.setItem(`tb_cache_cloud_plans_${user.email}`, JSON.stringify(updatedPlans));
+          } catch (_) {}
           
           if (activePlanId === planId) {
             const nextPlan = updatedPlans[0];
@@ -1576,9 +1579,10 @@ function TripBuilderApp() {
       const email = user?.email || '';
       const cacheKey = `tb_cache_landmarks_${activeCity}_${email}`;
       let cachedData = null;
+      let cachedStr = null;
 
       try {
-        const cachedStr = localStorage.getItem(cacheKey);
+        cachedStr = localStorage.getItem(cacheKey);
         if (cachedStr) {
           cachedData = JSON.parse(cachedStr);
           if (cachedData && Array.isArray(cachedData)) {
@@ -1643,7 +1647,7 @@ function TripBuilderApp() {
           freshRecords = [...allData.map(mapItem), ...localOnlyCustom];
         }
 
-        const cachedCompareStr = cachedData ? JSON.stringify(cachedData) : null;
+        const cachedCompareStr = cachedStr;
         const freshCompareStr = JSON.stringify(freshRecords);
 
         if (!cachedCompareStr || cachedCompareStr !== freshCompareStr) {
