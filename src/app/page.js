@@ -1052,11 +1052,55 @@ function TripBuilderApp() {
   const loadCloudPlans = async (email) => {
     if (!googleSheets) return;
     console.log('[TripBuilder] loadCloudPlans for email:', email);
+    
+    let cachedPlans = null;
+    let hasCache = false;
+    
+    // Step 1: Read and populate from plans cache on start
+    try {
+      const cachedDataStr = localStorage.getItem(`tb_cache_cloud_plans_${email}`);
+      if (cachedDataStr) {
+        cachedPlans = JSON.parse(cachedDataStr);
+        if (Array.isArray(cachedPlans)) {
+          hasCache = true;
+          setPlansList(cachedPlans);
+          
+          const lastActiveId = localStorage.getItem(`tb_active_plan_${email}`);
+          const activePlan = cachedPlans.find(p => p.id === lastActiveId) || cachedPlans[0];
+          
+          if (activePlan) {
+            setActivePlanId(activePlan.id);
+            setItin(activePlan.itin);
+            
+            let loadedChecklist = activePlan.checklist;
+            try {
+              const localCheck = localStorage.getItem(`checklist_${activePlan.id}`) || localStorage.getItem(`trip_builder_checklist_${activePlan.id}`);
+              if (localCheck) {
+                loadedChecklist = JSON.parse(localCheck);
+              }
+            } catch (_) {}
+            setChecklist(loadedChecklist);
+            
+            setNDays(activePlan.nDays);
+            setStartDate(activePlan.start);
+            setStartTime(activePlan.time);
+            setHotel(activePlan.hotel);
+            if (activePlan.city_id) {
+              setActiveCity(activePlan.city_id);
+              setActiveCountry(getCountryOfCity(activePlan.city_id));
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to read from plans cache:', err);
+    }
+
     try {
       const data = await googleSheets.getItineraries(email);
       console.log('[TripBuilder] Loaded', data?.length, 'cloud plans');
       
-      const plans = data.map(item => ({
+      const freshPlans = data.map(item => ({
         id: item.id,
         name: item.name,
         city_id: item.city_id,
@@ -1069,36 +1113,101 @@ function TripBuilderApp() {
       }));
       
       // Sort by ID descending locally as fallback for ordering
-      plans.sort((a, b) => b.id.localeCompare(a.id));
+      freshPlans.sort((a, b) => b.id.localeCompare(a.id));
 
-      setPlansList(plans);
-      
-      const lastActiveId = localStorage.getItem(`tb_active_plan_${email}`);
-      const activePlan = plans.find(p => p.id === lastActiveId) || plans[0];
-      
-      if (activePlan) {
-        setActivePlanId(activePlan.id);
-        setItin(activePlan.itin);
-        
-        let loadedChecklist = activePlan.checklist;
-        try {
-          const localCheck = localStorage.getItem(`checklist_${activePlan.id}`) || localStorage.getItem(`trip_builder_checklist_${activePlan.id}`);
-          if (localCheck) {
-            loadedChecklist = JSON.parse(localCheck);
+      if (hasCache) {
+        // Check if fresh plans are different from cached plans
+        const isDifferent = JSON.stringify(freshPlans) !== JSON.stringify(cachedPlans);
+        if (isDifferent) {
+          setPlansList(freshPlans);
+          localStorage.setItem(`tb_cache_cloud_plans_${email}`, JSON.stringify(freshPlans));
+          
+          const currentActiveId = localStorage.getItem(`tb_active_plan_${email}`);
+          const freshActivePlan = freshPlans.find(p => p.id === currentActiveId);
+          if (freshActivePlan) {
+            setActivePlanId(freshActivePlan.id);
+            setItin(freshActivePlan.itin);
+            
+            let loadedChecklist = freshActivePlan.checklist;
+            try {
+              const localCheck = localStorage.getItem(`checklist_${freshActivePlan.id}`) || localStorage.getItem(`trip_builder_checklist_${freshActivePlan.id}`);
+              if (localCheck) {
+                loadedChecklist = JSON.parse(localCheck);
+              }
+            } catch (_) {}
+            setChecklist(loadedChecklist);
+            
+            setNDays(freshActivePlan.nDays);
+            setStartDate(freshActivePlan.start);
+            setStartTime(freshActivePlan.time);
+            setHotel(freshActivePlan.hotel);
+            if (freshActivePlan.city_id) {
+              setActiveCity(freshActivePlan.city_id);
+              setActiveCountry(getCountryOfCity(freshActivePlan.city_id));
+            }
+          } else {
+            // The active plan ID is no longer valid (e.g. deleted from another client)
+            const fallbackPlan = freshPlans[0];
+            if (fallbackPlan) {
+              setActivePlanId(fallbackPlan.id);
+              localStorage.setItem(`tb_active_plan_${email}`, fallbackPlan.id);
+              setItin(fallbackPlan.itin);
+              
+              let loadedChecklist = fallbackPlan.checklist;
+              try {
+                const localCheck = localStorage.getItem(`checklist_${fallbackPlan.id}`) || localStorage.getItem(`trip_builder_checklist_${fallbackPlan.id}`);
+                if (localCheck) {
+                  loadedChecklist = JSON.parse(localCheck);
+                }
+              } catch (_) {}
+              setChecklist(loadedChecklist);
+              
+              setNDays(fallbackPlan.nDays);
+              setStartDate(fallbackPlan.start);
+              setStartTime(fallbackPlan.time);
+              setHotel(fallbackPlan.hotel);
+              if (fallbackPlan.city_id) {
+                setActiveCity(fallbackPlan.city_id);
+                setActiveCountry(getCountryOfCity(fallbackPlan.city_id));
+              }
+            } else {
+              // No plans exist at all
+              await handleCreatePlanCloud('My Saved Plan 1', email);
+            }
           }
-        } catch (_) {}
-        setChecklist(loadedChecklist);
-        
-        setNDays(activePlan.nDays);
-        setStartDate(activePlan.start);
-        setStartTime(activePlan.time);
-        setHotel(activePlan.hotel);
-        if (activePlan.city_id) {
-          setActiveCity(activePlan.city_id);
-          setActiveCountry(getCountryOfCity(activePlan.city_id));
         }
       } else {
-        await handleCreatePlanCloud('My Saved Plan 1', email);
+        // If there was no cached data, populate the cache and load the active plan as usual
+        setPlansList(freshPlans);
+        localStorage.setItem(`tb_cache_cloud_plans_${email}`, JSON.stringify(freshPlans));
+        
+        const lastActiveId = localStorage.getItem(`tb_active_plan_${email}`);
+        const activePlan = freshPlans.find(p => p.id === lastActiveId) || freshPlans[0];
+        
+        if (activePlan) {
+          setActivePlanId(activePlan.id);
+          setItin(activePlan.itin);
+          
+          let loadedChecklist = activePlan.checklist;
+          try {
+            const localCheck = localStorage.getItem(`checklist_${activePlan.id}`) || localStorage.getItem(`trip_builder_checklist_${activePlan.id}`);
+            if (localCheck) {
+              loadedChecklist = JSON.parse(localCheck);
+            }
+          } catch (_) {}
+          setChecklist(loadedChecklist);
+          
+          setNDays(activePlan.nDays);
+          setStartDate(activePlan.start);
+          setStartTime(activePlan.time);
+          setHotel(activePlan.hotel);
+          if (activePlan.city_id) {
+            setActiveCity(activePlan.city_id);
+            setActiveCountry(getCountryOfCity(activePlan.city_id));
+          }
+        } else {
+          await handleCreatePlanCloud('My Saved Plan 1', email);
+        }
       }
     } catch (err) {
       console.warn('Failed to load cloud plans:', err.message);
