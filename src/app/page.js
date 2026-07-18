@@ -1242,7 +1242,9 @@ function TripBuilderApp() {
           time: defaultPlan.start_time,
           hotel: defaultPlan.hotel
         };
-        setPlansList(prev => [newPlan, ...prev]);
+        const updatedPlans = [newPlan, ...plansList];
+        setPlansList(updatedPlans);
+        localStorage.setItem(`tb_cache_cloud_plans_${email}`, JSON.stringify(updatedPlans));
         setActivePlanId(newPlan.id);
         setItin(newPlan.itin);
         setChecklist(newPlan.checklist);
@@ -1323,6 +1325,7 @@ function TripBuilderApp() {
           
           const updatedPlans = plansList.filter(p => p.id !== planId);
           setPlansList(updatedPlans);
+          localStorage.setItem(`tb_cache_cloud_plans_${user.email}`, JSON.stringify(updatedPlans));
           
           if (activePlanId === planId) {
             const nextPlan = updatedPlans[0];
@@ -1740,7 +1743,7 @@ function TripBuilderApp() {
             checklist: currentChecklist
           });
           
-          setPlansList(prev => prev.map(p => {
+          const updatedPlans = plansList.map(p => {
             if (p.id === activePlanId) {
               return {
                 ...p,
@@ -1753,7 +1756,9 @@ function TripBuilderApp() {
               };
             }
             return p;
-          }));
+          });
+          setPlansList(updatedPlans);
+          localStorage.setItem(`tb_cache_cloud_plans_${user.email}`, JSON.stringify(updatedPlans));
         } catch (err) {
           console.warn('Failed to update cloud itinerary:', err.message);
         }
