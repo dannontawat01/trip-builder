@@ -1449,9 +1449,30 @@ function TripBuilderApp() {
     // Fetch from Supabase if connected
     const fetchLandmarks = async () => {
       if (!googleSheets) return;
-      setIsLoading(true);
+
+      const email = user?.email || '';
+      const cacheKey = `tb_cache_landmarks_${activeCity}_${email}`;
+      let cachedData = null;
+
       try {
-        const email = user?.email || '';
+        const cachedStr = localStorage.getItem(cacheKey);
+        if (cachedStr) {
+          cachedData = JSON.parse(cachedStr);
+          if (cachedData && Array.isArray(cachedData)) {
+            setLandmarks(cachedData);
+            setIsLoading(false);
+          } else {
+            setIsLoading(true);
+          }
+        } else {
+          setIsLoading(true);
+        }
+      } catch (err) {
+        console.warn('Failed to parse cached landmarks:', err);
+        setIsLoading(true);
+      }
+
+      try {
         const allData = await googleSheets.getLandmarks(activeCity, email);
 
         const mapItem = item => {
@@ -1478,9 +1499,11 @@ function TripBuilderApp() {
         };
 
         const isLoggedIn = !!user;
+        let freshRecords = [];
+
         if (isLoggedIn) {
           if (allData.length > 0) {
-            setLandmarks(allData.map(mapItem));
+            freshRecords = allData.map(mapItem);
             setCustomPlaces(prev => {
               if (!prev[activeCity] || prev[activeCity].length === 0) return prev;
               const cleaned = { ...prev };
@@ -1494,8 +1517,19 @@ function TripBuilderApp() {
         } else {
           const sheetIds = new Set(allData.map(d => String(d.id)));
           const localOnlyCustom = customList.filter(p => !sheetIds.has(String(p.id)));
-          const merged = [...allData.map(mapItem), ...localOnlyCustom];
-          if (merged.length > 0) setLandmarks(merged);
+          freshRecords = [...allData.map(mapItem), ...localOnlyCustom];
+        }
+
+        const cachedCompareStr = cachedData ? JSON.stringify(cachedData) : null;
+        const freshCompareStr = JSON.stringify(freshRecords);
+
+        if (!cachedCompareStr || cachedCompareStr !== freshCompareStr) {
+          if (freshRecords.length > 0) {
+            setLandmarks(freshRecords);
+            try {
+              localStorage.setItem(cacheKey, freshCompareStr);
+            } catch (_) {}
+          }
         }
       } catch (err) {
         console.warn('Failed to load from Google Sheets:', err.message);
