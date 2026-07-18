@@ -1502,8 +1502,8 @@ function TripBuilderApp() {
         let freshRecords = [];
 
         if (isLoggedIn) {
+          freshRecords = allData.map(mapItem);
           if (allData.length > 0) {
-            freshRecords = allData.map(mapItem);
             setCustomPlaces(prev => {
               if (!prev[activeCity] || prev[activeCity].length === 0) return prev;
               const cleaned = { ...prev };
@@ -1524,12 +1524,10 @@ function TripBuilderApp() {
         const freshCompareStr = JSON.stringify(freshRecords);
 
         if (!cachedCompareStr || cachedCompareStr !== freshCompareStr) {
-          if (freshRecords.length > 0) {
-            setLandmarks(freshRecords);
-            try {
-              localStorage.setItem(cacheKey, freshCompareStr);
-            } catch (_) {}
-          }
+          setLandmarks(freshRecords);
+          try {
+            localStorage.setItem(cacheKey, freshCompareStr);
+          } catch (_) {}
         }
       } catch (err) {
         console.warn('Failed to load from Google Sheets:', err.message);
