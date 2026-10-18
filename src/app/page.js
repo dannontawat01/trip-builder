@@ -41,7 +41,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.10.6';
+const APP_VERSION = 'v1.10.7';
 
 
 const parseDateSafe = (dateVal) => {
