@@ -50,7 +50,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.12.2';
+const APP_VERSION = 'v1.13.0';
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -359,6 +359,7 @@ function TripBuilderApp() {
   // Google Maps parser state
   const [gmapsUrl, setGmapsUrl] = useState('');
   const [gmapsResult, setGmapsResult] = useState(null);
+  const [gmapsLoading, setGmapsLoading] = useState(false);
 
   // AI Planner states
   const [aiHotel, setAiHotel] = useState('');
@@ -2274,6 +2275,7 @@ function TripBuilderApp() {
     if (!gmapsUrl.trim()) return;
 
     setGmapsResult(null); // Clear previous result
+    setGmapsLoading(true);
     try {
       const res = await fetch('/api/resolve-gmaps', {
         method: 'POST',
@@ -2281,8 +2283,22 @@ function TripBuilderApp() {
         body: JSON.stringify({ url: gmapsUrl.trim() })
       });
       const data = await res.json();
-      if (data.lat && data.lng) {
+      if (!res.ok || data.error) {
+        setGmapsResult({ error: true, message: data.error || 'Failed to extract' });
+        return;
+      }
+
+      if (data.isList) {
+        setGmapsResult({
+          isList: true,
+          listTitle: data.listTitle || 'Google Maps Saved List',
+          listIcon: data.listIcon || '📍',
+          count: data.count || (data.places ? data.places.length : 0),
+          places: data.places || []
+        });
+      } else if (data.lat && data.lng) {
         setGmapsResult({ 
+          isList: false,
           name: data.name, 
           lat: data.lat, 
           lng: data.lng,
@@ -2298,6 +2314,8 @@ function TripBuilderApp() {
       }
     } catch (e) {
       setGmapsResult({ error: true });
+    } finally {
+      setGmapsLoading(false);
     }
   };
 
@@ -4591,6 +4609,7 @@ function TripBuilderApp() {
         setGmapsUrl={setGmapsUrl}
         parseGmaps={parseGmaps}
         gmapsResult={gmapsResult}
+        gmapsLoading={gmapsLoading}
         fillFromMaps={fillFromMaps}
         toast={toast}
         customPlaces={customPlaces}
