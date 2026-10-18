@@ -2043,6 +2043,111 @@ function TripBuilderApp() {
     dragIdx.current = null;
   };
 
+  // ─── TOUCH DRAG HANDLERS (FOR IPAD & MOBILE) ────────────────────────
+  const handleTouchStart = (e, item, source, index = null) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const touch = e.touches[0];
+
+    touchStateRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      identifier: touch.identifier,
+      isDragging: false,
+      item,
+      source,
+      index,
+      timer: setTimeout(() => {
+        touchStateRef.current.isDragging = true;
+        setTouchDrag({
+          active: true,
+          item,
+          source,
+          index,
+          x: touch.clientX,
+          y: touch.clientY,
+          name: (item.names && item.names[activeLang]) || item.name,
+          icon: item.icon || '📍',
+        });
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          try { navigator.vibrate(20); } catch (_) {}
+        }
+      }, 150)
+    };
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchStateRef.current) return;
+    const touch = Array.from(e.touches).find(t => t.identifier === touchStateRef.current.identifier);
+    if (!touch) return;
+
+    if (!touchStateRef.current.isDragging) {
+      const dist = Math.hypot(
+        touch.clientX - touchStateRef.current.startX,
+        touch.clientY - touchStateRef.current.startY
+      );
+      if (dist > 8) {
+        // User is scrolling, cancel drag initiation
+        clearTimeout(touchStateRef.current.timer);
+      }
+      return;
+    }
+
+    // Actively dragging
+    if (e.cancelable) e.preventDefault();
+
+    setTouchDrag(prev => prev ? { ...prev, x: touch.clientX, y: touch.clientY } : null);
+
+    // Drop target detection
+    const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+    const dayZone = elem?.closest('.day-zone[data-day]');
+    if (dayZone) {
+      const d = parseInt(dayZone.getAttribute('data-day'), 10);
+      setTouchOverDay(d);
+    } else {
+      setTouchOverDay(null);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStateRef.current) return;
+    clearTimeout(touchStateRef.current.timer);
+
+    if (touchStateRef.current.isDragging) {
+      const targetDay = touchOverDay;
+      const { item, source, index } = touchStateRef.current;
+
+      if (targetDay && item) {
+        if (source === 'sidebar') {
+          addToDay(item, targetDay);
+        } else if (parseInt(source) !== parseInt(targetDay)) {
+          moveItinItemToDay(source, index, targetDay);
+        }
+      }
+    }
+
+    touchStateRef.current = {
+      startX: 0,
+      startY: 0,
+      identifier: null,
+      isDragging: false,
+      timer: null,
+      item: null,
+      source: null,
+      index: null,
+    };
+    setTouchDrag(null);
+    setTouchOverDay(null);
+  };
+
+  const handleTouchCancel = () => {
+    if (touchStateRef.current) {
+      clearTimeout(touchStateRef.current.timer);
+      touchStateRef.current.isDragging = false;
+    }
+    setTouchDrag(null);
+    setTouchOverDay(null);
+  };
+
   // ─── GEOLOCATION / DISTANCE SCORING (NEARBY) ────────────────────────
   const haversine = (lat1, lng1, lat2, lng2) => {
     const R = 6371; // Earth radius in km
@@ -2898,6 +3003,10 @@ function TripBuilderApp() {
                     className={`lm-card ${count > 0 ? 'selected' : ''} ${isHighlighted ? 'highlight' : ''}`}
                     draggable={true}
                     onDragStart={(e) => handleDragStart(e, l, 'sidebar')}
+                    onTouchStart={(e) => handleTouchStart(e, l, 'sidebar', null)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    onTouchCancel={handleTouchCancel}
                     onClick={() => {
                       setAddPlacePopover(prev => prev?.landmarkId === l.id ? null : { landmarkId: l.id, place: l });
                     }}
@@ -3183,7 +3292,7 @@ function TripBuilderApp() {
                       })()}
                       
                       <div
-                        className="day-zone drop-zone"
+                        className={`day-zone drop-zone ${touchOverDay === day ? 'touch-drag-over' : ''}`}
                         onDragOver={(e) => handleDragOver(e, day)}
                         onDrop={(e) => handleDrop(e, day)}
                         data-day={day}
@@ -3239,6 +3348,10 @@ function TripBuilderApp() {
                                 className={`it-item ${isLastAdded ? 'last-added' : ''}`}
                                 draggable
                                 onDragStart={(e) => handleDragStart(e, item, day, idx)}
+                                onTouchStart={(e) => handleTouchStart(e, item, day, idx)}
+                                onTouchMove={handleTouchMove}
+                                onTouchEnd={handleTouchEnd}
+                                onTouchCancel={handleTouchCancel}
                               >
                                 <div className="it-cover-strip">
                                   <img src={getCoverImage(actualLandmark)} alt="" onError={(e) => handleImageError(e, actualLandmark)} />
@@ -4543,6 +4656,19 @@ function TripBuilderApp() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {touchDrag && (
+        <div
+          className="touch-drag-ghost"
+          style={{
+            left: `${touchDrag.x}px`,
+            top: `${touchDrag.y}px`,
+          }}
+        >
+          <span className="ghost-icon">{touchDrag.icon}</span>
+          <span className="ghost-name">{touchDrag.name}</span>
         </div>
       )}
     </>
