@@ -4607,6 +4607,42 @@ function TripBuilderApp() {
                 <div className="form-label">{t('exportPreview')}</div>
                 <pre className="out-box">{getFormattedItinerary()}</pre>
               </div>
+
+              {/* Backup & Restore (JSON) Section */}
+              <div className="form-group" style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '16px' }}>
+                <div className="form-label">
+                  💾 {activeLang === 'th' ? 'สำรองและกู้คืนข้อมูล (Backup & Restore)' : 'Backup & Restore (JSON)'}
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: '10px' }}>
+                  {activeLang === 'th' 
+                    ? 'ดาวน์โหลดไฟล์สำรองข้อมูล (รวมทุกแผนและสถานที่ที่เพิ่มเอง) เพื่อนำไปเปิดในเครื่องอื่น หรือกู้คืนข้อมูลกลับมาได้ทุกเมื่อ'
+                    : 'Download a backup file (includes all plans and custom places) to transfer to another device or restore anytime.'}
+                </p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button 
+                    type="button"
+                    className="btn btn-ghost btn-sm" 
+                    onClick={handleExportBackup}
+                    style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <span>📥</span>
+                    <span>{activeLang === 'th' ? 'ดาวน์โหลดไฟล์สำรอง (Export JSON)' : 'Export Backup (JSON)'}</span>
+                  </button>
+                  <label 
+                    className="btn btn-ghost btn-sm" 
+                    style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', margin: 0 }}
+                  >
+                    <span>📤</span>
+                    <span>{activeLang === 'th' ? 'นำเข้าไฟล์สำรอง (Import JSON)' : 'Import Backup (JSON)'}</span>
+                    <input 
+                      type="file" 
+                      accept=".json" 
+                      onChange={handleImportBackup} 
+                      style={{ display: 'none' }} 
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
             
             <div className="modal-foot">
