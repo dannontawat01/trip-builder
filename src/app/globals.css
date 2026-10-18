@@ -167,6 +167,20 @@ body {
   border-radius: 50%;
   background: var(--teal);
 }
+.app-version-badge {
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--teal);
+  background: var(--teal-l);
+  border: 1px solid var(--teal-m);
+  border-radius: 6px;
+  padding: 1px 6px;
+  line-height: 1.4;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+}
 .topbar-sep {
   width: 1px;
   height: 24px;

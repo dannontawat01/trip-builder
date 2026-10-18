@@ -10,6 +10,9 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
   loading: () => <div className="map-loading-placeholder">กำลังโหลดแผนที่...</div>
 });
 
+// ─── APP VERSION ───────────────────────────────────────────────────
+const APP_VERSION = 'v1.1.0';
+
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
 const LANG_STRINGS = {
   th: {
@@ -2763,6 +2766,127 @@ function TripBuilderApp() {
     }
   };
 
+  const handleExportBackup = () => {
+    try {
+      const backupData = {
+        app: 'trip-builder',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        plans: plansList,
+        customPlaces: customPlaces
+      };
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `trip-builder-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast(activeLang === 'th' ? '✅ ดาวน์โหลดไฟล์สำรองข้อมูลสำเร็จ!' : '✅ Backup downloaded successfully!');
+    } catch (err) {
+      console.error('[TripBuilder] Export backup error:', err);
+      toast(activeLang === 'th' ? 'สำรองข้อมูลล้มเหลว' : 'Backup export failed');
+    }
+  };
+
+  const handleImportBackup = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target.result;
+        const data = JSON.parse(content);
+
+        if (!data || (!data.plans && !data.customPlaces)) {
+          toast(activeLang === 'th' ? '❌ ไฟล์สำรองข้อมูลไม่ถูกต้อง' : '❌ Invalid backup file');
+          return;
+        }
+
+        let importedPlansCount = 0;
+        let importedPlacesCount = 0;
+
+        // 1. Merge custom places
+        if (data.customPlaces && typeof data.customPlaces === 'object') {
+          const mergedCustom = { ...customPlaces };
+          Object.keys(data.customPlaces).forEach(city => {
+            if (!mergedCustom[city]) mergedCustom[city] = [];
+            const existingIds = new Set(mergedCustom[city].map(p => String(p.id)));
+            data.customPlaces[city].forEach(p => {
+              if (!existingIds.has(String(p.id))) {
+                mergedCustom[city].push(p);
+                importedPlacesCount++;
+              }
+            });
+          });
+          setCustomPlaces(mergedCustom);
+          try {
+            localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: mergedCustom }));
+          } catch (_) {}
+        }
+
+        // 2. Restore / merge plans
+        if (Array.isArray(data.plans) && data.plans.length > 0) {
+          const existingIds = new Set(plansList.map(p => p.id));
+          const newPlans = data.plans.map(p => {
+            if (existingIds.has(p.id)) {
+              return { ...p, id: `plan_imported_${Date.now()}_${Math.random().toString(36).substr(2, 4)}` };
+            }
+            return p;
+          });
+          const mergedPlans = [...newPlans, ...plansList];
+          setPlansList(mergedPlans);
+          importedPlansCount = newPlans.length;
+
+          // Switch to first imported plan
+          const firstPlan = newPlans[0];
+          setActivePlanId(firstPlan.id);
+          setItin(firstPlan.itin || { 1: [], 2: [], 3: [] });
+          setChecklist(firstPlan.checklist || []);
+          setNDays(firstPlan.nDays || 3);
+          setStartDate(firstPlan.start || new Date().toISOString().split('T')[0]);
+          setStartTime(firstPlan.time || '09:00');
+          setHotel(firstPlan.hotel || '');
+          if (firstPlan.city_id) {
+            setActiveCity(firstPlan.city_id);
+            setActiveCountry(getCountryOfCity(firstPlan.city_id));
+          }
+
+          if (!user) {
+            try {
+              localStorage.setItem('tb_guest_plans', JSON.stringify(mergedPlans));
+              localStorage.setItem('tb_guest_active_plan', firstPlan.id);
+            } catch (_) {}
+          } else {
+            try {
+              if (!googleSheets) {
+                localStorage.setItem(`tb_mock_plans_${user.email}`, JSON.stringify(mergedPlans));
+                localStorage.setItem(`tb_mock_active_plan_${user.email}`, firstPlan.id);
+              } else {
+                localStorage.setItem(`tb_cache_cloud_plans_${user.email}`, JSON.stringify(mergedPlans));
+                localStorage.setItem(`tb_active_plan_${user.email}`, firstPlan.id);
+              }
+            } catch (_) {}
+          }
+        }
+
+        toast(
+          activeLang === 'th'
+            ? `✅ นำเข้าข้อมูลสำเร็จ! (${importedPlansCount} แผน, ${importedPlacesCount} สถานที่)`
+            : `✅ Imported successfully! (${importedPlansCount} plans, ${importedPlacesCount} places)`
+        );
+      } catch (err) {
+        console.error('[TripBuilder] Import failed:', err);
+        toast(activeLang === 'th' ? '❌ ไม่สามารถอ่านไฟล์สำรองได้' : '❌ Failed to read backup file');
+      } finally {
+        event.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
   // Load from Share Link on startup
   useEffect(() => {
     if (!tripParam) return;
@@ -2875,7 +2999,8 @@ function TripBuilderApp() {
         <div className="topbar-main-row">
           <div className="logo">
             <div className="logo-dot"></div>
-            Trip Builder
+            <span>Trip Builder</span>
+            <span className="app-version-badge">{APP_VERSION}</span>
           </div>
           
           {/* Topbar Actions */}
