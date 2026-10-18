@@ -638,7 +638,8 @@ export default function AddPlaceModal({
                                   background: isSelected 
                                     ? (p.isDuplicate ? 'rgba(245, 158, 11, 0.08)' : 'rgba(16, 185, 129, 0.08)') 
                                     : 'transparent',
-                                  borderBottom: '1px solid var(--border)'
+                                  borderBottom: '1px solid var(--border)',
+                                  flexShrink: 0
                                 }}
                               >
                                 <input

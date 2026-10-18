@@ -281,6 +281,7 @@ body {
   grid-template-columns: 280px 1fr 240px;
   flex: 1;
   overflow: hidden;
+  min-height: 0;
 }
 .sidebar {
   border-right: 1px solid var(--border-muted);
@@ -290,6 +291,8 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
+  height: 100%;
 }
 .main {
   overflow-y: auto;
@@ -449,8 +452,10 @@ body {
   border-color: var(--teal-m);
 }
 .lm-list {
-  flex: 1;
+  flex: 1 1 0%;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px 10px;
   display: flex;
   flex-direction: column;
@@ -474,6 +479,10 @@ body {
   background: var(--teal);
 }
 .lm-card {
+  flex-shrink: 0;
+  min-height: 135px;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 140px;
   background: var(--card-glass);
   border: 1px solid var(--border-glass);
   border-radius: var(--r-lg);
@@ -631,6 +640,7 @@ body {
 
 .lm-cover-strip {
   height: 85px; /* Reduced from 110px to reduce visual bulk */
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -934,6 +944,7 @@ body.theme-dark .zone-empty {
 }
 
 .it-item {
+  flex-shrink: 0;
   background: var(--card-glass);
   border: 1px solid var(--border-glass);
   border-radius: var(--r-lg);
@@ -953,6 +964,7 @@ body.theme-dark .zone-empty {
 }
 .it-cover-strip {
   height: 48px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1777,6 +1789,8 @@ textarea.form-input {
   100% { background-position: 400px 0; }
 }
 .lm-skeleton {
+  flex-shrink: 0;
+  min-height: 100px;
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -3361,6 +3375,7 @@ body.theme-dark .day-weather-alert-icon {
 .it-item.has-popover {
   overflow: visible !important;
   z-index: 150 !important;
+  content-visibility: visible !important;
 }
 
 /* --- Popover Styles (Move to Day & Day Picker) --- */
