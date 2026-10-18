@@ -1,6 +1,6 @@
 {
   "name": "trip-builder",
-  "version": "1.8.0",
+  "version": "1.9.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,7 +14,8 @@
     "leaflet": "^1.9.4",
     "next": "16.2.10",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

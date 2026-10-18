@@ -7,6 +7,7 @@ import { getGmapsWalkingRouteUrl, shareGmapsRoute } from '@/lib/gmapsRoute';
 import { optimizeDayRoute, calculateDistanceKm, estimateTravelTimeMins } from '@/lib/routeOptimizer';
 import dynamic from 'next/dynamic';
 import TravelModeView from './components/TravelModeView';
+import OptimizedImage from './components/OptimizedImage';
 
 const MapComponent = dynamic(() => import('./components/MapComponent'), {
   ssr: false,
@@ -14,7 +15,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.8.0';
+const APP_VERSION = 'v1.9.1';
 
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
 const LANG_STRINGS = {
@@ -74,7 +75,7 @@ const LANG_STRINGS = {
     stopsCount: 'จุดแวะ',
     openWalkMaps: 'เปิด Maps ↗',
     copyWalkLink: 'คัดลอกลิงก์',
-    groupPlan: '👥 วางแผนเป็นกลุ่ม',
+    groupPlan: 'วางแผนเป็นกลุ่ม',
     groupModalTitle: '👥 วางแผนทริปเป็นกลุ่ม (Group Collaboration)',
     tabCreateRoom: '✨ สร้างห้องใหม่',
     tabJoinRoom: '🔑 เข้าร่วมด้วยรหัส',
@@ -735,11 +736,15 @@ function TripBuilderApp() {
     return Object.values(itin).flat().filter(x => x.id === placeId).length;
   };
 
+  const getCityFallbackImage = (place) => {
+    const cityKey = place ? (CITY_KEYWORDS[place.city_id || activeCity] || 'travel') : 'travel';
+    return CITY_COVER_IMAGES[cityKey] || CITY_COVER_IMAGES.travel;
+  };
+
   const getCoverImage = (place) => {
     if (place && localCoverOverrides[place.id]) return localCoverOverrides[place.id];
     if (place && place.cover_image) return place.cover_image;
-    const cityKey = place ? (CITY_KEYWORDS[place.city_id || activeCity] || 'travel') : 'travel';
-    return CITY_COVER_IMAGES[cityKey] || CITY_COVER_IMAGES.travel;
+    return getCityFallbackImage(place);
   };
 
   const handleImageError = (e, place) => {
@@ -3967,7 +3972,12 @@ function TripBuilderApp() {
                       </div>
                     )}
                     <div className="lm-cover-strip">
-                      <img src={getCoverImage(l)} alt="" onError={(e) => handleImageError(e, l)} />
+                      <OptimizedImage
+                        src={getCoverImage(l)}
+                        alt={(l.names && l.names[activeLang]) || l.name || ''}
+                        width={400}
+                        fallbackSrc={getCityFallbackImage(l)}
+                      />
                       {count > 0 && (
                         <span className="lm-count-badge">
                           {activeLang === 'th' ? `เลือกแล้ว ${count} ครั้ง` : `${count}x selected`}
@@ -4388,7 +4398,12 @@ function TripBuilderApp() {
                                 onTouchCancel={handleTouchCancel}
                               >
                                 <div className="it-cover-strip">
-                                  <img src={getCoverImage(actualLandmark)} alt="" onError={(e) => handleImageError(e, actualLandmark)} />
+                                  <OptimizedImage
+                                    src={getCoverImage(actualLandmark)}
+                                    alt={(actualLandmark.names && actualLandmark.names[activeLang]) || actualLandmark.name || ''}
+                                    width={300}
+                                    fallbackSrc={getCityFallbackImage(actualLandmark)}
+                                  />
                                 </div>
                                 <div style={{ padding: '6px 8px' }}>
                                   <div className="it-top">
@@ -4868,7 +4883,13 @@ function TripBuilderApp() {
                                 transition: 'all 0.15s'
                               }}
                             >
-                              <img src={url} alt="" style={{ width: '100%', height: '80px', objectFit: 'cover' }} />
+                              <OptimizedImage
+                                src={url}
+                                alt=""
+                                width={200}
+                                containerStyle={{ width: '100%', height: '80px' }}
+                                fallbackSrc={CITY_COVER_IMAGES.travel}
+                              />
                               {isSelected && (
                                 <div style={{
                                   position: 'absolute',
@@ -4883,7 +4904,8 @@ function TripBuilderApp() {
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   fontSize: '10px',
-                                  fontWeight: 'bold'
+                                  fontWeight: 'bold',
+                                  zIndex: 2
                                 }}>
                                   ✓
                                 </div>
@@ -4909,8 +4931,14 @@ function TripBuilderApp() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
                   {/* Render cover image in detail modal */}
                   <div style={{ height: '180px', borderRadius: '8px', overflow: 'hidden', position: 'relative', marginBottom: '4px' }}>
-                    <img src={getCoverImage(selectedPlace)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => handleImageError(e, selectedPlace)} />
-                    <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '12px' }}>
+                    <OptimizedImage
+                      src={getCoverImage(selectedPlace)}
+                      alt={(selectedPlace.names && selectedPlace.names[activeLang]) || selectedPlace.name || ''}
+                      width={800}
+                      fallbackSrc={getCityFallbackImage(selectedPlace)}
+                      containerStyle={{ width: '100%', height: '100%' }}
+                    />
+                    <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', zIndex: 2 }}>
                       {selectedPlace.icon} {(selectedPlace.names && selectedPlace.names[activeLang]) || selectedPlace.name}
                     </div>
                   </div>
