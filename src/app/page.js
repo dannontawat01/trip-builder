@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { googleSheets } from '@/lib/googleSheets';
 import { getGmapsWalkingRouteUrl, shareGmapsRoute } from '@/lib/gmapsRoute';
+import { optimizeDayRoute, calculateDistanceKm, estimateTravelTimeMins } from '@/lib/routeOptimizer';
 import dynamic from 'next/dynamic';
 
 const MapComponent = dynamic(() => import('./components/MapComponent'), {
@@ -12,7 +13,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.6.0';
+const APP_VERSION = 'v1.7.1';
 
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
 const LANG_STRINGS = {
@@ -100,6 +101,19 @@ const LANG_STRINGS = {
     unassigned: 'ยังไม่ได้ระบุ',
     saveRoomError: 'ไม่สามารถบันทึกข้อมูลห้องได้',
     roomNotFound: 'ไม่พบรหัสห้องนี้ กรุณาตรวจสอบรหัสอีกครั้ง',
+    optimizeRoute: '⚡ จัดเส้นทางสั้นที่สุด',
+    optimizeModalTitle: '⚡ จัดลำดับเส้นทางให้สั้นที่สุด (Route Optimizer)',
+    routeAlreadyOptimal: 'เส้นทางในวันนี้จัดเรียงอย่างเหมาะสมที่สุดอยู่แล้ว ✨',
+    needMorePlacesToOptimize: 'ต้องมีสถานที่อย่างน้อย 3 แห่งขึ้นไปในการจัดลำดับ',
+    beforeOptimize: 'ลำดับเดิม',
+    afterOptimize: 'ลำดับใหม่ที่แนะนำ',
+    distanceSaved: 'ประหยัดระยะทางได้',
+    timeSaved: 'ประหยัดเวลาเดินทางได้',
+    applyOptimizedRoute: '✨ นำเส้นทางนี้ไปใช้',
+    keepOriginalRoute: 'คงเดิมไว้',
+    optComparisonSubtitle: 'วิเคราะห์และจัดลำดับสถานที่ใหม่โดยอัลกอริทึม 2-Opt เพื่อลดระยะเดินทางรวม',
+    optTotalDist: 'ระยะทางรวม',
+    optTotalTime: 'เวลาเดินทางรวม',
   },
   en: {
     places: 'Attractions', search: 'Search...', addManual: 'Manual', addAI: 'AI Add', addGmaps: 'Google Maps',
@@ -185,6 +199,19 @@ const LANG_STRINGS = {
     unassigned: 'Unassigned',
     saveRoomError: 'Failed to save room data',
     roomNotFound: 'Room code not found. Please verify the code.',
+    optimizeRoute: '⚡ Optimize Route',
+    optimizeModalTitle: '⚡ Optimize Day Route (Shortest Path)',
+    routeAlreadyOptimal: 'This day is already optimally ordered! ✨',
+    needMorePlacesToOptimize: 'At least 3 places with coordinates required to optimize.',
+    beforeOptimize: 'Current Order',
+    afterOptimize: 'Recommended Order',
+    distanceSaved: 'Distance saved',
+    timeSaved: 'Transit time saved',
+    applyOptimizedRoute: '✨ Apply Optimized Route',
+    keepOriginalRoute: 'Keep Current',
+    optComparisonSubtitle: 'Reordered by 2-Opt TSP algorithm to minimize backtracking and transit time',
+    optTotalDist: 'Total Distance',
+    optTotalTime: 'Total Transit Time',
   }
 };
 
@@ -573,6 +600,10 @@ function TripBuilderApp() {
   const [editDurationTarget, setEditDurationTarget] = useState(null);
   const [editTravelModalOpen, setEditTravelModalOpen] = useState(false);
   const [editTravelTarget, setEditTravelTarget] = useState(null);
+  
+  // Route Optimization states
+  const [optModalOpen, setOptModalOpen] = useState(false);
+  const [optData, setOptData] = useState(null);
   
   // Auth states
   const [user, setUser] = useState(null);
@@ -1001,6 +1032,61 @@ function TripBuilderApp() {
   const toast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 2000);
+  };
+
+  // ─── ROUTE OPTIMIZATION HANDLERS ────────────────────────────────────
+  const handleTriggerOptimize = (day) => {
+    const dayItems = itin[day] || [];
+    if (dayItems.length < 3) {
+      toast(t('needMorePlacesToOptimize'));
+      return;
+    }
+
+    // Enrich items with coordinates from global landmarks if missing
+    const enrichedItems = dayItems.map(item => {
+      if (item.lat && item.lng) return item;
+      const actual = findLandmarkGlobally(item.id, item.city_id);
+      if (actual && actual.lat && actual.lng) {
+        return { ...item, lat: actual.lat, lng: actual.lng };
+      }
+      return item;
+    });
+
+    const result = optimizeDayRoute(enrichedItems);
+
+    if (!result.hasValidCoords) {
+      toast(t('needMorePlacesToOptimize'));
+      return;
+    }
+
+    if (!result.isImproved) {
+      toast(t('routeAlreadyOptimal'));
+      return;
+    }
+
+    setOptData({
+      day,
+      ...result
+    });
+    setOptModalOpen(true);
+  };
+
+  const handleApplyOptimizedRoute = () => {
+    if (!optData || !optData.day || !optData.optimizedItems) return;
+    const { day, optimizedItems } = optData;
+
+    const updatedItin = { ...itin };
+    updatedItin[day] = optimizedItems;
+
+    setItin(updatedItin);
+    saveItinData(updatedItin, nDays);
+    setOptModalOpen(false);
+    setOptData(null);
+
+    toast(activeLang === 'th'
+      ? `✨ จัดเส้นทางวันที่ ${day} สำเร็จ! ประหยัดไป ${optData.savedDistKm} กม.`
+      : `✨ Day ${day} route optimized! Saved ${optData.savedDistKm} km.`
+    );
   };
 
   // ─── INITIALIZATION EFFECTS ────────────────────────────────────────
@@ -3909,7 +3995,7 @@ function TripBuilderApp() {
               />
             </div>
             <div className="trip-bar-divider" />
-            <div className="cfg cfg-hotel" style={{ flex: '1', minWidth: '140px' }}>
+            <div className="cfg cfg-hotel" style={{ flex: 1, minWidth: 0 }}>
               <label>{t('hotel')}</label>
               <input
                 type="text"
@@ -4035,6 +4121,31 @@ function TripBuilderApp() {
                             const hasItems = items.length > 0;
                             return (
                               <div className="day-route-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <button
+                                  type="button"
+                                  className="day-opt-btn"
+                                  disabled={items.length < 3}
+                                  onClick={() => handleTriggerOptimize(day)}
+                                  title={items.length >= 3 ? t('optimizeRoute') : t('needMorePlacesToOptimize')}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    padding: '2px 7px',
+                                    borderRadius: '10px',
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    background: items.length >= 3 ? 'var(--amber-light, #FEF3C7)' : 'rgba(0,0,0,0.05)',
+                                    color: items.length >= 3 ? 'var(--amber-dark, #92400E)' : 'var(--muted, #888)',
+                                    border: '1px solid ' + (items.length >= 3 ? 'rgba(217, 119, 6, 0.3)' : 'transparent'),
+                                    cursor: items.length >= 3 ? 'pointer' : 'not-allowed',
+                                    lineHeight: '1.2',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <span>⚡</span>
+                                  <span>{activeLang === 'th' ? 'จัดเส้นทาง' : 'Optimize'}</span>
+                                </button>
                                 <button
                                   type="button"
                                   className="day-walk-btn"
@@ -4177,7 +4288,27 @@ function TripBuilderApp() {
 
                             // Inject Travel separation placeholder
                             if (idx > 0) {
-                              const travelTime = item.travelTime !== undefined ? item.travelTime : 20;
+                              const prevItem = items[idx - 1];
+                              let travelTime = item.travelTime;
+                              let travelMode = item.travelMode;
+                              let travelDistKm = item.travelDistKm;
+
+                              if (travelTime === undefined) {
+                                const dist = calculateDistanceKm(prevItem, item);
+                                if (dist !== null) {
+                                  const est = estimateTravelTimeMins(dist);
+                                  travelTime = est.timeMins;
+                                  travelMode = est.mode;
+                                  travelDistKm = est.distanceKm;
+                                } else {
+                                  travelTime = 20;
+                                  travelMode = 'transit';
+                                }
+                              }
+
+                              const travelIcon = travelMode === 'walk' ? '🚶' : '🚗';
+                              const distLabel = travelDistKm ? ` · ${travelDistKm}km` : '';
+
                               htmlElements.push(
                                 <div className="travel-row" key={`travel_${idx}`}>
                                   <div className="tline" />
@@ -4186,7 +4317,7 @@ function TripBuilderApp() {
                                     onClick={() => promptEditTravelTime(day, idx, item)}
                                     title={activeLang === 'th' ? 'คลิกเพื่อแก้ไขเวลาเดินทาง' : 'Click to edit travel time'}
                                   >
-                                    🚗 {travelTime}m {activeLang === 'th' ? 'เดินทาง' : 'Travel'}
+                                    {travelIcon} {travelTime}m {activeLang === 'th' ? 'เดินทาง' : 'Travel'}{distLabel}
                                   </span>
                                   <div className="tline" />
                                 </div>
@@ -5754,6 +5885,167 @@ function TripBuilderApp() {
                   {isRoomSyncing ? (activeLang === 'th' ? 'กำลังเข้าร่วม...' : 'Joining...') : t('joinRoomBtn')}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ROUTE OPTIMIZATION MODAL ──────────────────────────────── */}
+      {optModalOpen && optData && (
+        <div className="overlay show" onClick={() => setOptModalOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px', width: '92%' }}>
+            <div className="modal-head">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>⚡</span>
+                <div>
+                  <div className="modal-title" style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                    {t('optimizeModalTitle')} — {t('dayLabel')} {optData.day}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
+                    {t('optComparisonSubtitle')}
+                  </div>
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setOptModalOpen(false)}>✕</button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '16px 20px', maxHeight: '70vh', overflowY: 'auto' }}>
+              {/* Metric summary badges */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gap: '10px',
+                marginBottom: '16px'
+              }}>
+                <div style={{
+                  background: 'var(--surface-alt, #f9fafb)',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{t('distanceSaved')}</div>
+                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--teal, #0F6E56)', marginTop: '2px' }}>
+                    -{optData.savedDistKm} km
+                    <span style={{ fontSize: '11px', fontWeight: 'normal', marginLeft: '4px', color: 'var(--teal, #0F6E56)' }}>
+                      ({optData.savedDistPercent}%)
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'var(--surface-alt, #f9fafb)',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{t('timeSaved')}</div>
+                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--teal, #0F6E56)', marginTop: '2px' }}>
+                    -{optData.savedTimeMins} {activeLang === 'th' ? 'นาที' : 'mins'}
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'var(--surface-alt, #f9fafb)',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{t('optTotalDist')}</div>
+                  <div style={{ fontSize: '13px', fontWeight: '600', marginTop: '4px' }}>
+                    <span style={{ textDecoration: 'line-through', color: 'var(--muted)', marginRight: '6px' }}>
+                      {optData.originalMetrics.totalDistKm} km
+                    </span>
+                    ➔ {optData.optimizedMetrics.totalDistKm} km
+                  </div>
+                </div>
+              </div>
+
+              {/* Side-by-side or stacked route comparison */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                {/* Current order */}
+                <div style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  background: 'rgba(0,0,0,0.01)'
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--muted)', marginBottom: '8px' }}>
+                    {t('beforeOptimize')} ({optData.originalMetrics.totalDistKm} km)
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {optData.originalItems.map((it, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                        <span style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          background: 'var(--border, #e5e7eb)',
+                          color: 'var(--muted, #666)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          flexShrink: 0
+                        }}>
+                          {i + 1}
+                        </span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {(it.names && it.names[activeLang]) || it.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recommended order */}
+                <div style={{
+                  border: '1px solid var(--teal, #1D9E75)',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  background: 'var(--teal-light, #E1F5EE)'
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--teal, #0F6E56)', marginBottom: '8px' }}>
+                    {t('afterOptimize')} ({optData.optimizedMetrics.totalDistKm} km) ✨
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {optData.optimizedItems.map((it, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                        <span style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          background: 'var(--teal, #1D9E75)',
+                          color: '#ffffff',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          flexShrink: 0
+                        }}>
+                          {i + 1}
+                        </span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '600' }}>
+                          {(it.names && it.names[activeLang]) || it.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-foot" style={{ borderTop: '1px solid var(--border)', padding: '12px 20px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button className="btn btn-ghost" onClick={() => setOptModalOpen(false)}>
+                {t('keepOriginalRoute')}
+              </button>
+              <button className="btn btn-primary" onClick={handleApplyOptimizedRoute} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>{t('applyOptimizedRoute')}</span>
+              </button>
             </div>
           </div>
         </div>
