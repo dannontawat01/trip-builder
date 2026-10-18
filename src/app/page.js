@@ -497,6 +497,7 @@ function TripBuilderApp() {
   const [authRegisterCode, setAuthRegisterCode] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [plansDropdownOpen, setPlansDropdownOpen] = useState(false);
 
   // Multiple plans states
   const [plansList, setPlansList] = useState([]);
@@ -1711,6 +1712,9 @@ function TripBuilderApp() {
       if (!e.target.closest('.user-dropdown') && !e.target.closest('.user-badge')) {
         setUserDropdownOpen(false);
       }
+      if (!e.target.closest('.plans-menu-container')) {
+        setPlansDropdownOpen(false);
+      }
     };
     window.addEventListener('click', handleGlobalClick);
     return () => window.removeEventListener('click', handleGlobalClick);
@@ -2911,8 +2915,74 @@ function TripBuilderApp() {
               <button className="btn btn-primary btn-sm topbar-export-btn" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
             </div>
 
-            {/* User Profile / Login Panel */}
-            <div className="user-menu-container">
+            {/* Plans Selector Dropdown (Available for ALL users) */}
+            <div className="plans-menu-container" style={{ position: 'relative' }}>
+              <button
+                className="btn btn-ghost btn-sm topbar-plans-btn"
+                onClick={() => setPlansDropdownOpen(!plansDropdownOpen)}
+                style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}
+                title={activeLang === 'th' ? 'เลือกแผนการเดินทาง' : 'Select Plan'}
+              >
+                <span>📂</span>
+                <span className="plans-btn-title" style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {plansList.find(p => p.id === activePlanId)?.name || (activeLang === 'th' ? 'แผนการเดินทาง' : 'My Plan')}
+                </span>
+                <span style={{ fontSize: '10px', opacity: 0.7 }}>▼</span>
+              </button>
+
+              {plansDropdownOpen && (
+                <div className="user-dropdown" onClick={(e) => e.stopPropagation()} style={{ minWidth: '260px', right: 0 }}>
+                  <div className="plans-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>📂 {activeLang === 'th' ? 'แผนเดินทางของฉัน' : 'My Travel Plans'}</span>
+                    <span style={{ fontSize: '11px', opacity: 0.7 }}>({plansList.length})</span>
+                  </div>
+                  
+                  <div className="plans-list-container">
+                    {plansList.map(plan => {
+                      const isActive = activePlanId === plan.id;
+                      return (
+                        <div 
+                          key={plan.id} 
+                          className={`plan-item-row ${isActive ? 'active' : ''}`}
+                          onClick={() => { loadActivePlan(plan.id); setPlansDropdownOpen(false); }}
+                        >
+                          <span className="plan-item-info">
+                            {getCityObj(plan.city_id)?.emoji || '📍'} {plan.name} ({plan.nDays} {activeLang === 'th' ? 'วัน' : 'd'})
+                          </span>
+                          <div className="plan-item-actions">
+                            <button 
+                              className="plan-btn-mini rename" 
+                              title={activeLang === 'th' ? 'เปลี่ยนชื่อ' : 'Rename'}
+                              onClick={(e) => renamePlan(plan.id, e)}
+                            >
+                              ✏️
+                            </button>
+                            <button 
+                              className="plan-btn-mini" 
+                              title={activeLang === 'th' ? 'ลบ' : 'Delete'}
+                              onClick={(e) => deletePlan(plan.id, e)}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <button 
+                    className="btn btn-ghost btn-sm" 
+                    style={{ width: '100%', justifyContent: 'center', marginTop: '6px' }}
+                    onClick={() => { createNewPlan(); setPlansDropdownOpen(false); }}
+                  >
+                    ➕ {activeLang === 'th' ? 'สร้างแผนใหม่' : 'New Plan'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* User Profile / Cloud Sync Panel */}
+            <div className="user-menu-container" style={{ position: 'relative' }}>
               {user ? (
                 <>
                   <div className="user-badge" onClick={() => setUserDropdownOpen(!userDropdownOpen)}>
@@ -2928,51 +2998,9 @@ function TripBuilderApp() {
                       <div className="dropdown-email">
                         📧 {user.email}
                       </div>
-                      
-                      <div className="plans-section-title">
-                        📂 {activeLang === 'th' ? 'แผนเดินทางของฉัน' : 'My Travel Plans'}
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted, #888)', margin: '4px 0 10px 0' }}>
+                        ☁️ {activeLang === 'th' ? 'เชื่อมต่อ Google Sheets แล้ว' : 'Connected to Cloud'}
                       </div>
-                      
-                      <div className="plans-list-container">
-                        {plansList.map(plan => {
-                          const isActive = activePlanId === plan.id;
-                          return (
-                            <div 
-                              key={plan.id} 
-                              className={`plan-item-row ${isActive ? 'active' : ''}`}
-                              onClick={() => loadActivePlan(plan.id)}
-                            >
-                              <span className="plan-item-info">
-                                {getCityObj(plan.city_id)?.emoji || '📍'} {plan.name} ({plan.nDays} วัน)
-                              </span>
-                              <div className="plan-item-actions">
-                                <button 
-                                  className="plan-btn-mini rename" 
-                                  title={activeLang === 'th' ? 'เปลี่ยนชื่อ' : 'Rename'}
-                                  onClick={(e) => renamePlan(plan.id, e)}
-                                >
-                                  ✏️
-                                </button>
-                                <button 
-                                  className="plan-btn-mini" 
-                                  title={activeLang === 'th' ? 'ลบ' : 'Delete'}
-                                  onClick={(e) => deletePlan(plan.id, e)}
-                                >
-                                  🗑️
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      
-                      <button 
-                        className="btn btn-ghost btn-sm" 
-                        style={{ width: '100%', justifyContent: 'center' }}
-                        onClick={createNewPlan}
-                      >
-                        ➕ {activeLang === 'th' ? 'สร้างแผนใหม่' : 'New Plan'}
-                      </button>
                       
                       <button 
                         className="btn btn-primary btn-sm" 
@@ -2988,10 +3016,11 @@ function TripBuilderApp() {
                 <button 
                   className="btn btn-ghost btn-sm topbar-signin-btn" 
                   onClick={() => { setAuthMode('login'); setAuthModalOpen(true); }}
-                  style={{ border: '1px solid var(--border)' }}
+                  style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  title={activeLang === 'th' ? 'เข้าสู่ระบบเพื่อซิงค์ข้อมูลบน Cloud' : 'Sign In to sync with Cloud'}
                 >
-                  <span>👤</span>
-                  <span className="signin-btn-text"> {activeLang === 'th' ? 'เข้าสู่ระบบ' : 'Sign In'}</span>
+                  <span>☁️</span>
+                  <span className="signin-btn-text"> {activeLang === 'th' ? 'เข้าสู่ระบบ (ซิงค์ Cloud)' : 'Sign In (Cloud Sync)'}</span>
                 </button>
               )}
             </div>
