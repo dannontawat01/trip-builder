@@ -1,45 +1,67 @@
 import { NextResponse } from 'next/server';
+import { getSmartCategoryCover, BRAND_PLACE_IMAGES } from '@/app/constants/translations';
+
+const photoCache = new Map();
 
 function extractEnglishQuery(query) {
-  // Extract text inside parentheses if it contains English characters
   const match = query.match(/\(([^)]+)\)/);
   if (match && match[1]) {
     const candidate = match[1].trim();
-    if (/[a-zA-Z]/.test(candidate)) {
-      return candidate;
-    }
+    if (/[a-zA-Z]/.test(candidate)) return candidate;
   }
-  
-  // Or, extract English words from the query if any
   const englishWords = query.match(/[a-zA-Z0-9\s]{3,}/g);
   if (englishWords) {
     const cleaned = englishWords.join(' ').trim();
     if (cleaned.length > 2) return cleaned;
   }
-  
   return null;
+}
+
+async function searchWikipedia(query) {
+  const cleanQ = query.replace(/\(.*?\)/g, '').trim();
+  const endpoints = [
+    `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(cleanQ)}&gsrlimit=4&prop=pageimages&pithumbsize=800&format=json&origin=*`,
+    `https://ja.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(cleanQ)}&gsrlimit=4&prop=pageimages&pithumbsize=800&format=json&origin=*`,
+    `https://th.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(cleanQ)}&gsrlimit=4&prop=pageimages&pithumbsize=800&format=json&origin=*`
+  ];
+
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'TripBuilder/1.0 (https://github.com/dannontawat01/trip-builder; contact@tripbuilder.app)'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const pages = Object.values(data.query?.pages || {});
+        const photos = [];
+        for (const p of pages) {
+          if (p.thumbnail?.source && typeof p.thumbnail.source === 'string') {
+            photos.push(p.thumbnail.source);
+          }
+        }
+        if (photos.length > 0) return photos;
+      }
+    } catch {}
+  }
+  return [];
 }
 
 async function searchWikimedia(query) {
   const attempts = [query];
-  
   const engQuery = extractEnglishQuery(query);
-  if (engQuery && engQuery !== query) {
-    attempts.push(engQuery);
-  }
-  
+  if (engQuery && engQuery !== query) attempts.push(engQuery);
   const parts = query.split(/\s+/);
-  if (parts.length > 1) {
-    attempts.push(parts[0]);
-  }
+  if (parts.length > 1) attempts.push(parts[0]);
 
   for (const q of attempts) {
     if (!q) continue;
-    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(q)}&gsrlimit=12&prop=imageinfo&iiprop=url|size&iiurlwidth=400&format=json&origin=*`;
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(q)}&gsrlimit=8&prop=imageinfo&iiprop=url|size&iiurlwidth=800&format=json&origin=*`;
     try {
       const res = await fetch(url, {
         headers: {
-          'User-Agent': 'TripBuilder/1.0 (contact@tripbuilder-app.com)'
+          'User-Agent': 'TripBuilder/1.0 (https://github.com/dannontawat01/trip-builder; contact@tripbuilder.app)'
         }
       });
       if (res.ok) {
@@ -47,7 +69,6 @@ async function searchWikimedia(query) {
         if (data.query && data.query.pages) {
           const pages = Object.values(data.query.pages)
             .sort((a, b) => (a.index || 0) - (b.index || 0));
-          
           const photos = [];
           for (const page of pages) {
             if (page.imageinfo && page.imageinfo[0]) {
@@ -58,14 +79,10 @@ async function searchWikimedia(query) {
               }
             }
           }
-          if (photos.length > 0) {
-            return photos;
-          }
+          if (photos.length > 0) return photos;
         }
       }
-    } catch (e) {
-      console.warn(`Wikimedia search failed for query "${q}":`, e.message);
-    }
+    } catch {}
   }
   return [];
 }
@@ -79,15 +96,9 @@ async function getVqd(query) {
       }
     });
     const html = await res.text();
-    const match = html.match(/vqd=([^&'"]+)/);
+    const match = html.match(/vqd=["']([^"']+)["']/) || html.match(/vqd=([^&'"\s]+)/);
     if (match) return match[1];
-    const match2 = html.match(/vqd\s*:\s*["']([^"']+)["']/);
-    if (match2) return match2[1];
-    const match3 = html.match(/vqd\s*=\s*["']([^"']+)["']/);
-    if (match3) return match3[1];
-  } catch (e) {
-    console.warn('Error fetching vqd from DDG:', e.message);
-  }
+  } catch {}
   return null;
 }
 
@@ -107,33 +118,95 @@ async function fetchPhotosDDG(query) {
     if (res.ok) {
       const data = await res.json();
       if (data.results && Array.isArray(data.results)) {
-        return data.results.slice(0, 12).map(r => r.image).filter(img => typeof img === 'string' && img.startsWith('http'));
+        return data.results
+          .slice(0, 8)
+          .map(r => r.image)
+          .filter(img => typeof img === 'string' && img.startsWith('http') && !img.includes('data:image'));
       }
     }
-  } catch (e) {
-    console.warn('Error fetching photos from DDG:', e.message);
-  }
+  } catch {}
   return [];
 }
 
-export async function POST(req) {
+async function resolvePlacePhotos(query, city = '', cat = '') {
+  const cacheKey = `${query}_${city}_${cat}`.toLowerCase().trim();
+  if (photoCache.has(cacheKey)) {
+    return photoCache.get(cacheKey);
+  }
+
+  const photos = [];
+
+  // 1. Check Brand & Specific Landmark Matching
+  const placeMock = { name: query, cat: cat || '', city_id: city };
+  const brandCover = getSmartCategoryCover(placeMock, city);
+  if (brandCover) {
+    photos.push(brandCover);
+  }
+
+  // 2. Search Wikipedia & Wikimedia Commons
+  const wikiPhotos = await searchWikipedia(query);
+  if (wikiPhotos.length > 0) {
+    photos.push(...wikiPhotos);
+  }
+
+  const commonsPhotos = await searchWikimedia(query);
+  if (commonsPhotos.length > 0) {
+    photos.push(...commonsPhotos);
+  }
+
+  // 3. Fallback to DDG if not enough photos
+  if (photos.length < 3) {
+    const ddgPhotos = await fetchPhotosDDG(`${query} ${city}`.trim());
+    photos.push(...ddgPhotos);
+  }
+
+  const uniquePhotos = Array.from(new Set(photos)).slice(0, 8);
+  const result = {
+    photos: uniquePhotos,
+    cover_image: uniquePhotos[0] || brandCover || null
+  };
+
+  if (photoCache.size > 500) {
+    const firstKey = photoCache.keys().next().value;
+    photoCache.delete(firstKey);
+  }
+  photoCache.set(cacheKey, result);
+
+  return result;
+}
+
+export async function GET(req) {
   try {
-    const { query } = await req.json();
-    if (!query) {
-      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+    const { searchParams } = new URL(req.url);
+    const q = searchParams.get('q') || '';
+    const city = searchParams.get('city') || '';
+    const cat = searchParams.get('cat') || '';
+
+    if (!q) {
+      return NextResponse.json({ error: 'q is required' }, { status: 400 });
     }
-    
-    // Try Wikimedia Commons first
-    let photos = await searchWikimedia(query);
-    
-    // Fallback to DuckDuckGo if no images found
-    if (!photos || photos.length === 0) {
-      photos = await fetchPhotosDDG(query);
-    }
-    
-    return NextResponse.json({ photos });
+
+    const data = await resolvePlacePhotos(q, city, cat);
+    return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
+export async function POST(req) {
+  try {
+    const body = await req.json();
+    const q = body.query || body.q || '';
+    const city = body.city || '';
+    const cat = body.cat || '';
+
+    if (!q) {
+      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+    }
+
+    const data = await resolvePlacePhotos(q, city, cat);
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}

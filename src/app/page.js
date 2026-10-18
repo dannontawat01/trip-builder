@@ -52,7 +52,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.16.1';
+const APP_VERSION = 'v1.17.0';
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -365,6 +365,8 @@ function TripBuilderApp() {
   const [gmapsSyncUrl, setGmapsSyncUrl] = useState('');
   const [gmapsSyncLoading, setGmapsSyncLoading] = useState(false);
   const [gmapsLastSyncTime, setGmapsLastSyncTime] = useState('');
+  const [isEnrichingPhotos, setIsEnrichingPhotos] = useState(false);
+  const [enrichProgress, setEnrichProgress] = useState({ current: 0, total: 0 });
 
   // Memoized all existing places across landmarks and all custom places for duplicate detection
   const allExistingPlaces = useMemo(() => {
@@ -2528,6 +2530,92 @@ function TripBuilderApp() {
     }
   };
 
+  const enrichRealPhotos = async () => {
+    if (isEnrichingPhotos) return;
+
+    // Collect all custom places
+    const allPlaces = [];
+    Object.keys(customPlaces).forEach(cId => {
+      if (Array.isArray(customPlaces[cId])) {
+        customPlaces[cId].forEach(p => {
+          allPlaces.push({ ...p, cityId: cId });
+        });
+      }
+    });
+
+    if (allPlaces.length === 0) {
+      toast(activeLang === 'th' ? 'ยังไม่มีสถานที่ในระบบให้ดึงรูป' : 'No places found to enrich');
+      return;
+    }
+
+    setIsEnrichingPhotos(true);
+    setEnrichProgress({ current: 0, total: allPlaces.length });
+
+    let updatedCustom = { ...customPlaces };
+    const newOverrides = { ...localCoverOverrides };
+    let enrichedCount = 0;
+
+    for (let i = 0; i < allPlaces.length; i++) {
+      const p = allPlaces[i];
+      try {
+        const res = await fetch(`/api/search-photos?q=${encodeURIComponent(p.name)}&city=${encodeURIComponent(p.cityId || activeCity)}&cat=${encodeURIComponent(p.cat || '')}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.cover_image) {
+            newOverrides[p.id] = data.cover_image;
+            const cId = p.cityId;
+            if (Array.isArray(updatedCustom[cId])) {
+              updatedCustom[cId] = updatedCustom[cId].map(item => {
+                if (item.id === p.id) {
+                  return {
+                    ...item,
+                    cover_image: data.cover_image,
+                    photos: data.photos && data.photos.length > 0 ? data.photos : [data.cover_image]
+                  };
+                }
+                return item;
+              });
+            }
+            enrichedCount++;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch photo for', p.name, e);
+      }
+
+      setEnrichProgress({ current: i + 1, total: allPlaces.length });
+
+      // Save every 4 places or on last item to see live updates on cards!
+      if ((i + 1) % 4 === 0 || i + 1 === allPlaces.length) {
+        setCustomPlaces({ ...updatedCustom });
+        setLocalCoverOverrides({ ...newOverrides });
+        try {
+          localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: updatedCustom }));
+          localStorage.setItem('trip_builder_local_covers_v1', JSON.stringify(newOverrides));
+        } catch (_) {}
+        // Also update visible landmarks in state
+        setLandmarks(prev => prev.map(lm => {
+          const cId = lm.city_id || activeCity;
+          const found = updatedCustom[cId]?.find(x => x.id === lm.id);
+          if (found && found.cover_image) {
+            return {
+              ...lm,
+              cover_image: found.cover_image,
+              photos: found.photos || [found.cover_image]
+            };
+          }
+          return lm;
+        }));
+      }
+
+      // Small delay between requests to be gentle
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    setIsEnrichingPhotos(false);
+    toast(activeLang === 'th' ? `ดึงรูปภาพจริงสำเร็จ ${enrichedCount} แห่ง! 📸` : `Successfully fetched real photos for ${enrichedCount} places! 📸`);
+  };
+
   const fillFromMaps = (name, lat, lng, address = '', category = 'อื่นๆ', icon = '📍', gmapsUrl = '', rating = null, photos = []) => {
     setActiveAddTab('manual');
     setFName(name || 'สถานที่จาก Google Maps');
@@ -3722,38 +3810,69 @@ function TripBuilderApp() {
             <span className="places-count-label">
               {activeLang === 'th' ? `พบ ${filteredLandmarks.length} สถานที่` : `${filteredLandmarks.length} places`}
             </span>
-            {gmapsSyncUrl ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span 
-                  style={{ fontSize: '10px', color: 'var(--teal)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }} 
-                  title={gmapsSyncUrl}
-                  onClick={() => { setAddModalOpen(true); setActiveAddTab('gmaps'); }}
-                >
-                  🔗 {activeLang === 'th' ? 'ผูก Maps' : 'Maps Linked'}
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs"
-                  onClick={() => syncGmaps()}
-                  disabled={gmapsSyncLoading}
-                  title={activeLang === 'th' ? `ซิงก์ข้อมูลจาก Google Maps (ซิงก์ล่าสุด: ${gmapsLastSyncTime || 'ยังไม่ได้ซิงก์'})` : `Sync from Google Maps (Last: ${gmapsLastSyncTime || 'Never'})`}
-                  style={{ fontSize: '10px', padding: '1px 6px', height: '20px', borderRadius: '4px', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                >
-                  <span style={{ display: 'inline-block', animation: gmapsSyncLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
-                  <span>{gmapsSyncLoading ? (activeLang === 'th' ? 'ซิงก์...' : 'Syncing...') : (activeLang === 'th' ? 'ซิงก์' : 'Sync')}</span>
-                </button>
-              </div>
-            ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <button
                 type="button"
                 className="btn btn-ghost btn-xs"
-                onClick={() => { setAddModalOpen(true); setActiveAddTab('gmaps'); }}
-                style={{ fontSize: '10px', color: 'var(--muted)', padding: '1px 6px', height: '20px', border: '1px dashed var(--border)', borderRadius: '4px' }}
-                title={activeLang === 'th' ? 'เชื่อมต่อ Google Maps เพื่อซิงก์สถานที่อัตโนมัติ' : 'Connect Google Maps to auto-sync places'}
+                onClick={enrichRealPhotos}
+                disabled={isEnrichingPhotos}
+                title={activeLang === 'th' ? 'ดึงรูปภาพจริงของสถานที่จากเว็บและ Google Maps' : 'Auto-fetch real photos for all places'}
+                style={{
+                  fontSize: '10px',
+                  padding: '1px 6px',
+                  height: '20px',
+                  borderRadius: '4px',
+                  border: isEnrichingPhotos ? '1px solid var(--teal)' : '1px solid var(--border)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: isEnrichingPhotos ? 'rgba(29, 158, 117, 0.1)' : 'transparent',
+                  color: isEnrichingPhotos ? 'var(--teal)' : 'inherit'
+                }}
               >
-                🔗 {activeLang === 'th' ? '+ เชื่อม Maps' : '+ Link Maps'}
+                <span style={{ display: 'inline-block', animation: isEnrichingPhotos ? 'spin 1s linear infinite' : 'none' }}>
+                  {isEnrichingPhotos ? '🔄' : '🖼️'}
+                </span>
+                <span>
+                  {isEnrichingPhotos
+                    ? `${activeLang === 'th' ? 'ดึงรูป' : 'Fetching'} ${enrichProgress.current}/${enrichProgress.total}`
+                    : (activeLang === 'th' ? 'ดึงรูปจริง' : 'Real Photos')}
+                </span>
               </button>
-            )}
+
+              {gmapsSyncUrl ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span 
+                    style={{ fontSize: '10px', color: 'var(--teal)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }} 
+                    title={gmapsSyncUrl}
+                    onClick={() => { setAddModalOpen(true); setActiveAddTab('gmaps'); }}
+                  >
+                    🔗 {activeLang === 'th' ? 'ผูก Maps' : 'Maps Linked'}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => syncGmaps()}
+                    disabled={gmapsSyncLoading}
+                    title={activeLang === 'th' ? `ซิงก์ข้อมูลจาก Google Maps (ซิงก์ล่าสุด: ${gmapsLastSyncTime || 'ยังไม่ได้ซิงก์'})` : `Sync from Google Maps (Last: ${gmapsLastSyncTime || 'Never'})`}
+                    style={{ fontSize: '10px', padding: '1px 6px', height: '20px', borderRadius: '4px', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                  >
+                    <span style={{ display: 'inline-block', animation: gmapsSyncLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+                    <span>{gmapsSyncLoading ? (activeLang === 'th' ? 'ซิงก์...' : 'Syncing...') : (activeLang === 'th' ? 'ซิงก์' : 'Sync')}</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => { setAddModalOpen(true); setActiveAddTab('gmaps'); }}
+                  style={{ fontSize: '10px', color: 'var(--muted)', padding: '1px 6px', height: '20px', border: '1px dashed var(--border)', borderRadius: '4px' }}
+                  title={activeLang === 'th' ? 'เชื่อมต่อ Google Maps เพื่อซิงก์สถานที่อัตโนมัติ' : 'Connect Google Maps to auto-sync places'}
+                >
+                  🔗 {activeLang === 'th' ? '+ เชื่อม Maps' : '+ Link Maps'}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Landmarks list rendering */}

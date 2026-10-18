@@ -535,12 +535,115 @@ export const CATEGORY_COVER_IMAGES = {
   ]
 };
 
+export const BRAND_PLACE_IMAGES = {
+  matsumoto: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=600&q=80',
+  gongcha: 'https://images.unsplash.com/photo-1558160074-4d7d8bdf4256?auto=format&fit=crop&w=600&q=80',
+  disney: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=600&q=80',
+  newbalance: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=80',
+  tonkatsu: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80',
+  ministop: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80',
+  lawson: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80',
+  seveneleven: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80',
+  familymart: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80',
+  yakiniku: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+  ichiran: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80',
+  togo: 'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?auto=format&fit=crop&w=600&q=80',
+  matsuchiyama: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
+  kannon: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=600&q=80',
+  starbucks: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=600&q=80',
+  bluebottle: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=600&q=80',
+  donki: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
+  shibuyasky: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
+  tokyotower: 'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?auto=format&fit=crop&w=600&q=80',
+  skytree: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80',
+  sensoji: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=600&q=80',
+  meiji: 'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?auto=format&fit=crop&w=600&q=80',
+  bape: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80',
+  edw: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80'
+};
+
 export function getSmartCategoryCover(place, cityId = 'tokyo') {
   if (!place) return CATEGORY_COVER_IMAGES.general[0];
   
   const cat = (place.cat || '').toLowerCase();
   const name = ((place.names && (place.names.th || place.names.en)) || place.name || '').toLowerCase();
   const combined = `${cat} ${name}`;
+
+  // 1. Direct Brand & Specific Landmark Matching
+  if (combined.includes('matsumoto') || combined.includes('kiyoshi') || combined.includes('マツモトキヨシ')) {
+    return BRAND_PLACE_IMAGES.matsumoto;
+  }
+  if (combined.includes('gong cha') || combined.includes('gongcha') || combined.includes('ゴンチャ')) {
+    return BRAND_PLACE_IMAGES.gongcha;
+  }
+  if (combined.includes('disney')) {
+    return BRAND_PLACE_IMAGES.disney;
+  }
+  if (combined.includes('new balance') || combined.includes('newbalance')) {
+    return BRAND_PLACE_IMAGES.newbalance;
+  }
+  if (combined.includes('tonkatsu') || combined.includes('marushichi') || combined.includes('ทงคัตสึ') || combined.includes('หมูทอด')) {
+    return BRAND_PLACE_IMAGES.tonkatsu;
+  }
+  if (combined.includes('ministop')) {
+    return BRAND_PLACE_IMAGES.ministop;
+  }
+  if (combined.includes('lawson')) {
+    return BRAND_PLACE_IMAGES.lawson;
+  }
+  if (combined.includes('7-eleven') || combined.includes('7 eleven') || combined.includes('seven eleven')) {
+    return BRAND_PLACE_IMAGES.seveneleven;
+  }
+  if (combined.includes('family mart') || combined.includes('familymart')) {
+    return BRAND_PLACE_IMAGES.familymart;
+  }
+  if (combined.includes('yakiniku') || combined.includes('ยากินิคุ') || combined.includes('เนื้อย่าง')) {
+    return BRAND_PLACE_IMAGES.yakiniku;
+  }
+  if (combined.includes('ichiran') || combined.includes('ราเมงข้อสอบ')) {
+    return BRAND_PLACE_IMAGES.ichiran;
+  }
+  if (combined.includes('togo') || combined.includes('โทโก')) {
+    return BRAND_PLACE_IMAGES.togo;
+  }
+  if (combined.includes('matsuchiyama') || combined.includes('มัตสึจิยามะ')) {
+    return BRAND_PLACE_IMAGES.matsuchiyama;
+  }
+  if (combined.includes('kannon')) {
+    return BRAND_PLACE_IMAGES.kannon;
+  }
+  if (combined.includes('starbucks') || combined.includes('สตาร์บัคส์')) {
+    return BRAND_PLACE_IMAGES.starbucks;
+  }
+  if (combined.includes('blue bottle') || combined.includes('bluebottle')) {
+    return BRAND_PLACE_IMAGES.bluebottle;
+  }
+  if (combined.includes('don quijote') || combined.includes('donki') || combined.includes('ดองกี้')) {
+    return BRAND_PLACE_IMAGES.donki;
+  }
+  if (combined.includes('shibuya sky')) {
+    return BRAND_PLACE_IMAGES.shibuyasky;
+  }
+  if (combined.includes('tokyo tower') || combined.includes('โตเกียวทาวเวอร์')) {
+    return BRAND_PLACE_IMAGES.tokyotower;
+  }
+  if (combined.includes('skytree') || combined.includes('สกายทรี')) {
+    return BRAND_PLACE_IMAGES.skytree;
+  }
+  if (combined.includes('sensoji') || combined.includes('senso-ji') || combined.includes('อาซากุสะ') || combined.includes('asakusa')) {
+    return BRAND_PLACE_IMAGES.sensoji;
+  }
+  if (combined.includes('meiji') || combined.includes('เมจิ')) {
+    return BRAND_PLACE_IMAGES.meiji;
+  }
+  if (combined.includes('bape')) {
+    return BRAND_PLACE_IMAGES.bape;
+  }
+  if (combined.includes('edw')) {
+    return BRAND_PLACE_IMAGES.edw;
+  }
+
+  // 2. Generic Category Fallback
   let listKey = 'general';
   
   if (combined.includes('โรงแรม') || combined.includes('ที่พัก') || combined.includes('hotel') || combined.includes('hostel') || combined.includes('resort') || combined.includes('inn') || combined.includes('ryokan') || combined.includes('เรียวกัง')) {
