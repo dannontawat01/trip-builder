@@ -961,10 +961,10 @@ function TripBuilderApp() {
             setUser(parsedUser);
             loadLocalMockPlans(parsedUser.email);
           } else {
-            loadGuestPlan();
+            loadGuestPlans();
           }
         } catch (_) {
-          loadGuestPlan();
+          loadGuestPlans();
         }
         return;
       }
@@ -976,11 +976,11 @@ function TripBuilderApp() {
           setUser(parsedUser);
           loadCloudPlans(parsedUser.email);
         } else {
-          loadGuestPlan();
+          loadGuestPlans();
         }
       } catch (err) {
         console.error('[TripBuilder] checkSession failed:', err);
-        loadGuestPlan();
+        loadGuestPlans();
       }
     };
 
@@ -989,38 +989,77 @@ function TripBuilderApp() {
     return () => {};
   }, []);
 
-  const loadGuestPlan = () => {
+  const loadGuestPlans = () => {
     try {
-      const raw = localStorage.getItem('trip_builder_itin_v1');
-      let loadedChecklist = [];
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.nDays) setNDays(parsed.nDays);
-        if (parsed.start) setStartDate(parsed.start);
-        if (parsed.time) setStartTime(parsed.time);
-        if (parsed.hotel) setHotel(parsed.hotel);
-        if (parsed.itin) {
-          setItin(parsed.itin);
+      let rawPlans = localStorage.getItem('tb_guest_plans');
+      let plans = rawPlans ? JSON.parse(rawPlans) : [];
+
+      // Auto-migrate from legacy trip_builder_itin_v1 if tb_guest_plans is empty
+      if (!plans || plans.length === 0) {
+        const legacyItinRaw = localStorage.getItem('trip_builder_itin_v1');
+        if (legacyItinRaw) {
+          try {
+            const parsedLegacy = JSON.parse(legacyItinRaw);
+            let legacyChecklist = [];
+            try {
+              const localCheck = localStorage.getItem('checklist_guest') || localStorage.getItem('trip_builder_checklist_guest');
+              if (localCheck) legacyChecklist = JSON.parse(localCheck);
+            } catch (_) {}
+
+            const migratedPlan = {
+              id: 'guest_plan_1',
+              name: activeLang === 'th' ? 'แผนการเดินทาง 1' : 'My Trip 1',
+              city_id: activeCity || 'bkk',
+              nDays: parsedLegacy.nDays || 3,
+              start: parsedLegacy.start || new Date().toISOString().split('T')[0],
+              time: parsedLegacy.time || '09:00',
+              hotel: parsedLegacy.hotel || '',
+              itin: parsedLegacy.itin || { 1: [], 2: [], 3: [] },
+              checklist: parsedLegacy.checklist || legacyChecklist
+            };
+            plans = [migratedPlan];
+            localStorage.setItem('tb_guest_plans', JSON.stringify(plans));
+            localStorage.setItem('tb_guest_active_plan', 'guest_plan_1');
+          } catch (_) {}
         }
-        if (parsed.checklist) {
-          loadedChecklist = parsed.checklist;
-        }
-      } else {
-        setItin({ 1: [], 2: [], 3: [] });
-        setNDays(3);
-        setHotel('');
-        setStartTime('09:00');
       }
-      try {
-        const localCheck = localStorage.getItem('checklist_guest') || localStorage.getItem('trip_builder_checklist_guest');
-        if (localCheck) {
-          loadedChecklist = JSON.parse(localCheck);
-        }
-      } catch (_) {}
-      setChecklist(loadedChecklist);
-      setActivePlanId('guest');
-    } catch (_) {
-      setActivePlanId('guest');
+
+      // If still empty, create default first plan
+      if (!plans || plans.length === 0) {
+        const defaultPlan = {
+          id: `guest_plan_${Date.now()}`,
+          name: activeLang === 'th' ? 'แผนการเดินทาง 1' : 'My Trip 1',
+          city_id: activeCity || 'bkk',
+          nDays: 3,
+          start: new Date().toISOString().split('T')[0],
+          time: '09:00',
+          hotel: '',
+          itin: { 1: [], 2: [], 3: [] },
+          checklist: []
+        };
+        plans = [defaultPlan];
+        localStorage.setItem('tb_guest_plans', JSON.stringify(plans));
+        localStorage.setItem('tb_guest_active_plan', defaultPlan.id);
+      }
+
+      setPlansList(plans);
+
+      const activeId = localStorage.getItem('tb_guest_active_plan') || plans[0].id;
+      const currentPlan = plans.find(p => p.id === activeId) || plans[0];
+
+      setActivePlanId(currentPlan.id);
+      setItin(currentPlan.itin || { 1: [], 2: [], 3: [] });
+      setChecklist(currentPlan.checklist || []);
+      setNDays(currentPlan.nDays || 3);
+      setStartDate(currentPlan.start || new Date().toISOString().split('T')[0]);
+      setStartTime(currentPlan.time || '09:00');
+      setHotel(currentPlan.hotel || '');
+      if (currentPlan.city_id) {
+        setActiveCity(currentPlan.city_id);
+        setActiveCountry(getCountryOfCity(currentPlan.city_id));
+      }
+    } catch (err) {
+      console.error('[TripBuilder] loadGuestPlans error:', err);
     }
   };
 
@@ -1347,8 +1386,34 @@ function TripBuilderApp() {
         toast(activeLang === 'th' ? 'สร้างแผนใหม่สำเร็จ' : 'New plan created');
       }
     } else {
-      toast(activeLang === 'th' ? 'กรุณาเข้าสู่ระบบเพื่อบันทึกหลายแผน' : 'Please Sign In to save multiple plans');
-      setAuthModalOpen(true);
+      // Guest multi-plan creation
+      const defaultPlanId = `guest_plan_${Date.now()}`;
+      const newPlan = {
+        id: defaultPlanId,
+        name: planName,
+        city_id: activeCity,
+        itin: { 1: [], 2: [], 3: [] },
+        checklist: [],
+        nDays: 3,
+        start: new Date().toISOString().split('T')[0],
+        time: '09:00',
+        hotel: ''
+      };
+      const updatedPlans = [newPlan, ...plansList];
+      setPlansList(updatedPlans);
+      try {
+        localStorage.setItem('tb_guest_plans', JSON.stringify(updatedPlans));
+        localStorage.setItem('tb_guest_active_plan', defaultPlanId);
+      } catch (_) {}
+
+      setActivePlanId(defaultPlanId);
+      setItin(newPlan.itin);
+      setChecklist(newPlan.checklist);
+      setNDays(newPlan.nDays);
+      setStartDate(newPlan.start);
+      setStartTime(newPlan.time);
+      setHotel(newPlan.hotel);
+      toast(activeLang === 'th' ? 'สร้างแผนใหม่สำเร็จ' : 'New plan created');
     }
   };
 
@@ -1392,6 +1457,20 @@ function TripBuilderApp() {
           console.warn('Failed to delete cloud plan:', err.message);
         }
       }
+    } else {
+      const updatedPlans = plansList.filter(p => p.id !== planId);
+      setPlansList(updatedPlans);
+      try {
+        localStorage.setItem('tb_guest_plans', JSON.stringify(updatedPlans));
+      } catch (_) {}
+      
+      if (activePlanId === planId) {
+        const nextPlan = updatedPlans[0];
+        if (nextPlan) {
+          loadActivePlan(nextPlan.id, updatedPlans);
+        }
+      }
+      toast(activeLang === 'th' ? 'ลบแผนสำเร็จ' : 'Plan deleted');
     }
   };
 
@@ -1428,6 +1507,13 @@ function TripBuilderApp() {
           console.warn('Failed to rename cloud plan:', err.message);
         }
       }
+    } else {
+      const updatedPlans = plansList.map(p => p.id === planId ? { ...p, name: newName } : p);
+      setPlansList(updatedPlans);
+      try {
+        localStorage.setItem('tb_guest_plans', JSON.stringify(updatedPlans));
+      } catch (_) {}
+      toast(activeLang === 'th' ? 'เปลี่ยนชื่อแผนสำเร็จ' : 'Plan renamed');
     }
   };
 
@@ -1463,6 +1549,10 @@ function TripBuilderApp() {
       } else {
         localStorage.setItem(`tb_active_plan_${user.email}`, planId);
       }
+    } else {
+      try {
+        localStorage.setItem('tb_guest_active_plan', planId);
+      } catch (_) {}
     }
   };
 
@@ -1579,7 +1669,7 @@ function TripBuilderApp() {
       setUser(null);
       setPlansList([]);
       setActivePlanId(null);
-      loadGuestPlan();
+      loadGuestPlans();
       setUserDropdownOpen(false);
       toast('ออกจากระบบแล้ว (Mock)');
       return;
@@ -1590,7 +1680,7 @@ function TripBuilderApp() {
       setUser(null);
       setPlansList([]);
       setActivePlanId(null);
-      loadGuestPlan();
+      loadGuestPlans();
       setUserDropdownOpen(false);
       toast('ออกจากระบบแล้ว');
     } catch (err) {
@@ -1841,6 +1931,28 @@ function TripBuilderApp() {
           console.warn('Failed to update cloud itinerary:', err.message);
         }
       }
+    }
+
+    if (!user && activePlanId) {
+      try {
+        const updatedPlans = plansList.map(p => {
+          if (p.id === activePlanId) {
+            return {
+              ...p,
+              itin: newItin,
+              nDays: newNDays,
+              start: startDate,
+              time: startTime,
+              hotel: hotel,
+              checklist: currentChecklist
+            };
+          }
+          return p;
+        });
+        setPlansList(updatedPlans);
+        localStorage.setItem('tb_guest_plans', JSON.stringify(updatedPlans));
+        localStorage.setItem('tb_guest_active_plan', activePlanId);
+      } catch (_) {}
     }
   };
 
