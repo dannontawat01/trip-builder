@@ -15,7 +15,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.9.1';
+const APP_VERSION = 'v1.9.2';
 
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
 const LANG_STRINGS = {
@@ -117,16 +117,16 @@ const LANG_STRINGS = {
     optTotalDist: 'ระยะทางรวม',
     optTotalTime: 'เวลาเดินทางรวม',
     travelMode: '✈️ โหมดเที่ยวจริง',
-    exitTravelMode: '✕ ออกจากโหมดเที่ยว',
+    exitTravelMode: 'ออกจากโหมดเที่ยว',
     currentStop: '📍 ตอนนี้อยู่ที่นี่',
     nextStop: 'จุดถัดไป',
-    checkInBtn: '✅ เช็กอิน / ถึงแล้ว',
-    undoCheckIn: '↩️ เลิกทำ',
-    taxiCard: '🚕 ยื่นให้คนขับแท็กซี่',
+    checkInBtn: 'เช็กอิน / ถึงแล้ว',
+    undoCheckIn: 'เลิกทำ',
+    taxiCard: 'ยื่นให้คนขับแท็กซี่',
     taxiCardTitle: '🚕 ข้อมูลสำหรับคนขับแท็กซี่',
     taxiCardSubtitle: 'กรุณายื่นหน้านี้ให้คนขับรถเพื่อนำทาง',
-    returnToHotel: '🏨 นำทางกลับโรงแรม',
-    allStopsCompleted: '🎉 ยอดเยี่ยม! คุณเที่ยวครบทุกจุดของวันนี้แล้ว',
+    returnToHotel: 'นำทางกลับโรงแรม',
+    allStopsCompleted: 'ยอดเยี่ยม! คุณเที่ยวครบทุกจุดของวันนี้แล้ว',
   },
   en: {
     places: 'Attractions', search: 'Search...', addManual: 'Manual', addAI: 'AI Add', addGmaps: 'Google Maps',
@@ -184,7 +184,7 @@ const LANG_STRINGS = {
     stopsCount: 'stops',
     openWalkMaps: 'Open Maps ↗',
     copyWalkLink: 'Copy Link',
-    groupPlan: '👥 Group Planning',
+    groupPlan: 'Group Planning',
     groupModalTitle: '👥 Group Trip Collaboration',
     tabCreateRoom: '✨ Create Room',
     tabJoinRoom: '🔑 Join with Code',
@@ -226,16 +226,16 @@ const LANG_STRINGS = {
     optTotalDist: 'Total Distance',
     optTotalTime: 'Total Transit Time',
     travelMode: '✈️ Travel Mode',
-    exitTravelMode: '✕ Exit Travel Mode',
+    exitTravelMode: 'Exit Travel Mode',
     currentStop: '📍 Current Stop',
     nextStop: 'Next Stop',
-    checkInBtn: '✅ Check-in / Arrived',
-    undoCheckIn: '↩️ Undo',
-    taxiCard: '🚕 Taxi Driver Card',
+    checkInBtn: 'Check-in / Arrived',
+    undoCheckIn: 'Undo',
+    taxiCard: 'Taxi Driver Card',
     taxiCardTitle: '🚕 Taxi Driver Information',
     taxiCardSubtitle: 'Please show this screen to your driver',
-    returnToHotel: '🏨 Return to Hotel',
-    allStopsCompleted: '🎉 Awesome! All stops completed for today!',
+    returnToHotel: 'Return to Hotel',
+    allStopsCompleted: 'Awesome! All stops completed for today!',
   }
 };
 
