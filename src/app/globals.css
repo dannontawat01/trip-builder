@@ -2587,3 +2587,203 @@ body.theme-dark .day-weather-alert {
 body.theme-dark .day-weather-alert-icon {
   color: var(--amber-d);
 }
+
+/* --- Touch Drag & Drop (iPad & Mobile) --- */
+.touch-drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%) scale(1.05);
+  background: var(--card);
+  color: var(--dark);
+  border: 2px solid var(--teal);
+  border-radius: 14px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28), 0 6px 12px rgba(0, 0, 0, 0.15);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 280px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  will-change: transform, left, top;
+}
+
+.touch-drag-ghost .ghost-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.touch-drag-ghost .ghost-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-zone.touch-drag-over {
+  border: 2px dashed var(--teal) !important;
+  background: rgba(29, 158, 117, 0.12) !important;
+  transform: scale(1.01);
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+/* Draggable card touch settings */
+.lm-card,
+.it-item {
+  -webkit-touch-callout: none;
+  touch-action: pan-y;
+}
+
+.lm-card.has-popover,
+.it-item.has-popover {
+  overflow: visible !important;
+  z-index: 150 !important;
+}
+
+/* --- Popover Styles (Move to Day & Day Picker) --- */
+.move-day-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.move-day-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg), 0 10px 30px rgba(0, 0, 0, 0.2);
+  padding: 10px 12px;
+  width: 220px;
+  z-index: 300;
+  animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--dark);
+}
+
+.lm-day-picker-popover {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+  padding: 10px 12px;
+  z-index: 250;
+  animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--dark);
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.popover-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.popover-close-btn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.popover-close-btn:hover {
+  background: var(--border);
+  color: var(--dark);
+}
+
+.popover-days-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.popover-day-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--dark);
+  cursor: pointer;
+  font-size: 11px;
+  text-align: center;
+  transition: transform 0.12s ease, filter 0.12s ease;
+  min-height: 38px;
+}
+
+.popover-day-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(0.95);
+}
+
+.popover-day-btn.current {
+  opacity: 0.55;
+  cursor: default;
+  border-style: dashed;
+}
+
+.popover-day-btn.full {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--border) !important;
+  color: var(--muted) !important;
+  border-color: var(--border) !important;
+}
+
+.popover-day-sub {
+  font-size: 9px;
+  opacity: 0.85;
+  margin-top: 1px;
+  font-weight: normal;
+}
+
+/* Touch action buttons touch target polish */
+.it-actions .mvbtn,
+.it-actions .xbtn,
+.it-actions .move-day-btn {
+  min-width: 28px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 1024px) {
+  .it-actions .mvbtn,
+  .it-actions .xbtn,
+  .it-actions .move-day-btn {
+    min-width: 34px;
+    min-height: 34px;
+    font-size: 14px;
+  }
+}

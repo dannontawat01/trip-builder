@@ -3000,7 +3000,7 @@ function TripBuilderApp() {
                 return (
                   <div
                     key={l.id}
-                    className={`lm-card ${count > 0 ? 'selected' : ''} ${isHighlighted ? 'highlight' : ''}`}
+                    className={`lm-card ${count > 0 ? 'selected' : ''} ${isHighlighted ? 'highlight' : ''} ${addPlacePopover?.landmarkId === l.id ? 'has-popover' : ''}`}
                     draggable={true}
                     onDragStart={(e) => handleDragStart(e, l, 'sidebar')}
                     onTouchStart={(e) => handleTouchStart(e, l, 'sidebar', null)}
@@ -3345,7 +3345,7 @@ function TripBuilderApp() {
                             htmlElements.push(
                               <div
                                 key={item.itinId || `${item.id}_${day}_${idx}`}
-                                className={`it-item ${isLastAdded ? 'last-added' : ''}`}
+                                className={`it-item ${isLastAdded ? 'last-added' : ''} ${moveDayPopover?.itinId === (item.itinId || `${item.id}_${day}_${idx}`) ? 'has-popover' : ''}`}
                                 draggable
                                 onDragStart={(e) => handleDragStart(e, item, day, idx)}
                                 onTouchStart={(e) => handleTouchStart(e, item, day, idx)}
