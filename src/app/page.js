@@ -494,7 +494,6 @@ function TripBuilderApp() {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
-  const [authRegisterCode, setAuthRegisterCode] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [plansDropdownOpen, setPlansDropdownOpen] = useState(false);
@@ -1558,12 +1557,8 @@ function TripBuilderApp() {
   };
 
   const handleSignUp = async () => {
-    if (!authEmail.trim() || !authPassword.trim() || !authRegisterCode.trim()) {
-      toast(activeLang === 'th' ? 'กรุณากรอกข้อมูลให้ครบถ้วน รวมถึงรหัสการสมัคร' : 'Please fill in all fields including the registration code');
-      return;
-    }
-    if (authRegisterCode.trim() !== '8486') {
-      toast(activeLang === 'th' ? 'รหัสการสมัครไม่ถูกต้อง!' : 'Invalid registration code!');
+    if (!authEmail.trim() || !authPassword.trim()) {
+      toast(activeLang === 'th' ? 'กรุณากรอกอีเมลและรหัสผ่าน' : 'Please enter email and password');
       return;
     }
     setAuthLoading(true);
@@ -1573,7 +1568,7 @@ function TripBuilderApp() {
         const rawUsers = localStorage.getItem('tb_mock_users') || '[]';
         const users = JSON.parse(rawUsers);
         if (users.find(u => u.email === authEmail)) {
-          toast('อีเมลนี้เคยลงทะเบียนแล้ว');
+          toast(activeLang === 'th' ? 'อีเมลนี้เคยลงทะเบียนแล้ว' : 'Email already registered');
           setAuthLoading(false);
           return;
         }
@@ -1586,11 +1581,10 @@ function TripBuilderApp() {
         setAuthModalOpen(false);
         setAuthEmail('');
         setAuthPassword('');
-        setAuthRegisterCode('');
         loadLocalMockPlans(authEmail);
-        toast('สมัครสมาชิกและเข้าสู่ระบบสำเร็จ (Mock)');
+        toast(activeLang === 'th' ? 'สมัครสมาชิกและเข้าสู่ระบบสำเร็จ (Mock)' : 'Registered successfully (Mock)');
       } catch (_) {
-        toast('สมัครสมาชิกล้มเหลว');
+        toast(activeLang === 'th' ? 'สมัครสมาชิกล้มเหลว' : 'Registration failed');
       } finally {
         setAuthLoading(false);
       }
@@ -1600,14 +1594,13 @@ function TripBuilderApp() {
     try {
       const res = await googleSheets.signUp(authEmail, authPassword);
       if (res.success) {
-        toast('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบได้ทันที');
+        toast(activeLang === 'th' ? 'สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบได้ทันที' : 'Registered successfully! You can now sign in.');
         setAuthModalOpen(false);
         setAuthEmail('');
         setAuthPassword('');
-        setAuthRegisterCode('');
       }
     } catch (err) {
-      toast(`สมัครสมาชิกล้มเหลว: ${err.message}`);
+      toast(activeLang === 'th' ? `สมัครสมาชิกล้มเหลว: ${err.message}` : `Registration failed: ${err.message}`);
     } finally {
       setAuthLoading(false);
     }
@@ -4737,31 +4730,13 @@ function TripBuilderApp() {
                 />
               </div>
 
-              {authMode === 'register' && (
-                <div className="form-group" style={{ marginTop: '12px' }}>
-                  <label className="form-label">{activeLang === 'th' ? 'รหัสผ่านการสมัคร (Registration Code)' : 'Registration Code'}</label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    placeholder="••••"
-                    value={authRegisterCode}
-                    onChange={(e) => setAuthRegisterCode(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSignUp();
-                      }
-                    }}
-                  />
-                </div>
-              )}
-              
               <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px', textAlign: 'center' }}>
                 {authMode === 'login' ? (
                   <>
                     {activeLang === 'th' ? 'ยังไม่มีบัญชีผู้ใช้?' : "Don't have an account?"}{' '}
                     <span 
                       style={{ color: 'var(--teal)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                      onClick={() => { setAuthMode('register'); setAuthRegisterCode(''); }}
+                      onClick={() => setAuthMode('register')}
                     >
                       {activeLang === 'th' ? 'สมัครสมาชิกที่นี่' : 'Register here'}
                     </span>
@@ -4771,7 +4746,7 @@ function TripBuilderApp() {
                     {activeLang === 'th' ? 'มีบัญชีอยู่แล้ว?' : 'Already have an account?'}{' '}
                     <span 
                       style={{ color: 'var(--teal)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                      onClick={() => { setAuthMode('login'); setAuthRegisterCode(''); }}
+                      onClick={() => setAuthMode('login')}
                     >
                       {activeLang === 'th' ? 'เข้าสู่ระบบที่นี่' : 'Sign in here'}
                     </span>
