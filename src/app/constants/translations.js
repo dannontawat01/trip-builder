@@ -439,16 +439,16 @@ export const CITY_KEYWORDS = {
 
 export const CITY_COVER_IMAGES = {
   bangkok: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=600&q=80',
-  chiangmai: 'https://images.unsplash.com/photo-1548685913-fe6574340a49?auto=format&fit=crop&w=600&q=80',
+  chiangmai: 'https://images.unsplash.com/photo-1527668752968-14dc70a27c95?auto=format&fit=crop&w=600&q=80',
   phuket: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=600&q=80',
   pattaya: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=600&q=80',
-  ayutthaya: 'https://images.unsplash.com/photo-1601058334419-5d3c8c7f766e?auto=format&fit=crop&w=600&q=80',
-  seoul: 'https://images.unsplash.com/photo-1538669715516-5c51a140f7b0?auto=format&fit=crop&w=600&q=80',
-  busan: 'https://images.unsplash.com/photo-1577971158586-fb7c6d66e855?auto=format&fit=crop&w=600&q=80',
+  ayutthaya: 'https://images.unsplash.com/photo-1528181304800-259b08848526?auto=format&fit=crop&w=600&q=80',
+  seoul: 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?auto=format&fit=crop&w=600&q=80',
+  busan: 'https://images.unsplash.com/photo-1583037189850-1921ae7c6c22?auto=format&fit=crop&w=600&q=80',
   jeju: 'https://images.unsplash.com/photo-1549693578-d683be217e58?auto=format&fit=crop&w=600&q=80',
   tokyo: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
   kyoto: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
-  osaka: 'https://images.unsplash.com/photo-1590250596356-a6c22c075775?auto=format&fit=crop&w=600&q=80',
+  osaka: 'https://images.unsplash.com/photo-1551641506-ee5bf4cb45f1?auto=format&fit=crop&w=600&q=80',
   travel: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=80'
 };
 
@@ -481,13 +481,13 @@ export const CATEGORY_COVER_IMAGES = {
     'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1519748771451-a14ef59b3a0c?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?auto=format&fit=crop&w=600&q=80'
   ],
   market: [
     'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1506485338663-c77840e5a5c7?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?auto=format&fit=crop&w=600&q=80',
@@ -497,7 +497,7 @@ export const CATEGORY_COVER_IMAGES = {
     'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1528164344705-475426879c0d?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1570459027562-4a916cc6113f?auto=format&fit=crop&w=600&q=80'
   ],
@@ -505,7 +505,7 @@ export const CATEGORY_COVER_IMAGES = {
     'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1578637387939-43c525550085?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1590250596356-a6c22c075775?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1528181304800-259b08848526?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1576085898323-218337e3e43c?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80'
   ],
@@ -518,7 +518,7 @@ export const CATEGORY_COVER_IMAGES = {
     'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=600&q=80'
   ],
   nature: [
-    'https://images.unsplash.com/photo-1528164344705-475426879c0d?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
@@ -539,25 +539,27 @@ export function getSmartCategoryCover(place, cityId = 'tokyo') {
   if (!place) return CATEGORY_COVER_IMAGES.general[0];
   
   const cat = (place.cat || '').toLowerCase();
+  const name = ((place.names && (place.names.th || place.names.en)) || place.name || '').toLowerCase();
+  const combined = `${cat} ${name}`;
   let listKey = 'general';
   
-  if (cat.includes('โรงแรม') || cat.includes('ที่พัก') || cat.includes('hotel') || cat.includes('hostel') || cat.includes('resort')) {
+  if (combined.includes('โรงแรม') || combined.includes('ที่พัก') || combined.includes('hotel') || combined.includes('hostel') || combined.includes('resort') || combined.includes('inn') || combined.includes('ryokan') || combined.includes('เรียวกัง')) {
     listKey = 'hotel';
-  } else if (cat.includes('อาหาร') || cat.includes('ภัตตาคาร') || cat.includes('restaurant') || cat.includes('food')) {
+  } else if (combined.includes('อาหาร') || combined.includes('ภัตตาคาร') || combined.includes('restaurant') || combined.includes('food') || combined.includes('ramen') || combined.includes('sushi') || combined.includes('yakiniku') || combined.includes('ราเมง') || combined.includes('ซูชิ') || combined.includes('เนื้อย่าง') || combined.includes('kitchen') || combined.includes('dining')) {
     listKey = 'restaurant';
-  } else if (cat.includes('คาเฟ่') || cat.includes('กาแฟ') || cat.includes('cafe') || cat.includes('coffee') || cat.includes('tea')) {
+  } else if (combined.includes('คาเฟ่') || combined.includes('กาแฟ') || combined.includes('cafe') || combined.includes('coffee') || combined.includes('tea') || combined.includes('bakery') || combined.includes('เบเกอรี่') || combined.includes('ชา') || combined.includes('ขนม')) {
     listKey = 'cafe';
-  } else if (cat.includes('ช้อปปิ้ง') || cat.includes('ร้าน') || cat.includes('shop') || cat.includes('store') || cat.includes('ห้าง') || cat.includes('mall')) {
+  } else if (combined.includes('ช้อปปิ้ง') || combined.includes('ร้าน') || combined.includes('shop') || combined.includes('store') || combined.includes('ห้าง') || combined.includes('mall') || combined.includes('boutique') || combined.includes('outlet') || combined.includes('mart') || combined.includes('ministop') || combined.includes('lawson') || combined.includes('7-eleven')) {
     listKey = 'shopping';
-  } else if (cat.includes('ตลาด') || cat.includes('market') || cat.includes('bazaar')) {
+  } else if (combined.includes('ตลาด') || combined.includes('market') || combined.includes('bazaar')) {
     listKey = 'market';
-  } else if (cat.includes('วัด') || cat.includes('temple') || cat.includes('ศาลเจ้า') || cat.includes('shrine')) {
+  } else if (combined.includes('วัด') || combined.includes('temple') || combined.includes('ศาลเจ้า') || combined.includes('shrine') || combined.includes('เจดีย์')) {
     listKey = 'temple';
-  } else if (cat.includes('วัง') || cat.includes('พระราชวัง') || cat.includes('palace') || cat.includes('castle')) {
+  } else if (combined.includes('วัง') || combined.includes('พระราชวัง') || combined.includes('palace') || combined.includes('castle') || combined.includes('ปราสาท')) {
     listKey = 'palace';
-  } else if (cat.includes('พิพิธภัณฑ์') || cat.includes('museum') || cat.includes('gallery') || cat.includes('art')) {
+  } else if (combined.includes('พิพิธภัณฑ์') || combined.includes('museum') || combined.includes('gallery') || combined.includes('art') || combined.includes('หอศิลป์')) {
     listKey = 'museum';
-  } else if (cat.includes('ธรรมชาติ') || cat.includes('สวน') || cat.includes('park') || cat.includes('garden')) {
+  } else if (combined.includes('ธรรมชาติ') || combined.includes('สวน') || combined.includes('park') || combined.includes('garden') || combined.includes('forest') || combined.includes('mountain') || combined.includes('lake') || combined.includes('beach') || combined.includes('หาด')) {
     listKey = 'nature';
   }
   

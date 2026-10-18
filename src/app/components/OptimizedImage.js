@@ -30,8 +30,10 @@ export default function OptimizedImage({
   }, [src, width]);
 
   const handleError = () => {
-    // Step 0 -> Step 1: If proxied URL failed, try original direct source
-    if (errorStep === 0 && currentSrc !== src) {
+    // Step 0 -> Step 1: If proxied URL failed, try original direct source (only if different path/host)
+    const curPath = (currentSrc || '').split('?')[0];
+    const srcPath = (src || '').split('?')[0];
+    if (errorStep === 0 && currentSrc !== src && curPath !== srcPath) {
       setErrorStep(1);
       setCurrentSrc(src);
       return;
@@ -42,9 +44,16 @@ export default function OptimizedImage({
       setCurrentSrc(fallbackSrc);
       return;
     }
-    // Step 2 -> Step 3: SVG fallback
-    if (currentSrc !== SVG_FALLBACK) {
+    // Step 2 -> Step 3: Reliable travel fallback image before SVG
+    const SAFE_FALLBACK = 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80';
+    if (errorStep <= 2 && currentSrc !== SAFE_FALLBACK) {
       setErrorStep(3);
+      setCurrentSrc(SAFE_FALLBACK);
+      return;
+    }
+    // Step 3 -> Step 4: SVG fallback
+    if (currentSrc !== SVG_FALLBACK) {
+      setErrorStep(4);
       setCurrentSrc(SVG_FALLBACK);
       setIsLoaded(true);
     }
