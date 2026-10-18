@@ -2899,17 +2899,7 @@ function TripBuilderApp() {
                     draggable={true}
                     onDragStart={(e) => handleDragStart(e, l, 'sidebar')}
                     onClick={() => {
-                      // For mobile touch tap-to-add
-                      let targetD = null;
-                      for (let d = 1; d <= nDays; d++) {
-                        if (!itin[d]) itin[d] = [];
-                        if (itin[d].length < 5) {
-                          targetD = d;
-                          break;
-                        }
-                      }
-                      if (targetD) addToDay(l, targetD);
-                      else toast('ทุกวันเต็มแล้ว (สูงสุด 5 ที่/วัน)');
+                      setAddPlacePopover(prev => prev?.landmarkId === l.id ? null : { landmarkId: l.id, place: l });
                     }}
                   >
                     <button
@@ -2922,6 +2912,38 @@ function TripBuilderApp() {
                     >
                       ℹ
                     </button>
+                    {addPlacePopover?.landmarkId === l.id && (
+                      <div className="lm-day-picker-popover" onClick={(e) => e.stopPropagation()}>
+                        <div className="popover-title">
+                          <span>{activeLang === 'th' ? 'เพิ่มลงแผน (เลือกวัน)' : 'Add to Plan (Select Day)'}</span>
+                          <button className="popover-close-btn" onClick={() => setAddPlacePopover(null)}>✕</button>
+                        </div>
+                        <div className="popover-days-grid">
+                          {Array.from({ length: nDays }, (_, i) => i + 1).map((d) => {
+                            const count = (itin[d] || []).length;
+                            const isFull = count >= 5;
+                            const dayColor = DAY_COLORS[(d - 1) % DAY_COLORS.length];
+                            return (
+                              <button
+                                key={d}
+                                disabled={isFull}
+                                className={`popover-day-btn ${isFull ? 'full' : ''}`}
+                                style={!isFull ? { borderColor: dayColor.b, background: dayColor.bg, color: dayColor.t } : {}}
+                                onClick={() => {
+                                  addToDay(l, d);
+                                  setAddPlacePopover(null);
+                                }}
+                              >
+                                <b>{t('dayLabel')} {d}</b>
+                                <span className="popover-day-sub">
+                                  {isFull ? (activeLang === 'th' ? '(เต็ม)' : '(full)') : `(${count}/5)`}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     <div className="lm-cover-strip">
                       <img src={getCoverImage(l)} alt="" onError={(e) => handleImageError(e, l)} />
                       {count > 0 && (
