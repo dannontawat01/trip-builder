@@ -128,6 +128,30 @@ async function fetchPhotosDDG(query) {
   return [];
 }
 
+async function searchYahooJapan(query) {
+  if (!query) return [];
+  const cleanQ = query.replace(/\(.*?\)/g, '').trim();
+  const url = `https://search.yahoo.co.jp/image/search?p=${encodeURIComponent(cleanQ)}`;
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8'
+      }
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const imgUrls = html.match(/https:\/\/msp\.c\.yimg\.jp\/images\/v2\/[^"'\s<>]+\.(?:jpg|jpeg|png|webp)/gi) || [];
+      const unique = Array.from(new Set(imgUrls));
+      if (unique.length > 0) {
+        return unique.slice(0, 6);
+      }
+    }
+  } catch {}
+  return [];
+}
+
 async function resolvePlacePhotos(query, city = '', cat = '') {
   const cacheKey = `${query}_${city}_${cat}`.toLowerCase().trim();
   if (photoCache.has(cacheKey)) {
@@ -147,26 +171,35 @@ async function resolvePlacePhotos(query, city = '', cat = '') {
     photoCache.set(cacheKey, result);
     return result;
   }
-  const brandCover = getSmartCategoryCover(placeMock, city);
-  if (brandCover) {
-    photos.push(brandCover);
+
+  // 2. Search Yahoo Japan Image Search (Authentic Japanese Storefront & Place Visuals)
+  const yahooPhotos = await searchYahooJapan(`${query} ${city}`.trim());
+  if (yahooPhotos.length > 0) {
+    photos.push(...yahooPhotos);
   }
 
-  // 2. Search Wikipedia & Wikimedia Commons
-  const wikiPhotos = await searchWikipedia(query);
-  if (wikiPhotos.length > 0) {
-    photos.push(...wikiPhotos);
+  // 3. Search Wikipedia & Wikimedia Commons
+  if (photos.length < 3) {
+    const wikiPhotos = await searchWikipedia(query);
+    if (wikiPhotos.length > 0) {
+      photos.push(...wikiPhotos);
+    }
+
+    const commonsPhotos = await searchWikimedia(query);
+    if (commonsPhotos.length > 0) {
+      photos.push(...commonsPhotos);
+    }
   }
 
-  const commonsPhotos = await searchWikimedia(query);
-  if (commonsPhotos.length > 0) {
-    photos.push(...commonsPhotos);
-  }
-
-  // 3. Fallback to DDG if not enough photos
+  // 4. Fallback to DDG if not enough photos
   if (photos.length < 3) {
     const ddgPhotos = await fetchPhotosDDG(`${query} ${city}`.trim());
     photos.push(...ddgPhotos);
+  }
+
+  const brandCover = getSmartCategoryCover(placeMock, city);
+  if (photos.length === 0 && brandCover) {
+    photos.push(brandCover);
   }
 
   const uniquePhotos = Array.from(new Set(photos)).slice(0, 8);

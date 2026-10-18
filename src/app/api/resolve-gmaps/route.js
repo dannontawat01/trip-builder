@@ -14,10 +14,10 @@ function classifyCategory(text) {
   if (t.includes('พิพิธภัณฑ์') || t.includes('museum') || t.includes('gallery') || t.includes('art') || t.includes('หอศิลป์')) {
     return { category: 'พิพิธภัณฑ์', icon: '🏛️' };
   }
-  if (t.includes('อาหาร') || t.includes('ภัตตาคาร') || t.includes('restaurant') || t.includes('yakiniku') || t.includes('sushi') || t.includes('ramen') || t.includes('steak') || t.includes('food') || t.includes('กริลล์') || t.includes('ชาบู') || t.includes('บุฟเฟต์') || t.includes('ปิ้งย่าง') || t.includes('bbq') || t.includes('izakaya')) {
+  if (t.includes('อาหาร') || t.includes('ภัตตาคาร') || t.includes('restaurant') || t.includes('yakiniku') || t.includes('sushi') || t.includes('ramen') || t.includes('steak') || t.includes('food') || t.includes('กริลล์') || t.includes('ชาบู') || t.includes('บุฟเฟต์') || t.includes('ปิ้งย่าง') || t.includes('bbq') || t.includes('izakaya') || t.includes('saizeriya') || t.includes('royal host') || t.includes('gusto') || t.includes('bamiyan') || t.includes('diner') || t.includes('kitchen') || t.includes('bistro') || t.includes('pasta') || t.includes('pizza') || t.includes('curry') || t.includes('soba') || t.includes('udon') || t.includes('tonkatsu') || t.includes('dining')) {
     return { category: 'ร้านอาหาร', icon: '🍽️' };
   }
-  if (t.includes('คาเฟ่') || t.includes('กาแฟ') || t.includes('cafe') || t.includes('coffee') || t.includes('bar') || t.includes('pub') || t.includes('tea') || t.includes('น้ำชา') || t.includes('เบเกอรี่') || t.includes('bakery')) {
+  if (t.includes('คาเฟ่') || t.includes('กาแฟ') || t.includes('cafe') || t.includes('coffee') || t.includes('bar') || t.includes('pub') || t.includes('tea') || t.includes('น้ำชา') || t.includes('เบเกอรี่') || t.includes('bakery') || t.includes('crepe') || t.includes('crepes') || t.includes('dessert') || t.includes('sweets') || t.includes('drive-in') || t.includes('drive in') || t.includes('pancake')) {
     return { category: 'คาเฟ่', icon: '☕' };
   }
   if (t.includes('ห้าง') || t.includes('department store') || t.includes('mall') || t.includes('shopping center') || t.includes('shopping mall')) {
@@ -26,7 +26,7 @@ function classifyCategory(text) {
   if (t.includes('ตลาด') || t.includes('market') || t.includes('bazaar') || t.includes('night market') || t.includes('street food')) {
     return { category: 'ตลาด', icon: '🛍️' };
   }
-  if (t.includes('ช้อปปิ้ง') || t.includes('ร้าน') || t.includes('shop') || t.includes('store') || t.includes('boutique') || t.includes('outlet') || t.includes('shopping')) {
+  if (t.includes('ช้อปปิ้ง') || t.includes('ร้าน') || t.includes('shop') || t.includes('store') || t.includes('boutique') || t.includes('outlet') || t.includes('shopping') || t.includes('cas:pace') || t.includes('caspace') || t.includes('refa') || t.includes('beauty') || t.includes('cosmetics') || t.includes('fashion') || t.includes('shoes') || t.includes('sneaker') || t.includes('apparel') || t.includes('camera') || t.includes('drug') || t.includes('drugstore')) {
     return { category: 'ช้อปปิ้ง', icon: '🛍️' };
   }
   if (t.includes('สวน') || t.includes('ป่า') || t.includes('ธรรมชาติ') || t.includes('park') || t.includes('garden') || t.includes('forest') || t.includes('mountain') || t.includes('beach') || t.includes('lake') || t.includes('waterfall') || t.includes('view') || t.includes('sky')) {

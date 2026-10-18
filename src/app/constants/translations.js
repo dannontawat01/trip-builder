@@ -648,6 +648,63 @@ export const BRAND_PLACE_IMAGES = {
   ],
   edw: [
     'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80'
+  ],
+  saizeriya: [
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80'
+  ],
+  royalhost: [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80'
+  ],
+  gusto: [
+    'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80'
+  ],
+  bamiyan: [
+    'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?auto=format&fit=crop&w=600&q=80'
+  ],
+  sweetbox: [
+    'https://images.unsplash.com/photo-1519869325930-281384150729?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80'
+  ],
+  pacificdrivein: [
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=600&q=80'
+  ],
+  caspace: [
+    'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=600&q=80'
+  ],
+  refa: [
+    'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=600&q=80'
+  ],
+  onitsukatiger: [
+    'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80'
+  ],
+  kurasushi: [
+    'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=600&q=80'
+  ],
+  gyudon: [
+    'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80'
+  ],
+  komeda: [
+    'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80'
+  ],
+  harbs: [
+    'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80'
+  ],
+  pokemon: [
+    'https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?auto=format&fit=crop&w=600&q=80'
+  ],
+  yodobashi: [
+    'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=600&q=80'
+  ],
+  teamlab: [
+    'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=600&q=80'
   ]
 };
 
@@ -771,6 +828,70 @@ export function getBrandPlacePhotos(placeOrName) {
   // 27. EDW
   if (text.includes('edw') || text.includes('espresso d works')) {
     return BRAND_PLACE_IMAGES.edw;
+  }
+  // 28. Saizeriya (ไซเซริยะ)
+  if (text.includes('saizeriya') || text.includes('ไซเซริยะ') || text.includes('サイゼリヤ')) {
+    return BRAND_PLACE_IMAGES.saizeriya;
+  }
+  // 29. Royal Host (รอยัลโฮสต์)
+  if (text.includes('royal host') || text.includes('royalhost') || text.includes('รอยัลโฮสต์') || text.includes('ロイヤルホスト')) {
+    return BRAND_PLACE_IMAGES.royalhost;
+  }
+  // 30. Gusto (กัสโตะ)
+  if (text.includes('gusto') || text.includes('กัสโตะ') || text.includes('ガスト')) {
+    return BRAND_PLACE_IMAGES.gusto;
+  }
+  // 31. Bamiyan (บาร์มิยัน)
+  if (text.includes('bamiyan') || text.includes('บาร์มิยัน') || text.includes('バーミヤン')) {
+    return BRAND_PLACE_IMAGES.bamiyan;
+  }
+  // 32. SWEET BOX Crepes Harajuku
+  if (text.includes('sweet box') || text.includes('sweetbox') || text.includes('สวีทบ็อกซ์') || text.includes('スウィートボックス') || (text.includes('takeshita') && text.includes('crepe'))) {
+    return BRAND_PLACE_IMAGES.sweetbox;
+  }
+  // 33. Pacific DRIVE-IN
+  if (text.includes('pacific drive-in') || text.includes('pacific drive in') || text.includes('pacificdrivein') || text.includes('パシフィックドライブイン')) {
+    return BRAND_PLACE_IMAGES.pacificdrivein;
+  }
+  // 34. cas:pace 殼空間
+  if (text.includes('cas:pace') || text.includes('caspace') || text.includes('殼空間') || text.includes('壳空间')) {
+    return BRAND_PLACE_IMAGES.caspace;
+  }
+  // 35. ReFa
+  if (text.includes('refa') || text.includes('รีฟา') || text.includes('リファ')) {
+    return BRAND_PLACE_IMAGES.refa;
+  }
+  // 36. Onitsuka Tiger
+  if (text.includes('onitsuka') || text.includes('โอนิซึกะ') || text.includes('オニツカタイガー')) {
+    return BRAND_PLACE_IMAGES.onitsukatiger;
+  }
+  // 37. Conveyor Belt Sushi (Kura / Sushiro / Hamazushi)
+  if (text.includes('kura sushi') || text.includes('sushiro') || text.includes('hamazushi') || text.includes('ซูชิโร่') || text.includes('คุระซูชิ') || text.includes('スシロー') || text.includes('くら寿司')) {
+    return BRAND_PLACE_IMAGES.kurasushi;
+  }
+  // 38. Gyudon (Matsuya, Sukiya, Yoshinoya)
+  if (text.includes('matsuya') || text.includes('sukiya') || text.includes('yoshinoya') || text.includes('โยชิโนยะ') || text.includes('มัตสึยะ') || text.includes('สุคิยะ') || text.includes('松屋') || text.includes('すき家') || text.includes('吉野家')) {
+    return BRAND_PLACE_IMAGES.gyudon;
+  }
+  // 39. Komeda's Coffee
+  if (text.includes('komeda') || text.includes('โคะเมดะ') || text.includes('コメダ珈琲')) {
+    return BRAND_PLACE_IMAGES.komeda;
+  }
+  // 40. Harbs
+  if (text.includes('harbs') || text.includes('ฮาร์บส์') || text.includes('ハーブス')) {
+    return BRAND_PLACE_IMAGES.harbs;
+  }
+  // 41. Pokemon Center
+  if (text.includes('pokemon') || text.includes('โปเกมอน') || text.includes('ポケモン')) {
+    return BRAND_PLACE_IMAGES.pokemon;
+  }
+  // 42. Yodobashi / Bic Camera
+  if (text.includes('yodobashi') || text.includes('bic camera') || text.includes('โยโดบาชิ') || text.includes('บิ๊กคาเมร่า') || text.includes('ヨドバシ') || text.includes('ビックカメラ')) {
+    return BRAND_PLACE_IMAGES.yodobashi;
+  }
+  // 43. teamLab
+  if (text.includes('teamlab') || text.includes('ทีมแล็บ') || text.includes('チームラボ')) {
+    return BRAND_PLACE_IMAGES.teamlab;
   }
 
   return null;
