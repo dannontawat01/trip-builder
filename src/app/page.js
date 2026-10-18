@@ -50,7 +50,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.12.0';
+const APP_VERSION = 'v1.12.1';
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -385,6 +385,15 @@ function TripBuilderApp() {
   const usedIds = () => Object.values(itin).flat().map(x => x.id);
   const getSelectedCount = (placeId) => {
     return Object.values(itin).flat().filter(x => x.id === placeId).length;
+  };
+  const getDaysForPlace = (placeId) => {
+    const matchedDays = [];
+    for (let d = 1; d <= nDays; d++) {
+      if ((itin[d] || []).some(x => x.id === placeId)) {
+        matchedDays.push(d);
+      }
+    }
+    return matchedDays;
   };
 
   const getCityFallbackImage = (place) => {
@@ -3429,6 +3438,16 @@ function TripBuilderApp() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="search-clear-btn"
+                  onClick={() => setSearchQuery('')}
+                  title={activeLang === 'th' ? 'ล้างการค้นหา' : 'Clear search'}
+                >
+                  ✕
+                </button>
+              )}
             </div>
             
             {/* Add Attraction options */}
@@ -3465,6 +3484,12 @@ function TripBuilderApp() {
             })}
           </div>
 
+          <div className="places-meta-row">
+            <span className="places-count-label">
+              {activeLang === 'th' ? `พบ ${filteredLandmarks.length} สถานที่` : `${filteredLandmarks.length} places`}
+            </span>
+          </div>
+
           {/* Landmarks list rendering */}
           <div className="lm-list">
             {isLoading ? (
@@ -3480,6 +3505,7 @@ function TripBuilderApp() {
             ) : filteredLandmarks.length > 0 ? (
               filteredLandmarks.map(l => {
                 const count = getSelectedCount(l.id);
+                const matchedDays = getDaysForPlace(l.id);
                 const isHighlighted = lastId === l.id;
 
                 return (
@@ -3492,20 +3518,33 @@ function TripBuilderApp() {
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
                     onTouchCancel={handleTouchCancel}
-                    onClick={() => {
-                      setAddPlacePopover(prev => prev?.landmarkId === l.id ? null : { landmarkId: l.id, place: l });
-                    }}
+                    onClick={() => handleOpenDetail(l)}
                   >
-                    <button
-                      className="info-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenDetail(l);
-                      }}
-                      title="Info"
-                    >
-                      ℹ
-                    </button>
+                    <div className="lm-card-actions">
+                      <button
+                        type="button"
+                        className="lm-quick-add-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAddPlacePopover(prev => prev?.landmarkId === l.id ? null : { landmarkId: l.id, place: l });
+                        }}
+                        title={activeLang === 'th' ? 'เพิ่มลงแผน' : 'Add to Plan'}
+                      >
+                        + {activeLang === 'th' ? 'เพิ่มลงวัน' : 'Add'}
+                      </button>
+                      <button
+                        type="button"
+                        className="info-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenDetail(l);
+                        }}
+                        title={activeLang === 'th' ? 'ดูรายละเอียด' : 'View Details'}
+                      >
+                        ℹ
+                      </button>
+                    </div>
+
                     {addPlacePopover?.landmarkId === l.id && (
                       <div className="lm-day-picker-popover" onClick={(e) => e.stopPropagation()}>
                         <div className="popover-title">
@@ -3545,11 +3584,27 @@ function TripBuilderApp() {
                         width={400}
                         fallbackSrc={getCityFallbackImage(l)}
                       />
-                      {count > 0 && (
+                      {matchedDays.length > 0 ? (
+                        <div className="lm-days-badge-wrap">
+                          {matchedDays.map(d => {
+                            const dc = DAY_COLORS[(d - 1) % DAY_COLORS.length];
+                            return (
+                              <span
+                                key={d}
+                                className="lm-day-tag"
+                                style={{ background: dc.bg, color: dc.t, borderColor: dc.b }}
+                                title={`${t('dayLabel')} ${d}`}
+                              >
+                                D{d}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : count > 0 ? (
                         <span className="lm-count-badge">
                           {activeLang === 'th' ? `เลือกแล้ว ${count} ครั้ง` : `${count}x selected`}
                         </span>
-                      )}
+                      ) : null}
                     </div>
                     <div style={{ padding: '8px 10px' }}>
                       <div className="lm-name">
@@ -3567,7 +3622,37 @@ function TripBuilderApp() {
                 );
               })
             ) : (
-              <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center', padding: '20px 0', opacity: .6 }}>—</div>
+              <div className="search-empty-state">
+                <div className="empty-icon">🔍</div>
+                <div className="empty-title">
+                  {searchQuery
+                    ? (activeLang === 'th' ? 'ไม่พบสถานที่ที่ตรงกัน' : 'No places found')
+                    : (activeLang === 'th' ? 'ยังไม่มีสถานที่ในหมวดนี้' : 'No places in this category')}
+                </div>
+                <div className="empty-desc">
+                  {searchQuery
+                    ? (activeLang === 'th' ? `ไม่พบ "${searchQuery}" ในเมืองนี้ ลองค้นหาด้วยคำอื่น` : `No matches for "${searchQuery}"`)
+                    : (activeLang === 'th' ? 'ลองเลือกหมวดหมู่อื่น หรือเพิ่มสถานที่ใหม่' : 'Try selecting another category')}
+                </div>
+                <div className="empty-actions">
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => setSearchQuery('')}
+                    >
+                      {activeLang === 'th' ? 'ล้างคำค้นหา' : 'Clear search'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() => { setAddModalOpen(true); setActiveAddTab('manual'); }}
+                  >
+                    + {activeLang === 'th' ? 'เพิ่มสถานที่ใหม่' : 'Add Place'}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </aside>
@@ -3586,7 +3671,7 @@ function TripBuilderApp() {
           {/* Config row */}
           <div className="trip-bar">
             <div className="cfg cfg-start-date">
-              <label>{t('startDate')}</label>
+              <label>📅 {t('startDate')}</label>
               <input
                 type="date"
                 value={startDate}
@@ -3598,7 +3683,7 @@ function TripBuilderApp() {
             </div>
             <div className="trip-bar-arrow">→</div>
             <div className="cfg cfg-end-date">
-              <label>{t('endDate')}</label>
+              <label>📅 {t('endDate')}</label>
               <input
                 type="date"
                 value={endDate}
@@ -3610,7 +3695,7 @@ function TripBuilderApp() {
             </div>
             <div className="trip-bar-divider" />
             <div className="cfg cfg-depart-time">
-              <label>{t('departTime')}</label>
+              <label>⏰ {t('departTime')}</label>
               <input
                 type="time"
                 value={startTime}
@@ -3619,7 +3704,7 @@ function TripBuilderApp() {
             </div>
             <div className="trip-bar-divider" />
             <div className="cfg cfg-hotel" style={{ flex: 1, minWidth: 0 }}>
-              <label>{t('hotel')}</label>
+              <label>🏨 {t('hotel')}</label>
               <input
                 type="text"
                 placeholder={t('hotelPh')}
@@ -3630,7 +3715,7 @@ function TripBuilderApp() {
             </div>
             <div className="trip-bar-divider" />
             <div className="cfg cfg-num-days">
-              <label>{t('numDays')}</label>
+              <label>🔢 {t('numDays')}</label>
               <select
                 value={nDays}
                 onChange={(e) => {
@@ -3661,24 +3746,33 @@ function TripBuilderApp() {
 
           {/* Stats bar */}
           <div className="summary-bar">
-            <div>
-              <div className="stat-val">{stats.placesCount}</div>
-              <div className="stat-lbl">{t('statPlaces')}</div>
+            <div className="stat-card stat-places">
+              <span className="stat-icon-wrap">📍</span>
+              <div className="stat-content">
+                <div className="stat-val">{stats.placesCount}</div>
+                <div className="stat-lbl">{t('statPlaces')}</div>
+              </div>
             </div>
-            <div className="div-v" />
-            <div>
-              <div className="stat-val">{stats.hours} {activeLang === 'th' ? 'ชม.' : 'hrs'}</div>
-              <div className="stat-lbl">{t('statHours')}</div>
+            <div className="stat-card stat-hours">
+              <span className="stat-icon-wrap">⏱</span>
+              <div className="stat-content">
+                <div className="stat-val">{stats.hours} <span className="stat-unit">{activeLang === 'th' ? 'ชม.' : 'hrs'}</span></div>
+                <div className="stat-lbl">{t('statHours')}</div>
+              </div>
             </div>
-            <div className="div-v" />
-            <div>
-              <div className="stat-val">{stats.activeDays}</div>
-              <div className="stat-lbl">{t('statDays')}</div>
+            <div className="stat-card stat-days">
+              <span className="stat-icon-wrap">🗓</span>
+              <div className="stat-content">
+                <div className="stat-val">{stats.activeDays} <span className="stat-unit">/{nDays}</span></div>
+                <div className="stat-lbl">{t('statDays')}</div>
+              </div>
             </div>
-            <div className="div-v" />
-            <div>
-              <div className="stat-val">{stats.citiesStr}</div>
-              <div className="stat-lbl">{t('statCities')}</div>
+            <div className="stat-card stat-cities">
+              <span className="stat-icon-wrap">🏙</span>
+              <div className="stat-content">
+                <div className="stat-val stat-cities-text" title={stats.citiesStr}>{stats.citiesStr}</div>
+                <div className="stat-lbl">{t('statCities')}</div>
+              </div>
             </div>
           </div>
 
@@ -3940,7 +4034,9 @@ function TripBuilderApp() {
                                     onClick={() => promptEditTravelTime(day, idx, item)}
                                     title={activeLang === 'th' ? 'คลิกเพื่อแก้ไขเวลาเดินทาง' : 'Click to edit travel time'}
                                   >
-                                    {travelIcon} {travelTime}m {activeLang === 'th' ? 'เดินทาง' : 'Travel'}{distLabel}
+                                    <span className="travel-mode-icon">{travelIcon}</span>
+                                    <span className="travel-time-text">{travelTime}m</span>
+                                    <span className="travel-type-text">{activeLang === 'th' ? 'เดินทาง' : 'Travel'}{distLabel}</span>
                                   </span>
                                   <div className="tline" />
                                 </div>
@@ -3982,6 +4078,7 @@ function TripBuilderApp() {
                                     <div className="it-actions">
                                       <div className="move-day-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
                                         <button
+                                          type="button"
                                           className="mvbtn move-day-btn"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -4028,9 +4125,34 @@ function TripBuilderApp() {
                                           </div>
                                         )}
                                       </div>
-                                      {idx > 0 && <button className="mvbtn" onClick={() => moveItinItem(day, idx, -1)}>↑</button>}
-                                      {idx < items.length - 1 && <button className="mvbtn" onClick={() => moveItinItem(day, idx, 1)}>↓</button>}
-                                      <button className="xbtn" onClick={() => removeItinItem(day, idx)}>✕</button>
+                                      {idx > 0 && (
+                                        <button
+                                          type="button"
+                                          className="mvbtn reorder-btn up"
+                                          onClick={() => moveItinItem(day, idx, -1)}
+                                          title={activeLang === 'th' ? 'เลื่อนขึ้น' : 'Move up'}
+                                        >
+                                          ▲
+                                        </button>
+                                      )}
+                                      {idx < items.length - 1 && (
+                                        <button
+                                          type="button"
+                                          className="mvbtn reorder-btn down"
+                                          onClick={() => moveItinItem(day, idx, 1)}
+                                          title={activeLang === 'th' ? 'เลื่อนลง' : 'Move down'}
+                                        >
+                                          ▼
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        className="xbtn"
+                                        onClick={() => removeItinItem(day, idx)}
+                                        title={activeLang === 'th' ? 'ลบออกจากแผน' : 'Remove place'}
+                                      >
+                                        ✕
+                                      </button>
                                     </div>
                                   </div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0' }}>
@@ -4069,7 +4191,33 @@ function TripBuilderApp() {
                         ) : (
                           <div className="zone-empty">
                             <div className="zone-empty-icon">✈</div>
-                            <span>{t('dragHere')}</span>
+                            <div className="zone-empty-title">
+                              {activeLang === 'th' ? 'ยังไม่มีแผนสำหรับวันนี้' : 'No places planned for this day'}
+                            </div>
+                            <div className="zone-empty-desc">
+                              {activeLang === 'th' ? 'ลากสถานที่จากแถบข้างมาวาง หรือกดปุ่มด้านล่าง' : t('dragHere')}
+                            </div>
+                            <div className="zone-empty-actions">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-ghost zone-empty-btn"
+                                onClick={() => setMobileTab('places')}
+                              >
+                                📍 {activeLang === 'th' ? 'เลือกสถานที่' : 'Browse Places'}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-primary zone-empty-btn"
+                                onClick={() => {
+                                  setAiPlanModalOpen(true);
+                                  setAiHotel(hotel);
+                                  setAiStart(startDate);
+                                  setAiEnd(endDate);
+                                }}
+                              >
+                                ✦ {activeLang === 'th' ? 'AI แนะนำ' : 'AI Plan'}
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
