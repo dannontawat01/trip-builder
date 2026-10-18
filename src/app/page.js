@@ -12,7 +12,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.5.0';
+const APP_VERSION = 'v1.6.0';
 
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
 const LANG_STRINGS = {

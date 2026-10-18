@@ -8,6 +8,10 @@
   --dark: #1C1C1A;
   --muted: #8A8880;
   --border: #E2E0D8;
+
+  --font-dm-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-fraunces: 'Fraunces', Georgia, serif;
+  --font-inter: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   
   --red: #E24B4A;
   --red-l: #FCEBEB;
@@ -1899,7 +1903,7 @@ textarea.form-input {
     overflow: auto;
     height: auto;
     min-height: 100vh;
-    padding-bottom: 58px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
   .layout {
     display: block;
@@ -1915,7 +1919,7 @@ textarea.form-input {
     display: flex;
   }
   .main {
-    padding: 10px;
+    padding: 12px 14px calc(90px + env(safe-area-inset-bottom, 0px));
     overflow: visible;
   }
   .nearby {
@@ -1932,7 +1936,7 @@ textarea.form-input {
   
   /* Restructured Topbar */
   .topbar {
-    padding: 8px 10px;
+    padding: 8px 12px;
     height: auto;
     position: sticky;
     top: 0;
@@ -1940,7 +1944,7 @@ textarea.form-input {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 6px;
   }
   
   /* Hide desktop separators on mobile */
@@ -1954,6 +1958,8 @@ textarea.form-input {
     justify-content: space-between;
     align-items: center;
     width: 100%;
+    gap: 6px;
+    min-width: 0;
   }
   .topbar-sub-row {
     display: flex;
@@ -1961,9 +1967,12 @@ textarea.form-input {
     align-items: center;
     overflow-x: auto;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
     width: 100%;
-    padding: 6px 0;
+    padding: 4px 2px 6px;
     border-top: 1px solid var(--border);
+    mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
   }
   .topbar-sub-row::-webkit-scrollbar {
     display: none;
@@ -1986,9 +1995,16 @@ textarea.form-input {
 
   .topbar-actions {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     align-items: center;
     margin-left: 0;
+    flex-shrink: 0;
+  }
+  .topbar-action-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: nowrap;
   }
   .topbar-actions .theme-mode-btn:not(.active) {
     display: none;
@@ -2032,54 +2048,6 @@ textarea.form-input {
     padding: 4px !important;
     border-radius: 50% !important;
   }
-  
-  /* Trip Itinerary Configuration Grid */
-  .trip-bar {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    padding: 12px;
-  }
-  .trip-bar-arrow,
-  .trip-bar-divider {
-    display: none !important;
-  }
-  .cfg-start-date {
-    grid-column: 1;
-  }
-  .cfg-end-date {
-    grid-column: 2;
-  }
-  .cfg-depart-time {
-    grid-column: 1;
-  }
-  .cfg-num-days {
-    grid-column: 2;
-  }
-  .cfg-hotel {
-    grid-column: span 2;
-    width: 100% !important;
-  }
-  .ai-plan-btn {
-    grid-column: span 2;
-    justify-content: center;
-    padding: 10px 14px;
-    width: 100%;
-  }
-
-  .summary-bar {
-    gap: 10px;
-    padding: 10px 12px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-  }
-  .summary-bar .div-v {
-    display: none;
-  }
-  .summary-bar > div {
-    flex-shrink: 0;
-    text-align: center;
-  }
 
   .main-title {
     font-size: 16px;
@@ -2115,34 +2083,91 @@ textarea.form-input {
   }
 
   .overlay {
-    align-items: flex-start !important;
-    padding: 20px 10px 88px !important;
-    overflow-y: auto !important;
+    align-items: flex-start;
+    padding: 20px 10px calc(80px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
   }
 
   .modal {
     width: 96vw;
-    max-height: calc(100vh - 120px) !important;
+    max-height: calc(100vh - 120px);
     border-radius: 16px;
     margin: 0 auto;
   }
   
   .mob-nav {
     display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--card-glass);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 1px solid var(--border-glass);
+    height: calc(58px + env(safe-area-inset-bottom, 0px));
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
   }
+  .mob-nav-btn {
+    border-radius: 12px;
+    padding: 4px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .mob-nav-btn.active {
+    background: var(--teal-l);
+    color: var(--teal-d);
+  }
+  body.theme-dark .mob-nav-btn.active {
+    background: rgba(29, 158, 117, 0.22);
+    color: var(--teal-m);
+  }
+
   .mob-fab {
     display: flex;
+    position: fixed;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    right: 18px;
+    z-index: 101;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--teal) 0%, #0F6E56 100%);
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 6px 20px rgba(15, 110, 86, 0.4);
+    font-size: 20px;
+    cursor: pointer;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  }
+  .mob-fab:active {
+    transform: scale(0.92);
   }
   
   .day-zone {
     min-height: 80px;
   }
   .it-item {
-    padding: 8px 10px;
+    padding: 10px 12px;
   }
-  .xbtn, .mvbtn {
-    padding: 4px 6px;
-    font-size: 13px;
+  .it-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .it-actions .mvbtn,
+  .it-actions .xbtn,
+  .it-actions .move-day-btn {
+    min-width: 36px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 14px;
+    padding: 6px;
+    touch-action: manipulation;
   }
 
   /* Map and layout flex settings */
@@ -2151,20 +2176,220 @@ textarea.form-input {
   }
   .map-sidebar-wrapper {
     width: 100%;
-    height: 400px;
+    height: 380px;
     position: static;
-    margin-bottom: 24px; /* Space above mobile bottom navigation bar */
+    margin-bottom: 24px;
   }
 }
 
-/* Stacking days-grid only on small mobile devices */
-@media (max-width: 640px) {
+/* --- Tablet Styles (641px - 1024px) --- */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .trip-bar {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-areas:
+      "start end time days"
+      "hotel hotel hotel ai" !important;
+    gap: 12px !important;
+    padding: 16px !important;
+    align-items: flex-end !important;
+  }
+  .trip-bar-arrow,
+  .trip-bar-divider {
+    display: none !important;
+  }
+  .cfg-start-date { grid-area: start !important; }
+  .cfg-end-date { grid-area: end !important; }
+  .cfg-depart-time { grid-area: time !important; }
+  .cfg-num-days { grid-area: days !important; }
+  .cfg-hotel { grid-area: hotel !important; width: 100% !important; }
+  .ai-plan-btn { grid-area: ai !important; width: 100% !important; }
+
   .days-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 14px !important;
+  }
+
+  .summary-bar {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
+    padding: 12px 16px !important;
+  }
+  .summary-bar .div-v {
+    display: none !important;
+  }
+  .summary-bar > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 6px 4px !important;
   }
 }
 
-/* Stack form rows inside modals on very small screens */
+/* --- Mobile Phone Styles (<= 640px) --- */
+@media (max-width: 640px) {
+  /* Topbar Mobile Optimizations */
+  .logo {
+    font-size: 16px;
+    gap: 6px;
+  }
+  .app-version-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+  .plans-btn-title {
+    display: none !important;
+  }
+  .plans-btn-chevron {
+    font-size: 8px !important;
+    margin-left: -2px;
+  }
+  .topbar-plans-btn {
+    padding: 5px 8px !important;
+    min-width: 36px;
+    justify-content: center;
+  }
+  .group-btn-text {
+    display: none !important;
+  }
+  .topbar-group-btn {
+    padding: 5px 8px !important;
+    min-width: 36px;
+    justify-content: center;
+  }
+
+  /* Trip Bar Form Grid - Perfectly Balanced with NO Whitespace Gaps */
+  .trip-bar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "start end"
+      "time days"
+      "hotel hotel"
+      "ai ai" !important;
+    gap: 10px !important;
+    padding: 14px !important;
+  }
+  .trip-bar-arrow,
+  .trip-bar-divider {
+    display: none !important;
+  }
+  .cfg-start-date { grid-area: start !important; }
+  .cfg-end-date { grid-area: end !important; }
+  .cfg-depart-time { grid-area: time !important; }
+  .cfg-num-days { grid-area: days !important; }
+  .cfg-hotel { grid-area: hotel !important; width: 100% !important; }
+  .ai-plan-btn {
+    grid-area: ai !important;
+    width: 100% !important;
+    justify-content: center;
+    padding: 11px 16px;
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  /* Summary Metrics Strip on Mobile */
+  .summary-bar {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+    padding: 10px !important;
+    border-radius: var(--r-lg) !important;
+  }
+  .summary-bar .div-v {
+    display: none !important;
+  }
+  .summary-bar > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 6px 2px !important;
+    background: rgba(0, 0, 0, 0.02) !important;
+    border-radius: 8px !important;
+    text-align: center !important;
+    min-width: 0 !important;
+  }
+  body.theme-dark .summary-bar > div {
+    background: rgba(255, 255, 255, 0.04) !important;
+  }
+  .summary-bar .sb-num {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: var(--dark) !important;
+    line-height: 1.2 !important;
+  }
+  .summary-bar .sb-label {
+    font-size: 10px !important;
+    color: var(--muted) !important;
+    white-space: nowrap !important;
+    margin-top: 2px !important;
+  }
+
+  /* Days Grid Single Column */
+  .days-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Native Bottom-Sheet Style Modals on Mobile */
+  .overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .modal {
+    width: 100vw !important;
+    max-height: 90vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    margin: 0 !important;
+    animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes slideUpModal {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-head {
+    padding: 16px 18px 12px !important;
+  }
+  .modal-body {
+    padding: 14px 18px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal-foot {
+    padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* Extra Small Phones (<= 375px e.g. iPhone SE) */
+@media (max-width: 375px) {
+  .logo span:first-of-type {
+    font-size: 14px;
+  }
+  .summary-bar {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .lang-select {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+}
+
+/* Prevent auto-zoom in iOS Safari */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="date"],
+  input[type="time"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Stack form rows inside modals on small screens */
 @media (max-width: 480px) {
   .form-row {
     grid-template-columns: 1fr;
@@ -2796,8 +3021,8 @@ body.theme-dark .day-weather-alert-icon {
   .it-actions .mvbtn,
   .it-actions .xbtn,
   .it-actions .move-day-btn {
-    min-width: 34px;
-    min-height: 34px;
+    min-width: 36px;
+    min-height: 36px;
     font-size: 14px;
   }
 }
