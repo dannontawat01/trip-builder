@@ -8,6 +8,32 @@ import { optimizeDayRoute, calculateDistanceKm, estimateTravelTimeMins } from '@
 import dynamic from 'next/dynamic';
 import TravelModeView from './components/TravelModeView';
 import OptimizedImage from './components/OptimizedImage';
+import HeaderNav from './components/HeaderNav';
+import DetailModal from './components/modals/DetailModal';
+import AddPlaceModal from './components/modals/AddPlaceModal';
+import ExportModal from './components/modals/ExportModal';
+import AiPlanModal from './components/modals/AiPlanModal';
+import QuickEditModals from './components/modals/QuickEditModals';
+import AuthModal from './components/modals/AuthModal';
+import GroupCollabModal from './components/modals/GroupCollabModal';
+import RouteOptimizationModal from './components/modals/RouteOptimizationModal';
+import {
+  LANG_STRINGS,
+  COUNTRIES,
+  CAT_TRANSLATIONS,
+  translateCategory,
+  getCityName,
+  getCountryName,
+  DAY_COLORS,
+  CITY_KEYWORDS,
+  CITY_COVER_IMAGES,
+  CHECKLIST_CATEGORIES,
+  CHECKLIST_TEMPLATES,
+  generateChecklistId,
+  CITY_COORDINATES,
+  WEATHER_CODES,
+  getCountryOfCity
+} from './constants/translations';
 
 const MapComponent = dynamic(() => import('./components/MapComponent'), {
   ssr: false,
@@ -15,436 +41,8 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.9.2';
+const APP_VERSION = 'v1.10.1';
 
-// ─── TRANSLATIONS ───────────────────────────────────────────────────
-const LANG_STRINGS = {
-  th: {
-    places: 'สถานที่ท่องเที่ยว', search: 'ค้นหา...', addManual: 'กรอกเอง', addAI: 'AI เพิ่ม', addGmaps: 'Google Maps',
-    itinerary: 'แผนการเดินทาง', clear: 'ล้าง', export: 'ส่งออก / แชร์',
-    startDate: 'วันเดินทาง', endDate: 'วันกลับ', departTime: 'เวลาออก', hotel: 'ที่พัก / โรงแรม', hotelPh: 'เช่น Myeongdong, Seoul',
-    numDays: 'จำนวนวัน', aiPlanBtn: 'ให้ AI สร้างแผนการเดินทาง',
-    statPlaces: 'สถานที่', statHours: 'เวลารวม', statDays: 'วัน', statCities: 'เมือง',
-    nearby: 'แนะนำใกล้เคียง', nearbyEmpty: 'เพิ่มสถานที่ในแผนก่อน\nเราจะแนะนำที่ใกล้เคียงให้',
-    mobPlan: 'แผน', mobPlaces: 'สถานที่', mobNearby: 'แนะนำ', mobExport: 'ส่งออก',
-    close: 'ปิด', cancel: 'ยกเลิก', save: 'บันทึกสถานที่', addToDay: 'เพิ่มเข้าวัน:',
-    addNew: 'เพิ่มสถานที่ใหม่', tabManual: '✏️ กรอกเอง', tabAI: '🤖 AI แนะนำ', tabGmaps: '📍 Google Maps', tabJson: '📋 นำเข้า JSON',
-    osmSearch: '🔍 ค้นหาสถานที่ (OpenStreetMap)', osmBtn: 'ค้นหา GPS', osmPh: 'พิมพ์ชื่อสถานที่ เช่น Gyeongbokgung Palace Seoul',
-    fName: 'ชื่อสถานที่ *', fDesc: 'รายละเอียด', fCat: 'หมวดหมู่', fDur: 'ระยะเวลา (นาที)',
-    fAddr: 'ที่อยู่', fFee: 'ค่าเข้าชม', fTransport: 'วิธีเดินทาง', fIcon: 'ไอคอน Emoji', fCity: 'เมือง',
-    fImg: 'รูปภาพสถานที่', fImgOpt: '(ไม่บังคับ)', fImgPh: 'แตะเพื่ออัพโหลดรูป (JPG, PNG, WEBP)',
-    aiModalTitle: '✦ ให้ AI สร้างแผนการเดินทาง', aiModalSub: 'บอก AI ว่าอยากไปไหน แล้วจะจัดแผนให้เลย',
-    aiInfo: 'AI จะดึงสถานที่จากฐานข้อมูลที่มี และจัดให้เหมาะกับจำนวนวัน โดยเรียงตาม GPS ใกล้ที่พัก',
-    aiHotel: 'ที่พัก / โรงแรม', aiHotelSub: '(ใช้เป็นจุดเริ่มต้น)', aiHotelPh: 'เช่น Myeongdong, Seoul หรือ ถนนนิมมาน เชียงใหม่',
-    aiInterests: 'ความสนใจ', aiInterestsSub: '(เลือกได้หลายอย่าง)', aiGenerate: 'สร้างแผนการเดินทาง',
-    iFood: '🍜 อาหาร', iShop: '🛍 ช้อปปิ้ง', iTemple: '🛕 วัด/ประวัติศาสตร์', iNature: '🌿 ธรรมชาติ',
-    iArt: '🎨 ศิลปะ/วัฒนธรรม', iPhoto: '📸 ถ่ายรูป', iCafe: '☕ คาเฟ่', iBeach: '🏖 ชายหาด',
-    exportTitle: 'ส่งออกแผนการเดินทาง', exportFmt: 'เลือกรูปแบบ PDF', exportPreview: 'Preview ข้อความ',
-    exportShare: '🔗 Share Link', exportShareNote: 'ลิงก์นี้มีข้อมูลแผนทั้งหมดฝังอยู่ แชร์ให้เพื่อนเปิดได้ทันทีในเว็บเดียวกัน',
-    copyText: 'คัดลอกข้อความ', downloadPDF: '⬇ ดาวน์โหลด PDF', creating: 'กำลังสร้างลิงก์...',
-    pdfBeautiful: 'สีสัน layout จัดเต็ม', pdfClean: 'เรียบ พิมพ์ง่าย', pdfTimeline: 'เส้นเวลา day-by-day',
-    gmapsHow: 'วิธีคัดลอก URL จาก Google Maps:', gmaps1: 'เปิด Google Maps แล้วค้นหาสถานที่',
-    gmaps2: 'กด Share (แชร์) → Copy link', gmaps3: 'วางลิงก์ที่นี่', gmapsFormats: 'รูปแบบที่รองรับ:',
-    detailAddr: 'ที่อยู่', detailGPS: 'พิกัด GPS', detailFee: 'ค่าเข้าชม', detailTransport: 'วิธีเดินทาง',
-    copyGPS: 'คัดลอก', openMaps: 'เปิด Maps ↗', alreadyAdded: '✅ เพิ่มในแผนแล้ว', addInDay: '+ เพิ่มในแผน',
-    dayLabel: 'วันที่', dragHere: 'ลากสถานที่มาวางที่นี่',
-    nearbyFrom: 'แนะนำจาก', nearbySort: 'เรียงตาม GPS + ประเภท + เมือง', noNearby: 'ไม่พบสถานที่ใกล้เคียง',
-    scoreTotal: 'คะแนนรวม', reasonWalk: 'เดินถึงกันได้', reasonNear: 'ใกล้กัน ขนส่งสะดวก',
-    reasonCat: 'ประเภทเดียวกัน', reasonCity: 'เมืองเดียวกัน', reasonRoute: 'แนะนำในเส้นทาง',
-    addBtn: '+ เพิ่มวันที่', addedBtn: 'เพิ่มแล้ว', gmapsPullBtn: 'ดึงข้อมูล',
-    tabNearby: 'แนะนำใกล้เคียง',
-    tabChecklist: 'สิ่งที่ต้องเตรียม',
-    checklistHeader: 'รายการตรวจสอบสำหรับทริป',
-    checklistAddPh: 'เพิ่มรายการใหม่...',
-    checklistCategory: 'หมวดหมู่',
-    checklistImportBtn: 'นำเข้าเทมเพลต',
-    checklistEmpty: 'ยังไม่มีรายการ ตรวจสอบหรือนำเข้าเทมเพลตเพื่อเริ่มต้น!',
-    checklistCatDocuments: '📄 เอกสาร & การเงิน',
-    checklistCatClothing: '👕 เสื้อผ้า & เครื่องแต่งกาย',
-    checklistCatToiletries: '🧴 อุปกรณ์ของใช้ส่วนตัว & ยา',
-    checklistCatElectronics: '🔌 อุปกรณ์ไอที / ไฟฟ้า',
-    checklistCatOthers: '🎒 อื่นๆ',
-    copyLink: 'คัดลอก',
-    shareLinkCopied: 'คัดลอกลิงก์แชร์แล้ว!',
-    itineraryCopied: 'คัดลอกข้อความแล้ว!',
-    walkMaps: '🚶 เส้นทางเดิน',
-    shareWalkRoute: 'แชร์เส้นทางเดิน Google Maps',
-    walkRouteCopied: 'คัดลอกลิงก์เส้นทางเดินแล้ว!',
-    noPlacesForRoute: 'ยังไม่มีสถานที่ในวันนี้',
-    exportWalkTitle: '🗺️ เส้นทางเดิน Google Maps (แยกตามวัน)',
-    stopsCount: 'จุดแวะ',
-    openWalkMaps: 'เปิด Maps ↗',
-    copyWalkLink: 'คัดลอกลิงก์',
-    groupPlan: 'วางแผนเป็นกลุ่ม',
-    groupModalTitle: '👥 วางแผนทริปเป็นกลุ่ม (Group Collaboration)',
-    tabCreateRoom: '✨ สร้างห้องใหม่',
-    tabJoinRoom: '🔑 เข้าร่วมด้วยรหัส',
-    roomCode: 'รหัสห้อง',
-    roomCodePh: 'เช่น TRIP-8821',
-    roomName: 'ชื่อกลุ่ม / ชื่อทริป',
-    roomNamePh: 'เช่น ทริปตะลุยโซลกับแก๊งเพื่อน',
-    nickname: 'ชื่อเล่นของคุณ',
-    nicknamePh: 'เช่น แบงค์, ปัง, ส้ม',
-    createRoomBtn: '🚀 สร้างห้องกลุ่ม',
-    joinRoomBtn: '🚀 เข้าร่วมกลุ่ม',
-    leaveRoom: 'ออกจากกลุ่ม',
-    confirmLeaveRoom: 'คุณต้องการออกจากห้องกลุ่มนี้และกลับสู่แผนส่วนตัวใช่หรือไม่?',
-    syncRoom: 'ซิงก์ข้อมูล',
-    syncingRoom: 'กำลังซิงก์...',
-    syncSuccess: 'ซิงก์ข้อมูลทริปล่าสุดสำเร็จ!',
-    activeRoomBanner: 'ห้องกลุ่ม',
-    roomMembers: 'สมาชิกในกลุ่ม',
-    roomInviteNote: 'ส่งรหัสห้องหรือลิงก์นี้ให้เพื่อน เพื่อร่วมกันจัดทริปได้ทันที',
-    roomCopiedLink: 'คัดลอกลิงก์เชิญเข้ากลุ่มแล้ว!',
-    copyInviteLink: 'คัดลอกลิงก์เชิญ',
-    assignee: 'ผู้รับผิดชอบ',
-    assigneePh: 'ระบุชื่อคนเตรียม...',
-    assignToMe: 'ฉันเตรียมเอง',
-    unassigned: 'ยังไม่ได้ระบุ',
-    saveRoomError: 'ไม่สามารถบันทึกข้อมูลห้องได้',
-    roomNotFound: 'ไม่พบรหัสห้องนี้ กรุณาตรวจสอบรหัสอีกครั้ง',
-    optimizeRoute: '⚡ จัดเส้นทางสั้นที่สุด',
-    optimizeModalTitle: '⚡ จัดลำดับเส้นทางให้สั้นที่สุด (Route Optimizer)',
-    routeAlreadyOptimal: 'เส้นทางในวันนี้จัดเรียงอย่างเหมาะสมที่สุดอยู่แล้ว ✨',
-    needMorePlacesToOptimize: 'ต้องมีสถานที่อย่างน้อย 3 แห่งขึ้นไปในการจัดลำดับ',
-    beforeOptimize: 'ลำดับเดิม',
-    afterOptimize: 'ลำดับใหม่ที่แนะนำ',
-    distanceSaved: 'ประหยัดระยะทางได้',
-    timeSaved: 'ประหยัดเวลาเดินทางได้',
-    applyOptimizedRoute: '✨ นำเส้นทางนี้ไปใช้',
-    keepOriginalRoute: 'คงเดิมไว้',
-    optComparisonSubtitle: 'วิเคราะห์และจัดลำดับสถานที่ใหม่โดยอัลกอริทึม 2-Opt เพื่อลดระยะเดินทางรวม',
-    optTotalDist: 'ระยะทางรวม',
-    optTotalTime: 'เวลาเดินทางรวม',
-    travelMode: '✈️ โหมดเที่ยวจริง',
-    exitTravelMode: 'ออกจากโหมดเที่ยว',
-    currentStop: '📍 ตอนนี้อยู่ที่นี่',
-    nextStop: 'จุดถัดไป',
-    checkInBtn: 'เช็กอิน / ถึงแล้ว',
-    undoCheckIn: 'เลิกทำ',
-    taxiCard: 'ยื่นให้คนขับแท็กซี่',
-    taxiCardTitle: '🚕 ข้อมูลสำหรับคนขับแท็กซี่',
-    taxiCardSubtitle: 'กรุณายื่นหน้านี้ให้คนขับรถเพื่อนำทาง',
-    returnToHotel: 'นำทางกลับโรงแรม',
-    allStopsCompleted: 'ยอดเยี่ยม! คุณเที่ยวครบทุกจุดของวันนี้แล้ว',
-  },
-  en: {
-    places: 'Attractions', search: 'Search...', addManual: 'Manual', addAI: 'AI Add', addGmaps: 'Google Maps',
-    itinerary: 'Itinerary', clear: 'Clear', export: 'Export / Share',
-    startDate: 'Start Date', endDate: 'End Date', departTime: 'Depart', hotel: 'Hotel / Base', hotelPh: 'e.g. Myeongdong, Seoul',
-    numDays: 'Days', aiPlanBtn: '✦ AI Build Itinerary',
-    statPlaces: 'Places', statHours: 'Total Time', statDays: 'Days', statCities: 'Cities',
-    nearby: 'Nearby Suggestions', nearbyEmpty: 'Add places to your plan\nand we\'ll suggest nearby spots',
-    mobPlan: 'Plan', mobPlaces: 'Places', mobNearby: 'Nearby', mobExport: 'Export',
-    close: 'Close', cancel: 'Cancel', save: 'Save Place', addToDay: 'Add to Day:',
-    addNew: 'Add New Place', tabManual: '✏️ Manual', tabAI: '🤖 AI Suggest', tabGmaps: '📍 Google Maps', tabJson: '📋 Import JSON',
-    osmSearch: '🔍 Search Place (OpenStreetMap)', osmBtn: 'Find GPS', osmPh: 'Type place name e.g. Gyeongbokgung Palace Seoul',
-    fName: 'Place Name *', fDesc: 'Description', fCat: 'Category', fDur: 'Duration (min)',
-    fAddr: 'Address', fFee: 'Entry Fee', fTransport: 'Getting There', fIcon: 'Emoji Icon', fCity: 'City',
-    fImg: 'Place Photo', fImgOpt: '(optional)', fImgPh: 'Tap to upload photo (JPG, PNG, WEBP)',
-    aiModalTitle: '✦ AI Trip Planner', aiModalSub: 'Tell AI where you want to go and it\'ll plan your trip',
-    aiInfo: 'AI will pull places from the database and arrange them by day, sorted by GPS distance from your hotel.',
-    aiHotel: 'Hotel / Base', aiHotelSub: '(starting point)', aiHotelPh: 'e.g. Myeongdong, Seoul',
-    aiInterests: 'Interests', aiInterestsSub: '(select multiple)', aiGenerate: 'Build Itinerary',
-    iFood: '🍜 Food', iShop: '🛍 Shopping', iTemple: '🛕 Temples/History', iNature: '🌿 Nature',
-    iArt: '🎨 Art/Culture', iPhoto: '📸 Photography', iCafe: '☕ Café', iBeach: '🏖 Beach',
-    exportTitle: 'Export Itinerary', exportFmt: 'Choose PDF Style', exportPreview: 'Text Preview',
-    exportShare: '🔗 Share Link', exportShareNote: 'This link contains your full plan. Share with friends to open instantly.',
-    copyText: 'Copy Text', downloadPDF: '⬇ Download PDF', creating: 'Generating link...',
-    pdfBeautiful: 'Colorful full layout', pdfClean: 'Clean, easy to print', pdfTimeline: 'Timeline day-by-day',
-    gmapsHow: 'How to copy URL from Google Maps:', gmaps1: 'Open Google Maps and search for the place',
-    gmaps2: 'Tap Share → Copy link', gmaps3: 'Paste the link here', gmapsFormats: 'Supported formats:',
-    detailAddr: 'Address', detailGPS: 'GPS Coordinates', detailFee: 'Entry Fee', detailTransport: 'Getting There',
-    copyGPS: 'Copy', openMaps: 'Open Maps ↗', alreadyAdded: '✅ Already in plan', addInDay: '+ Add to Plan',
-    dayLabel: 'Day', dragHere: 'Drag places here',
-    nearbyFrom: 'Suggestions from', nearbySort: 'Sorted by GPS + Category + City', noNearby: 'No nearby places found',
-    scoreTotal: 'Match Score', reasonWalk: 'Walkable distance', reasonNear: 'Nearby, easy transit',
-    reasonCat: 'Same category', reasonCity: 'Same city', reasonRoute: 'Suggested on route',
-    addBtn: '+ Add Day', addedBtn: 'Added', gmapsPullBtn: 'Extract',
-    tabNearby: 'Nearby Suggestions',
-    tabChecklist: 'Trip Checklist',
-    checklistHeader: 'Trip Checklist',
-    checklistAddPh: 'Add new item...',
-    checklistCategory: 'Category',
-    checklistImportBtn: 'Import Template',
-    checklistEmpty: 'No items yet. Add or import templates!',
-    checklistCatDocuments: '📄 Docs & Finance',
-    checklistCatClothing: '👕 Clothing & Apparel',
-    checklistCatToiletries: '🧴 Personal Care',
-    checklistCatElectronics: '🔌 Electronics',
-    checklistCatOthers: '🎒 Others',
-    copyLink: 'Copy',
-    shareLinkCopied: 'Share link copied!',
-    itineraryCopied: 'Itinerary text copied!',
-    walkMaps: '🚶 Walking Route',
-    shareWalkRoute: 'Share Walking Route',
-    walkRouteCopied: 'Walking route link copied!',
-    noPlacesForRoute: 'No places in this day yet',
-    exportWalkTitle: '🗺️ Google Maps Walking Routes (By Day)',
-    stopsCount: 'stops',
-    openWalkMaps: 'Open Maps ↗',
-    copyWalkLink: 'Copy Link',
-    groupPlan: 'Group Planning',
-    groupModalTitle: '👥 Group Trip Collaboration',
-    tabCreateRoom: '✨ Create Room',
-    tabJoinRoom: '🔑 Join with Code',
-    roomCode: 'Room Code',
-    roomCodePh: 'e.g. TRIP-8821',
-    roomName: 'Group / Trip Name',
-    roomNamePh: 'e.g. Seoul Trip with Friends',
-    nickname: 'Your Nickname',
-    nicknamePh: 'e.g. Alex, Sam, Chris',
-    createRoomBtn: '🚀 Create Room',
-    joinRoomBtn: '🚀 Join Room',
-    leaveRoom: 'Leave Room',
-    confirmLeaveRoom: 'Do you want to leave this group room and return to your personal plan?',
-    syncRoom: 'Sync Data',
-    syncingRoom: 'Syncing...',
-    syncSuccess: 'Trip data synced successfully!',
-    activeRoomBanner: 'Group Room',
-    roomMembers: 'Group Members',
-    roomInviteNote: 'Share this room code or invite link with friends to plan together.',
-    roomCopiedLink: 'Invite link copied!',
-    copyInviteLink: 'Copy Invite Link',
-    assignee: 'Assignee',
-    assigneePh: 'Person preparing this...',
-    assignToMe: 'Assign to me',
-    unassigned: 'Unassigned',
-    saveRoomError: 'Failed to save room data',
-    roomNotFound: 'Room code not found. Please verify the code.',
-    optimizeRoute: '⚡ Optimize Route',
-    optimizeModalTitle: '⚡ Optimize Day Route (Shortest Path)',
-    routeAlreadyOptimal: 'This day is already optimally ordered! ✨',
-    needMorePlacesToOptimize: 'At least 3 places with coordinates required to optimize.',
-    beforeOptimize: 'Current Order',
-    afterOptimize: 'Recommended Order',
-    distanceSaved: 'Distance saved',
-    timeSaved: 'Transit time saved',
-    applyOptimizedRoute: '✨ Apply Optimized Route',
-    keepOriginalRoute: 'Keep Current',
-    optComparisonSubtitle: 'Reordered by 2-Opt TSP algorithm to minimize backtracking and transit time',
-    optTotalDist: 'Total Distance',
-    optTotalTime: 'Total Transit Time',
-    travelMode: '✈️ Travel Mode',
-    exitTravelMode: 'Exit Travel Mode',
-    currentStop: '📍 Current Stop',
-    nextStop: 'Next Stop',
-    checkInBtn: 'Check-in / Arrived',
-    undoCheckIn: 'Undo',
-    taxiCard: 'Taxi Driver Card',
-    taxiCardTitle: '🚕 Taxi Driver Information',
-    taxiCardSubtitle: 'Please show this screen to your driver',
-    returnToHotel: 'Return to Hotel',
-    allStopsCompleted: 'Awesome! All stops completed for today!',
-  }
-};
-
-// ─── STATIC DATA ────────────────────────────────────────────────────
-const COUNTRIES = [
-  {
-    id: 'th', name: { th: 'ไทย', en: 'Thailand' }, flag: '🇹🇭', cities: [
-      { id: 'bkk', name: { th: 'กรุงเทพ', en: 'Bangkok' }, emoji: '🏙', color: '#1D9E75', light: '#E1F5EE', dark: '#0F6E56' },
-      { id: 'cnx', name: { th: 'เชียงใหม่', en: 'Chiang Mai' }, emoji: '🌸', color: '#D4537E', light: '#FBEAF0', dark: '#993556' },
-      { id: 'hkt', name: { th: 'ภูเก็ต', en: 'Phuket' }, emoji: '🏖', color: '#378ADD', light: '#E6F1FB', dark: '#185FA5' },
-      { id: 'ptt', name: { th: 'พัทยา', en: 'Pattaya' }, emoji: '🌊', color: '#EF9F27', light: '#FAEEDA', dark: '#854F0B' },
-      { id: 'aya', name: { th: 'อยุธยา', en: 'Ayutthaya' }, emoji: '🏛', color: '#7F77DD', light: '#EEEDFE', dark: '#534AB7' },
-    ]
-  },
-  {
-    id: 'kr', name: { th: 'เกาหลี', en: 'South Korea' }, flag: '🇰🇷', cities: [
-      { id: 'sel', name: { th: 'โซล', en: 'Seoul' }, emoji: '🏙', color: '#E24B4A', light: '#FCEBEB', dark: '#A32D2D' },
-      { id: 'bus', name: { th: 'ปูซาน', en: 'Busan' }, emoji: '🌊', color: '#185FA5', light: '#E6F1FB', dark: '#0C447C' },
-      { id: 'jej', name: { th: 'เจจู', en: 'Jeju' }, emoji: '🌋', color: '#3B6D11', light: '#EAF3DE', dark: '#27500A' },
-    ]
-  },
-  {
-    id: 'jp', name: { th: 'ญี่ปุ่น', en: 'Japan' }, flag: '🇯🇵', cities: [
-      { id: 'tky', name: { th: 'โตเกียว', en: 'Tokyo' }, emoji: '🗼', color: '#E24B4A', light: '#FCEBEB', dark: '#A32D2D' },
-      { id: 'kyo', name: { th: 'เกียวโต', en: 'Kyoto' }, emoji: '⛩', color: '#854F0B', light: '#FAEEDA', dark: '#633806' },
-      { id: 'osk', name: { th: 'โอซาก้า', en: 'Osaka' }, emoji: '🏯', color: '#7F77DD', light: '#EEEDFE', dark: '#534AB7' },
-    ]
-  },
-];
-
-const CAT_TRANSLATIONS = {
-  'วัด': { th: 'วัด', en: 'Temple' },
-  'พระราชวัง': { th: 'พระราชวัง', en: 'Palace' },
-  'ตลาด': { th: 'ตลาด', en: 'Market' },
-  'ย่าน': { th: 'ย่าน', en: 'District' },
-  'พิพิธภัณฑ์': { th: 'พิพิธภัณฑ์', en: 'Museum' },
-  'ธรรมชาติ': { th: 'ธรรมชาติ', en: 'Nature' },
-  'ช้อปปิ้ง': { th: 'ช้อปปิ้ง', en: 'Shopping' },
-  'ห้างสรรพสินค้า': { th: 'ห้างสรรพสินค้า', en: 'Department Store' },
-  'ร้านอาหาร': { th: 'ร้านอาหาร', en: 'Restaurant' },
-  'คาเฟ่': { th: 'คาเฟ่', en: 'Café' },
-  'โรงแรม / ที่พัก': { th: 'โรงแรม / ที่พัก', en: 'Hotel / Base' },
-  'วิวทิวทัศน์': { th: 'วิวทิวทัศน์', en: 'Scenic View' },
-  'อื่นๆ': { th: 'อื่นๆ', en: 'Others' }
-};
-
-const translateCategory = (cat, lang) => {
-  if (!cat) return lang === 'th' ? 'อื่นๆ' : 'Others';
-  if (CAT_TRANSLATIONS[cat]) {
-    return CAT_TRANSLATIONS[cat][lang] || cat;
-  }
-  for (const key in CAT_TRANSLATIONS) {
-    if (CAT_TRANSLATIONS[key].en.toLowerCase() === cat.toLowerCase()) {
-      return CAT_TRANSLATIONS[key][lang] || cat;
-    }
-  }
-  return cat;
-};
-
-const getCityName = (cityObj, lang = 'th') => {
-  if (!cityObj) return '';
-  if (typeof cityObj.name === 'object') {
-    return cityObj.name[lang] || cityObj.name.en || '';
-  }
-  return cityObj.name || '';
-};
-
-const getCountryName = (countryObj, lang = 'th') => {
-  if (!countryObj) return '';
-  if (typeof countryObj.name === 'object') {
-    return countryObj.name[lang] || countryObj.name.en || '';
-  }
-  return countryObj.name || '';
-};
-
-
-const DAY_COLORS = [
-  { bg: "#EAF3DE", t: "#3B6D11", b: "#C0DD97", acc: "#639922" },
-  { bg: "#E1F5EE", t: "#0F6E56", b: "#9FE1CB", acc: "#1D9E75" },
-  { bg: "#E6F1FB", t: "#185FA5", b: "#B5D4F4", acc: "#378ADD" },
-  { bg: "#FAEEDA", t: "#854F0B", b: "#FAC775", acc: "#EF9F27" },
-  { bg: "#FBEAF0", t: "#993556", b: "#F4C0D1", acc: "#D4537E" },
-  { bg: "#FCEBEB", t: "#A32D2D", b: "#F7C1C1", acc: "#E24B4A" },
-  { bg: "#EEEDFE", t: "#534AB7", b: "#CECBF6", acc: "#7F77DD" },
-];
-
-const CITY_KEYWORDS = {
-  bkk: 'bangkok',
-  cnx: 'chiangmai',
-  hkt: 'phuket',
-  ptt: 'pattaya',
-  aya: 'ayutthaya',
-  sel: 'seoul',
-  bus: 'busan',
-  jej: 'jeju',
-  tky: 'tokyo',
-  kyo: 'kyoto',
-  osk: 'osaka'
-};
-
-const CITY_COVER_IMAGES = {
-  bangkok: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=600&q=80',
-  chiangmai: 'https://images.unsplash.com/photo-1548685913-fe6574340a49?auto=format&fit=crop&w=600&q=80',
-  phuket: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=600&q=80',
-  pattaya: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=600&q=80',
-  ayutthaya: 'https://images.unsplash.com/photo-1601058334419-5d3c8c7f766e?auto=format&fit=crop&w=600&q=80',
-  seoul: 'https://images.unsplash.com/photo-1538669715516-5c51a140f7b0?auto=format&fit=crop&w=600&q=80',
-  busan: 'https://images.unsplash.com/photo-1577971158586-fb7c6d66e855?auto=format&fit=crop&w=600&q=80',
-  jeju: 'https://images.unsplash.com/photo-1549693578-d683be217e58?auto=format&fit=crop&w=600&q=80',
-  tokyo: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
-  kyoto: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
-  osaka: 'https://images.unsplash.com/photo-1590250596356-a6c22c075775?auto=format&fit=crop&w=600&q=80',
-  travel: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=80'
-};
-
-const CHECKLIST_CATEGORIES = [
-  { id: 'documents', label: { th: '📄 เอกสาร & การเงิน', en: '📄 Docs & Finance' }, color: '#378ADD' },
-  { id: 'clothing', label: { th: '👕 เสื้อผ้า & เครื่องแต่งกาย', en: '👕 Clothing & Apparel' }, color: '#EF9F27' },
-  { id: 'toiletries', label: { th: '🧴 อุปกรณ์ของใช้ส่วนตัว & ยา', en: '🧴 Personal Care' }, color: '#1D9E75' },
-  { id: 'electronics', label: { th: '🔌 อุปกรณ์ไอที / ไฟฟ้า', en: '🔌 Electronics' }, color: '#7F77DD' },
-  { id: 'others', label: { th: '🎒 อื่นๆ', en: '🎒 Others' }, color: '#993556' }
-];
-
-const CHECKLIST_TEMPLATES = {
-  documents: [
-    { text: { th: 'หนังสือเดินทาง (Passports)', en: 'Passports' } },
-    { text: { th: 'ตั๋วเครื่องบิน (Flight tickets)', en: 'Flight tickets' } },
-    { text: { th: 'ใบจองโรงแรม (Hotel reservations)', en: 'Hotel reservations' } },
-    { text: { th: 'เงินสด / บัตร (Cash/cards)', en: 'Cash/cards' } }
-  ],
-  clothing: [
-    { text: { th: 'ชุดชั้นใน (Underwear)', en: 'Underwear' } },
-    { text: { th: 'เสื้อกันหนาว / แจ็กเก็ต (Jackets)', en: 'Jackets' } },
-    { text: { th: 'เสื้อเชิ้ต / เสื้อยืด (Shirts)', en: 'Shirts' } },
-    { text: { th: 'รองเท้าเดินสบาย (Comfortable shoes)', en: 'Comfortable shoes' } }
-  ],
-  toiletries: [
-    { text: { th: 'แปรงสีฟัน (Toothbrush)', en: 'Toothbrush' } },
-    { text: { th: 'ยาสามัญประจำตัว (Medicine)', en: 'Medicine' } },
-    { text: { th: 'อุปกรณ์อาบน้ำ (Toiletries)', en: 'Toiletries' } }
-  ],
-  electronics: [
-    { text: { th: 'สายชาร์จ / ที่ชาร์จ (Chargers)', en: 'Chargers' } },
-    { text: { th: 'หัวแปลงปลั๊กไฟ (Universal adapters)', en: 'Universal adapters' } },
-    { text: { th: 'พาวเวอร์แบงค์ (Power bank)', en: 'Power bank' } }
-  ],
-  others: [
-    { text: { th: 'ร่ม / เสื้อกันฝน', en: 'Umbrella / Raincoat' } },
-    { text: { th: 'กระเป๋าเป้ใบเล็ก', en: 'Daypack / Small Bag' } },
-    { text: { th: 'ขวดน้ำพกพา', en: 'Water Bottle' } }
-  ]
-};
-
-const generateChecklistId = () => {
-  return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
-
-// ─── WEATHER UTILITIES ──────────────────────────────────────────────
-const CITY_COORDINATES = {
-  bkk: { lat: 13.7563, lng: 100.5018 },
-  cnx: { lat: 18.7883, lng: 98.9853 },
-  hkt: { lat: 7.8804, lng: 98.3923 },
-  ptt: { lat: 12.9236, lng: 100.8824 },
-  aya: { lat: 14.3532, lng: 100.5681 },
-  sel: { lat: 37.5665, lng: 126.9780 },
-  bus: { lat: 35.1796, lng: 129.0756 },
-  jej: { lat: 33.4996, lng: 126.5312 },
-  tky: { lat: 35.6762, lng: 139.6503 },
-  kyo: { lat: 35.0116, lng: 135.7681 },
-  osk: { lat: 34.6937, lng: 135.5023 }
-};
-
-const WEATHER_CODES = {
-  0: { label: { th: 'ท้องฟ้าแจ่มใส', en: 'Clear sky' }, emoji: '☀️' },
-  1: { label: { th: 'ท้องฟ้าโปร่งส่วนใหญ่', en: 'Mainly clear' }, emoji: '🌤️' },
-  2: { label: { th: 'มีเมฆบางส่วน', en: 'Partly cloudy' }, emoji: '⛅' },
-  3: { label: { th: 'เมฆครึ้ม', en: 'Overcast' }, emoji: '☁️' },
-  45: { label: { th: 'หมอก', en: 'Fog' }, emoji: '🌫️' },
-  48: { label: { th: 'หมอกน้ำค้างแข็ง', en: 'Depositing rime fog' }, emoji: '🌫️' },
-  51: { label: { th: 'ฝนตกปรอยๆ ขนาดเบา', en: 'Light drizzle' }, emoji: '🌦️' },
-  53: { label: { th: 'ฝนตกปรอยๆ ขนาดปานกลาง', en: 'Moderate drizzle' }, emoji: '🌦️' },
-  55: { label: { th: 'ฝนตกปรอยๆ ขนาดหนาแน่น', en: 'Dense drizzle' }, emoji: '🌦️' },
-  56: { label: { th: 'ฝนละอองแช่แข็ง ขนาดเบา', en: 'Light freezing drizzle' }, emoji: '🌧️' },
-  57: { label: { th: 'ฝนละอองแช่แข็ง ขนาดหนาแน่น', en: 'Dense freezing drizzle' }, emoji: '🌧️' },
-  61: { label: { th: 'ฝนตกเล็กน้อย', en: 'Slight rain' }, emoji: '🌧️' },
-  63: { label: { th: 'ฝนตกปานกลาง', en: 'Moderate rain' }, emoji: '🌧️' },
-  65: { label: { th: 'ฝนตกหนัก', en: 'Heavy rain' }, emoji: '🌧️' },
-  66: { label: { th: 'ฝนแช่แข็ง ตกเล็กน้อย', en: 'Slight freezing rain' }, emoji: '🌧️' },
-  67: { label: { th: 'ฝนแช่แข็ง ตกหนัก', en: 'Heavy freezing rain' }, emoji: '🌧️' },
-  71: { label: { th: 'หิมะตกเล็กน้อย', en: 'Slight snow fall' }, emoji: '🌨️' },
-  73: { label: { th: 'หิมะตกปานกลาง', en: 'Moderate snow fall' }, emoji: '🌨️' },
-  75: { label: { th: 'หิมะตกหนัก', en: 'Heavy snow fall' }, emoji: '🌨️' },
-  77: { label: { th: 'เกล็ดหิมะ', en: 'Snow grains' }, emoji: '🌨️' },
-  80: { label: { th: 'ฝนไล่ช้าง ตกเล็กน้อย', en: 'Slight rain showers' }, emoji: '🌦️' },
-  81: { label: { th: 'ฝนไล่ช้าง ตกปานกลาง', en: 'Moderate rain showers' }, emoji: '🌦️' },
-  82: { label: { th: 'ฝนไล่ช้าง ตกรุนแรง', en: 'Violent rain showers' }, emoji: '🌧️' },
-  85: { label: { th: 'หิมะไล่ช้าง ตกเล็กน้อย', en: 'Slight snow showers' }, emoji: '🌨️' },
-  86: { label: { th: 'หิมะไล่ช้าง ตกหนัก', en: 'Heavy snow showers' }, emoji: '🌨️' },
-  95: { label: { th: 'พายุฝนฟ้าคะนอง', en: 'Thunderstorm' }, emoji: '⛈️' },
-  96: { label: { th: 'พายุฝนฟ้าคะนองพร้อมลูกเห็บตกเล็กน้อย', en: 'Thunderstorm with slight hail' }, emoji: '⛈️' },
-  99: { label: { th: 'พายุฝนฟ้าคะนองพร้อมลูกเห็บตกหนัก', en: 'Thunderstorm with heavy hail' }, emoji: '⛈️' }
-};
-
-const getCountryOfCity = (cityId) => {
-  if (['bkk', 'cnx', 'hkt', 'ptt', 'aya'].includes(cityId)) return 'th';
-  if (['sel', 'bus', 'jej'].includes(cityId)) return 'kr';
-  if (['tky', 'kyo', 'osk'].includes(cityId)) return 'jp';
-  return 'th';
-};
 
 const parseDateSafe = (dateVal) => {
   if (!dateVal) return null;
@@ -631,6 +229,11 @@ function TripBuilderApp() {
   
   // Travel Mode state
   const [travelModeOpen, setTravelModeOpen] = useState(false);
+  
+  // Tablet Drawer state (1025px-1280px)
+  const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
+
   
   // Auth states
   const [user, setUser] = useState(null);
@@ -3578,223 +3181,41 @@ function TripBuilderApp() {
         style={{ backgroundImage: activeCity ? `url(${CITY_COVER_IMAGES[activeCity] || CITY_COVER_IMAGES.travel})` : 'none' }} 
       />
       {/* ─── TOPBAR ─────────────────────────────────────────────────── */}
-      <div className="topbar">
-        <div className="topbar-main-row">
-          <div className="logo">
-            <div className="logo-dot"></div>
-            <span>Trip Builder</span>
-            <span className="app-version-badge">{APP_VERSION}</span>
-          </div>
-          
-          {/* Topbar Actions */}
-          <div className="topbar-actions">
-            <select
-              className="lang-select"
-              value={activeLang}
-              onChange={(e) => {
-                setActiveLang(e.target.value);
-                localStorage.setItem('tb_lang', e.target.value);
-              }}
-              title="Language"
-            >
-              <option value="th">🇹🇭 ไทย</option>
-              <option value="en">🇬🇧 EN</option>
-            </select>
-            
-            <div className="theme-toggle-container" style={{ display: 'flex', gap: '2px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '9px', padding: '2px' }}>
-              <button className={`theme-mode-btn ${theme === 'clean' ? 'active' : ''}`} onClick={() => setTheme('clean')} title="Clean">☀</button>
-              <button className={`theme-mode-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title="Dark">🌙</button>
-              <button className={`theme-mode-btn ${theme === 'colorful' ? 'active' : ''}`} onClick={() => setTheme('colorful')} title="Colorful">🎨</button>
-            </div>
-
-            <div className="topbar-action-group">
-              <button 
-                className="btn btn-sm topbar-travel-btn" 
-                onClick={() => setTravelModeOpen(true)}
-                title={t('travelMode')}
-                style={{
-                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontWeight: '700',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.35)',
-                  padding: '5px 10px',
-                  borderRadius: '8px'
-                }}
-              >
-                <span>✈️</span>
-                <span className="travel-btn-text">{activeLang === 'th' ? 'เที่ยวจริง' : 'Travel'}</span>
-              </button>
-              <button className={`btn btn-sm ${showMap ? 'btn-primary' : 'btn-ghost'} topbar-map-btn`} onClick={() => setShowMap(!showMap)}>
-                <span className="map-btn-icon">🗺️</span>
-                <span className="map-btn-text"> {activeLang === 'th' ? 'แผนที่' : 'Map'}</span>
-              </button>
-              <button className="btn btn-ghost btn-sm topbar-clear-btn" onClick={clearAll}>{t('clear')}</button>
-              <button className="btn btn-primary btn-sm topbar-export-btn" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
-              <button 
-                className={`btn btn-sm ${activeRoom ? 'btn-primary' : 'btn-ghost'} topbar-group-btn`} 
-                onClick={() => setGroupModalOpen(true)}
-                title={t('groupPlan')}
-              >
-                <span>👥</span>
-                <span className="group-btn-text">{activeRoom ? activeRoom.code : t('groupPlan')}</span>
-              </button>
-            </div>
-
-            {/* Plans Selector Dropdown (Available for ALL users) */}
-            <div className="plans-menu-container" style={{ position: 'relative' }}>
-              <button
-                className="btn btn-ghost btn-sm topbar-plans-btn"
-                onClick={() => setPlansDropdownOpen(!plansDropdownOpen)}
-                style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}
-                title={activeLang === 'th' ? 'เลือกแผนการเดินทาง' : 'Select Plan'}
-              >
-                <span>📂</span>
-                <span className="plans-btn-title" style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {plansList.find(p => p.id === activePlanId)?.name || (activeLang === 'th' ? 'แผนการเดินทาง' : 'My Plan')}
-                </span>
-                <span className="plans-btn-chevron" style={{ fontSize: '10px', opacity: 0.7 }}>▼</span>
-              </button>
-
-              {plansDropdownOpen && (
-                <div className="user-dropdown" onClick={(e) => e.stopPropagation()} style={{ minWidth: '260px', right: 0 }}>
-                  <div className="plans-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>📂 {activeLang === 'th' ? 'แผนเดินทางของฉัน' : 'My Travel Plans'}</span>
-                    <span style={{ fontSize: '11px', opacity: 0.7 }}>({plansList.length})</span>
-                  </div>
-                  
-                  <div className="plans-list-container">
-                    {plansList.map(plan => {
-                      const isActive = activePlanId === plan.id;
-                      return (
-                        <div 
-                          key={plan.id} 
-                          className={`plan-item-row ${isActive ? 'active' : ''}`}
-                          onClick={() => { loadActivePlan(plan.id); setPlansDropdownOpen(false); }}
-                        >
-                          <span className="plan-item-info">
-                            {getCityObj(plan.city_id)?.emoji || '📍'} {plan.name} ({plan.nDays} {activeLang === 'th' ? 'วัน' : 'd'})
-                          </span>
-                          <div className="plan-item-actions">
-                            <button 
-                              className="plan-btn-mini rename" 
-                              title={activeLang === 'th' ? 'เปลี่ยนชื่อ' : 'Rename'}
-                              onClick={(e) => renamePlan(plan.id, e)}
-                            >
-                              ✏️
-                            </button>
-                            <button 
-                              className="plan-btn-mini" 
-                              title={activeLang === 'th' ? 'ลบ' : 'Delete'}
-                              onClick={(e) => deletePlan(plan.id, e)}
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  <button 
-                    className="btn btn-ghost btn-sm" 
-                    style={{ width: '100%', justifyContent: 'center', marginTop: '6px' }}
-                    onClick={() => { createNewPlan(); setPlansDropdownOpen(false); }}
-                  >
-                    ➕ {activeLang === 'th' ? 'สร้างแผนใหม่' : 'New Plan'}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* User Profile / Cloud Sync Panel */}
-            <div className="user-menu-container" style={{ position: 'relative' }}>
-              {user ? (
-                <>
-                  <div className="user-badge" onClick={() => setUserDropdownOpen(!userDropdownOpen)}>
-                    <div className="user-avatar">
-                      {user.email ? user.email.slice(0, 2).toUpperCase() : 'U'}
-                    </div>
-                    <span className="user-badge-name">{user.email ? user.email.split('@')[0] : 'Member'}</span>
-                    <span className="user-badge-arrow"> ▼</span>
-                  </div>
-                  
-                  {userDropdownOpen && (
-                    <div className="user-dropdown" onClick={(e) => e.stopPropagation()}>
-                      <div className="dropdown-email">
-                        📧 {user.email}
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted, #888)', margin: '4px 0 10px 0' }}>
-                        ☁️ {activeLang === 'th' ? 'เชื่อมต่อ Google Sheets แล้ว' : 'Connected to Cloud'}
-                      </div>
-                      
-                      <button 
-                        className="btn btn-primary btn-sm" 
-                        style={{ width: '100%', justifyContent: 'center', background: 'var(--red)', borderColor: 'var(--red)' }}
-                        onClick={handleSignOut}
-                      >
-                        🚪 {activeLang === 'th' ? 'ออกจากระบบ' : 'Sign Out'}
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <button 
-                  className="btn btn-ghost btn-sm topbar-signin-btn" 
-                  onClick={() => { setAuthMode('login'); setAuthModalOpen(true); }}
-                  style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  title={activeLang === 'th' ? 'เข้าสู่ระบบเพื่อซิงค์ข้อมูลบน Cloud' : 'Sign In to sync with Cloud'}
-                >
-                  <span>☁️</span>
-                  <span className="signin-btn-text"> {activeLang === 'th' ? 'เข้าสู่ระบบ (ซิงค์ Cloud)' : 'Sign In (Cloud Sync)'}</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="topbar-sep desktop-sep-1" />
-
-        <div className="topbar-sub-row">
-          {/* Country buttons */}
-          <div className="country-row">
-            {COUNTRIES.map(c => (
-              <button
-                key={c.id}
-                className={`country-btn ${activeCountry === c.id ? 'active' : ''}`}
-                style={activeCountry === c.id ? { background: getCityObj(activeCity)?.color || '#1D9E75' } : {}}
-                onClick={() => handleCountrySelect(c.id)}
-              >
-                {c.flag} {getCountryName(c, activeLang)}
-              </button>
-            ))}
-          </div>
-          
-          <div className="topbar-sep sub-sep" />
-
-          {/* City buttons */}
-          <div className="city-row">
-            {(COUNTRIES.find(c => c.id === activeCountry)?.cities || []).map(c => (
-              <button
-                key={c.id}
-                className={`city-btn ${activeCity === c.id ? 'active' : ''}`}
-                style={activeCity === c.id ? { background: c.color, borderColor: c.color } : {}}
-                onClick={() => {
-                  setActiveCity(c.id);
-                  setFilterCat('__all__');
-                }}
-              >
-                {c.emoji} {getCityName(c, activeLang)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="topbar-sep desktop-sep-2" />
-      </div>
+      <HeaderNav
+        APP_VERSION={APP_VERSION}
+        activeLang={activeLang}
+        setActiveLang={setActiveLang}
+        theme={theme}
+        setTheme={setTheme}
+        setTravelModeOpen={setTravelModeOpen}
+        showMap={showMap}
+        setShowMap={setShowMap}
+        clearAll={clearAll}
+        setExportModalOpen={setExportModalOpen}
+        activeRoom={activeRoom}
+        setGroupModalOpen={setGroupModalOpen}
+        plansDropdownOpen={plansDropdownOpen}
+        setPlansDropdownOpen={setPlansDropdownOpen}
+        plansList={plansList}
+        activePlanId={activePlanId}
+        loadActivePlan={loadActivePlan}
+        renamePlan={renamePlan}
+        deletePlan={deletePlan}
+        createNewPlan={createNewPlan}
+        user={user}
+        userDropdownOpen={userDropdownOpen}
+        setUserDropdownOpen={setUserDropdownOpen}
+        handleSignOut={handleSignOut}
+        setAuthMode={setAuthMode}
+        setAuthModalOpen={setAuthModalOpen}
+        activeCountry={activeCountry}
+        handleCountrySelect={handleCountrySelect}
+        activeCity={activeCity}
+        setActiveCity={setActiveCity}
+        setFilterCat={setFilterCat}
+        getCityObj={getCityObj}
+        t={t}
+      />
 
       {/* ─── ACTIVE GROUP ROOM BANNER ─────────────────────────────── */}
       {activeRoom && (
@@ -3847,8 +3268,34 @@ function TripBuilderApp() {
       {/* ─── MAIN LAYOUT ────────────────────────────────────────────── */}
       <div className="layout">
         
+        {/* Tablet Drawer: Backdrop */}
+        {(leftDrawerOpen || rightDrawerOpen) && (
+          <div
+            className={`drawer-backdrop ${(leftDrawerOpen || rightDrawerOpen) ? 'visible' : ''}`}
+            onClick={() => { setLeftDrawerOpen(false); setRightDrawerOpen(false); }}
+          />
+        )}
+        
+        {/* Tablet Drawer: Left Toggle Button */}
+        <button
+          className="drawer-toggle-left"
+          onClick={() => { setLeftDrawerOpen(v => !v); setRightDrawerOpen(false); }}
+          title={t('places')}
+        >
+          {leftDrawerOpen ? '◀' : '▶'}
+        </button>
+        
+        {/* Tablet Drawer: Right Toggle Button */}
+        <button
+          className="drawer-toggle-right"
+          onClick={() => { setRightDrawerOpen(v => !v); setLeftDrawerOpen(false); }}
+          title={t('nearby')}
+        >
+          {rightDrawerOpen ? '▶' : '◀'}
+        </button>
+
         {/* ─── SIDEBAR (ATTRACTIONS LIST) ─── */}
-        <aside className={`sidebar ${mobileTab === 'places' ? 'mob-active' : ''}`}>
+        <aside className={`sidebar ${mobileTab === 'places' ? 'mob-active' : ''} ${leftDrawerOpen ? 'drawer-open' : ''}`}>
           <div className="sidebar-head">
             <div className="sidebar-title">{t('places')}</div>
             <div className="search-wrap">
@@ -4526,7 +3973,7 @@ function TripBuilderApp() {
         </main>
 
         {/* ─── RECOMMENDATIONS PANEL ─── */}
-        <aside className={`nearby ${mobileTab === 'nearby' ? 'mob-active' : ''}`}>
+        <aside className={`nearby ${mobileTab === 'nearby' ? 'mob-active' : ''} ${rightDrawerOpen ? 'drawer-open' : ''}`}>
           <div className="sidebar-tabs">
             <button 
               className={`sidebar-tab-btn ${activeRightTab === 'nearby' ? 'active' : ''}`}
@@ -4741,9 +4188,9 @@ function TripBuilderApp() {
           <span className="nav-icon">📍</span>
           <span>{t('mobPlaces')}</span>
         </button>
-        <button className={`mob-nav-btn ${mobileTab === 'nearby' ? 'active' : ''}`} onClick={() => setMobileTab('nearby')}>
-          <span className="nav-icon">💡</span>
-          <span>{t('mobNearby')}</span>
+        {/* Center ADD Tab */}
+        <button className="mob-nav-center-add" onClick={() => { setAddModalOpen(true); setActiveAddTab('manual'); }} title="Add Attraction">
+          <span className="add-ring">➕</span>
         </button>
         <button className="mob-nav-btn travel-mob-btn" onClick={() => setTravelModeOpen(true)} style={{ color: '#0284c7', fontWeight: 'bold' }}>
           <span className="nav-icon">✈️</span>
@@ -4754,1380 +4201,216 @@ function TripBuilderApp() {
           <span>{t('mobExport')}</span>
         </button>
       </nav>
-      
-      {/* Mobile FAB */}
-      <button className="mob-fab" onClick={() => { setAddModalOpen(true); setActiveAddTab('manual'); }} title="Add Attraction">➕</button>
 
       {/* ─── TOAST NOTIFICATION ─────────────────────────────────────── */}
       <div className={`toast ${toastMessage ? 'show' : ''}`}>{toastMessage}</div>
 
       {/* ─── DETAIL MODAL ───────────────────────────────────────────── */}
-      {selectedPlace && (
-        <div className="overlay show" onClick={() => { setSelectedPlace(null); setIsEditing(false); }}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div>
-                <div className="modal-title">
-                  {isEditing ? (activeLang === 'th' ? '✏️ แก้ไขข้อมูลสถานที่' : '✏️ Edit Place Info') : `${selectedPlace.icon} ${(selectedPlace.names && selectedPlace.names[activeLang]) || selectedPlace.name}`}
-                </div>
-                {!isEditing && (
-                  <div className="chip-row">
-                    <span className="chip">{getCityObj(selectedPlace.city_id || activeCity)?.emoji} {getCityName(getCityObj(selectedPlace.city_id || activeCity), activeLang)}</span>
-                    <span className="chip">{translateCategory(selectedPlace.cat, activeLang)}</span>
-                    <span className="chip">⏱ {selectedPlace.dur}m</span>
-                  </div>
-                )}
-              </div>
-              <button className="modal-close" onClick={() => { setSelectedPlace(null); setIsEditing(false); }}>✕</button>
-            </div>
-            
-            <div className="modal-body">
-              {isEditing ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div className="form-group">
-                    <label className="form-label">{t('fName')}</label>
-                    <input className="form-input" value={editName} onChange={(e) => setEditName(e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{t('fDesc')}</label>
-                    <textarea className="form-input" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">{t('fCat')}</label>
-                      <select className="form-input" value={editCat} onChange={(e) => setEditCat(e.target.value)}>
-                        <option value="วัด">{activeLang === 'th' ? 'วัด' : 'Temple'}</option>
-                        <option value="พระราชวัง">{activeLang === 'th' ? 'พระราชวัง' : 'Palace'}</option>
-                        <option value="ตลาด">{activeLang === 'th' ? 'ตลาด' : 'Market'}</option>
-                        <option value="ย่าน">{activeLang === 'th' ? 'ย่าน' : 'District'}</option>
-                        <option value="พิพิธภัณฑ์">{activeLang === 'th' ? 'พิพิธภัณฑ์' : 'Museum'}</option>
-                        <option value="ธรรมชาติ">{activeLang === 'th' ? 'ธรรมชาติ' : 'Nature'}</option>
-                        <option value="ช้อปปิ้ง">{activeLang === 'th' ? 'ช้อปปิ้ง' : 'Shopping'}</option>
-                        <option value="ร้านอาหาร">{activeLang === 'th' ? 'ร้านอาหาร' : 'Restaurant'}</option>
-                        <option value="คาเฟ่">{activeLang === 'th' ? 'คาเฟ่' : 'Café'}</option>
-                        <option value="วิวทิวทัศน์">{activeLang === 'th' ? 'วิวทิวทัศน์' : 'Scenic View'}</option>
-                        <option value="อื่นๆ">{activeLang === 'th' ? 'อื่นๆ' : 'Others'}</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">{t('fDur')}</label>
-                      <input className="form-input" type="number" value={editDur} onChange={(e) => setEditDur(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{t('fAddr')}</label>
-                    <input className="form-input" value={editAddr} onChange={(e) => setEditAddr(e.target.value)} />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Latitude</label>
-                      <input className="form-input" type="number" step="any" value={editLat} onChange={(e) => setEditLat(e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Longitude</label>
-                      <input className="form-input" type="number" step="any" value={editLng} onChange={(e) => setEditLng(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{t('fFee')}</label>
-                    <input className="form-input" value={editFee} onChange={(e) => setEditFee(e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{t('fTransport')}</label>
-                    <input className="form-input" value={editTransport} onChange={(e) => setEditTransport(e.target.value)} />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">{t('fIcon')}</label>
-                      <input className="form-input" value={editIcon} onChange={(e) => setEditIcon(e.target.value)} maxLength={2} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">{activeLang === 'th' ? 'คำค้นหารูปภาพ (Image Keywords)' : 'Image Keywords'}</label>
-                      <input className="form-input" value={editKeywords} onChange={(e) => setEditKeywords(e.target.value)} />
-                    </div>
-                  </div>
-
-                  {/* IMAGE SELECTOR GRID */}
-                  <div className="form-group">
-                    <label className="form-label">{activeLang === 'th' ? 'เลือกรูปภาพที่ต้องการแสดง (คลิกเพื่อเลือก):' : 'Select image to display (click to select):'}</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '6px' }}>
-                      {searchingPhotos ? (
-                        <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '15px 0', fontSize: '12px', color: 'var(--muted)' }}>
-                          {activeLang === 'th' ? '🔄 กำลังค้นหาภาพจริงของสถานที่...' : '🔄 Searching for real photos...'}
-                        </div>
-                      ) : (() => {
-                        const placePhotos = (selectedPlace.photos && selectedPlace.photos.length > 0)
-                          ? selectedPlace.photos
-                          : searchedPhotos;
-                        const displayUrls = placePhotos.length > 0 
-                          ? placePhotos.slice(0, 6) 
-                          : [1, 2, 3, 4, 5, 6].map(lock => {
-                              const cityKey = CITY_KEYWORDS[selectedPlace.city_id || activeCity] || 'travel';
-                              return `https://picsum.photos/seed/${cityKey}-${lock}/400/300`;
-                            });
-
-                        return displayUrls.map((url, idx) => {
-                          const isSelected = editSelectedImage === url;
-
-                          return (
-                            <div
-                              key={idx}
-                              onClick={() => setEditSelectedImage(url)}
-                              style={{
-                                position: 'relative',
-                                cursor: 'pointer',
-                                borderRadius: '8px',
-                                overflow: 'hidden',
-                                border: isSelected ? '3px solid var(--teal)' : '2px solid var(--border)',
-                                transform: isSelected ? 'scale(0.98)' : 'none',
-                                transition: 'all 0.15s'
-                              }}
-                            >
-                              <OptimizedImage
-                                src={url}
-                                alt=""
-                                width={200}
-                                containerStyle={{ width: '100%', height: '80px' }}
-                                fallbackSrc={CITY_COVER_IMAGES.travel}
-                              />
-                              {isSelected && (
-                                <div style={{
-                                  position: 'absolute',
-                                  top: '4px',
-                                  right: '4px',
-                                  background: 'var(--teal)',
-                                  color: 'white',
-                                  borderRadius: '50%',
-                                  width: '18px',
-                                  height: '18px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '10px',
-                                  fontWeight: 'bold',
-                                  zIndex: 2
-                                }}>
-                                  ✓
-                                </div>
-                              )}
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">{activeLang === 'th' ? 'หรือใส่ลิงก์รูปภาพอื่นๆ (Custom Image URL)' : 'Or paste a custom image URL:'}</label>
-                    <input
-                      className="form-input"
-                      placeholder="https://..."
-                      value={editSelectedImage}
-                      onChange={(e) => setEditSelectedImage(e.target.value)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
-                  {/* Render cover image in detail modal */}
-                  <div style={{ height: '180px', borderRadius: '8px', overflow: 'hidden', position: 'relative', marginBottom: '4px' }}>
-                    <OptimizedImage
-                      src={getCoverImage(selectedPlace)}
-                      alt={(selectedPlace.names && selectedPlace.names[activeLang]) || selectedPlace.name || ''}
-                      width={800}
-                      fallbackSrc={getCityFallbackImage(selectedPlace)}
-                      containerStyle={{ width: '100%', height: '100%' }}
-                    />
-                    <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', zIndex: 2 }}>
-                      {selectedPlace.icon} {(selectedPlace.names && selectedPlace.names[activeLang]) || selectedPlace.name}
-                    </div>
-                  </div>
-                  {((selectedPlace.descriptions && selectedPlace.descriptions[activeLang]) || selectedPlace.desc) && (
-                    <div className="detail-section">
-                      <div className="detail-label">{t('fDesc')}</div>
-                      <div className="detail-value">{(selectedPlace.descriptions && selectedPlace.descriptions[activeLang]) || selectedPlace.desc}</div>
-                    </div>
-                  )}
-                  {selectedPlace.addr && (
-                    <div className="detail-section">
-                      <div className="detail-label">{t('detailAddr')}</div>
-                      <div className="detail-value">{selectedPlace.addr}</div>
-                    </div>
-                  )}
-                  {selectedPlace.lat && selectedPlace.lng && (
-                    <div className="detail-section">
-                      <div className="detail-label">{t('detailGPS')}</div>
-                      <div className="gps-box">
-                        <div className="gps-text">{selectedPlace.lat.toFixed(5)}° N, {selectedPlace.lng.toFixed(5)}° E</div>
-                        <div className="gps-btns">
-                          <button className="copy-btn" onClick={() => { navigator.clipboard.writeText(`${selectedPlace.lat},${selectedPlace.lng}`); toast('คัดลอก GPS แล้ว'); }}>{t('copyGPS')}</button>
-                          <a className="maps-link" href={`https://www.google.com/maps?q=${selectedPlace.lat},${selectedPlace.lng}`} target="_blank" rel="noreferrer">{t('openMaps')}</a>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {selectedPlace.fee && (
-                    <div className="detail-section">
-                      <div className="detail-label">{t('detailFee')}</div>
-                      <span className="fee-tag">💰 {selectedPlace.fee}</span>
-                    </div>
-                  )}
-                  {selectedPlace.transport && selectedPlace.transport.length > 0 && (
-                    <div className="detail-section">
-                      <div className="detail-label">{t('detailTransport')}</div>
-                      <div className="transport-list">
-                        {selectedPlace.transport.map((tr, idx) => (
-                          <div className="transport-row" key={idx}>
-                            <div className="transport-icon">{tr.i}</div>
-                            <div className="transport-text">{tr.t}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {!isEditing && (
-              <div className="add-day-wrap">
-                <div className="add-day-label">{t('addToDay')}</div>
-                <div className="day-picker-row">
-                  {Array(nDays).fill(0).map((_, i) => {
-                    const day = i + 1;
-                    const full = (itin[day] || []).length >= 5;
-                    const dayColor = DAY_COLORS[i % DAY_COLORS.length];
-                    
-                    return (
-                      <button
-                        key={day}
-                        className="day-pick-btn"
-                        style={!full ? { borderColor: dayColor.b, color: dayColor.t, background: dayColor.bg } : { opacity: 0.4, cursor: 'not-allowed' }}
-                        disabled={full}
-                        onClick={() => {
-                          addToDay(selectedPlace, day);
-                          setSelectedPlace(null);
-                        }}
-                      >
-                        <b>{t('dayLabel')} {day}</b> ({ (itin[day] || []).length }{full ? ' · full' : ''})
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="modal-foot">
-              {isEditing ? (
-                <>
-                  <button className="btn btn-ghost" onClick={() => setIsEditing(false)}>{t('cancel')}</button>
-                  <button className="btn btn-primary" onClick={handleSaveEdit}>{activeLang === 'th' ? 'บันทึก' : 'Save'}</button>
-                </>
-              ) : (
-                <>
-                  <button className="btn btn-ghost" style={{ marginRight: 'auto' }} onClick={() => handleStartEditing(selectedPlace)}>{activeLang === 'th' ? '✏️ แก้ไขข้อมูล' : '✏️ Edit Info'}</button>
-                  <button className="btn btn-ghost" onClick={() => setSelectedPlace(null)}>{t('close')}</button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <DetailModal
+        selectedPlace={selectedPlace}
+        setSelectedPlace={setSelectedPlace}
+        isEditing={isEditing}
+        setIsEditing={setIsEditing}
+        activeLang={activeLang}
+        activeCity={activeCity}
+        getCityObj={getCityObj}
+        t={t}
+        editName={editName}
+        setEditName={setEditName}
+        editDesc={editDesc}
+        setEditDesc={setEditDesc}
+        editCat={editCat}
+        setEditCat={setEditCat}
+        editDur={editDur}
+        setEditDur={setEditDur}
+        editAddr={editAddr}
+        setEditAddr={setEditAddr}
+        editLat={editLat}
+        setEditLat={setEditLat}
+        editLng={editLng}
+        setEditLng={setEditLng}
+        editFee={editFee}
+        setEditFee={setEditFee}
+        editTransport={editTransport}
+        setEditTransport={setEditTransport}
+        editIcon={editIcon}
+        setEditIcon={setEditIcon}
+        editKeywords={editKeywords}
+        setEditKeywords={setEditKeywords}
+        searchingPhotos={searchingPhotos}
+        searchedPhotos={searchedPhotos}
+        editSelectedImage={editSelectedImage}
+        setEditSelectedImage={setEditSelectedImage}
+        getCoverImage={getCoverImage}
+        getCityFallbackImage={getCityFallbackImage}
+        toast={toast}
+        nDays={nDays}
+        itin={itin}
+        addToDay={addToDay}
+        handleSaveEdit={handleSaveEdit}
+        handleStartEditing={handleStartEditing}
+      />
 
       {/* ─── ADD NEW ATTRACTION MODAL ───────────────────────────────── */}
-      {addModalOpen && (
-        <div className="overlay show" onClick={() => setAddModalOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div className="modal-title">{t('addNew')}</div>
-              <button className="modal-close" onClick={() => setAddModalOpen(false)}>✕</button>
-            </div>
-            
-            <div className="modal-body">
-              <div className="tab-row">
-                <button className={`tab-btn ${activeAddTab === 'manual' ? 'active' : ''}`} onClick={() => setActiveAddTab('manual')}>{t('tabManual')}</button>
-                <button className={`tab-btn ${activeAddTab === 'ai' ? 'active' : ''}`} onClick={() => setActiveAddTab('ai')}>{t('tabAI')}</button>
-                <button className={`tab-btn ${activeAddTab === 'gmaps' ? 'active' : ''}`} onClick={() => setActiveAddTab('gmaps')}>{t('tabGmaps')}</button>
-                <button className={`tab-btn ${activeAddTab === 'json' ? 'active' : ''}`} onClick={() => setActiveAddTab('json')}>{t('tabJson')}</button>
-              </div>
-
-              {/* MANUAL TAB */}
-              {activeAddTab === 'manual' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div className="form-group">
-                    <div className="form-label">{t('osmSearch')}</div>
-                    <div className="input-row">
-                      <input
-                        className="form-input"
-                        placeholder={t('osmPh')}
-                        value={osmQuery}
-                        onChange={(e) => setOsmQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && searchOSM()}
-                      />
-                      <button className="btn btn-primary btn-sm" onClick={searchOSM}>{t('osmBtn')}</button>
-                    </div>
-                    
-                    {osmResults.length > 0 && (
-                      <div style={{ marginTop: '6px', maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px' }}>
-                        {osmResults[0].loading ? (
-                          <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>{activeLang === 'th' ? 'กำลังค้นหา...' : 'Searching...'}</div>
-                        ) : osmResults[0].empty ? (
-                          <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>{activeLang === 'th' ? 'ไม่พบผลลัพธ์' : 'No results found'}</div>
-                        ) : osmResults[0].error ? (
-                          <div style={{ fontSize: '11px', color: 'var(--red)', textAlign: 'center' }}>{activeLang === 'th' ? 'เกิดข้อผิดพลาด' : 'An error occurred'}</div>
-                        ) : (
-                          osmResults.map((res, i) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '0.5px solid var(--border)' }}>
-                              <div style={{ fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '280px' }}>{res.display_name}</div>
-                              <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => fillFromOSM(res)}>{activeLang === 'th' ? 'ใช้' : 'Use'}</button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="form-group">
-                    <div className="form-label">{t('fName')}</div>
-                    <input className="form-input" value={fName} onChange={(e) => setFName(e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <div className="form-label">{t('fDesc')}</div>
-                    <textarea className="form-input" value={fDesc} onChange={(e) => setFDesc(e.target.value)} />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <div className="form-label">{t('fCat')}</div>
-                      <select className="form-input" value={fCat} onChange={(e) => setFCat(e.target.value)}>
-                        <option value="วัด">{activeLang === 'th' ? 'วัด' : 'Temple'}</option>
-                        <option value="พระราชวัง">{activeLang === 'th' ? 'พระราชวัง' : 'Palace'}</option>
-                        <option value="ตลาด">{activeLang === 'th' ? 'ตลาด' : 'Market'}</option>
-                        <option value="ย่าน">{activeLang === 'th' ? 'ย่าน' : 'District'}</option>
-                        <option value="พิพิธภัณฑ์">{activeLang === 'th' ? 'พิพิธภัณฑ์' : 'Museum'}</option>
-                        <option value="ธรรมชาติ">{activeLang === 'th' ? 'ธรรมชาติ' : 'Nature'}</option>
-                        <option value="ช้อปปิ้ง">{activeLang === 'th' ? 'ช้อปปิ้ง' : 'Shopping'}</option>
-                        <option value="ห้างสรรพสินค้า">{activeLang === 'th' ? 'ห้างสรรพสินค้า' : 'Department Store'}</option>
-                        <option value="ร้านอาหาร">{activeLang === 'th' ? 'ร้านอาหาร' : 'Restaurant'}</option>
-                        <option value="คาเฟ่">{activeLang === 'th' ? 'คาเฟ่' : 'Café'}</option>
-                        <option value="โรงแรม / ที่พัก">{activeLang === 'th' ? 'โรงแรม / ที่พัก' : 'Hotel / Base'}</option>
-                        <option value="วิวทิวทัศน์">{activeLang === 'th' ? 'วิวทิวทัศน์' : 'Scenic View'}</option>
-                        <option value="อื่นๆ">{activeLang === 'th' ? 'อื่นๆ' : 'Others'}</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <div className="form-label">{t('fDur')}</div>
-                      <input className="form-input" type="number" value={fDur} onChange={(e) => setFDur(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <div className="form-label">{t('fAddr')}</div>
-                    <input className="form-input" value={fAddr} onChange={(e) => setFAddr(e.target.value)} />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <div className="form-label">Latitude</div>
-                      <input className="form-input" type="number" step="any" value={fLat} onChange={(e) => setFLat(e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <div className="form-label">Longitude</div>
-                      <input className="form-input" type="number" step="any" value={fLng} onChange={(e) => setFLng(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <div className="form-label">{t('fFee')}</div>
-                    <input className="form-input" value={fFee} onChange={(e) => setFFee(e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <div className="form-label">{t('fTransport')}</div>
-                    <input className="form-input" value={fTransport} onChange={(e) => setFTransport(e.target.value)} />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <div className="form-label">{t('fIcon')}</div>
-                      <input className="form-input" value={fIcon} onChange={(e) => setFIcon(e.target.value)} maxLength={2} />
-                    </div>
-                    <div className="form-group">
-                      <div className="form-label">{activeLang === 'th' ? 'คะแนนรีวิว (0 - 5)' : 'Rating (0 - 5)'}</div>
-                      <input className="form-input" type="number" min="0" max="5" step="0.1" value={fRating} onChange={(e) => setFRating(e.target.value)} placeholder="เช่น 4.5" />
-                    </div>
-                  </div>
-                  <div className="form-group" style={{ marginTop: '10px' }}>
-                    <div className="form-label">{t('fCity')}</div>
-                    <select className="form-input" value={fCity} onChange={(e) => setFCity(e.target.value)}>
-                      {COUNTRIES.flatMap(co => co.cities).map(ci => (
-                        <option key={ci.id} value={ci.id}>{ci.emoji} {getCityName(ci, activeLang)}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* AI TAB */}
-              {activeAddTab === 'ai' && (
-                <div className="ai-box">
-                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>พิมพ์หาสถานที่ท่องเที่ยวที่ต้องการให้ AI แนะนำพิกัดให้ เช่น &quot;คาเฟ่วิวแม่น้ำเจ้าพระยา&quot;</div>
-                  <div className="input-row">
-                    <input
-                      className="form-input"
-                      placeholder="เช่น วัดสวยๆ ถ่ายรูปสวยในกรุงเทพ..."
-                      value={aiSuggestQuery}
-                      onChange={(e) => setAiSuggestQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAISuggest()}
-                    />
-                    <button className="btn btn-primary btn-sm" disabled={aiSuggestLoading} onClick={handleAISuggest}>
-                      {aiSuggestLoading ? '...' : 'ค้นหา'}
-                    </button>
-                  </div>
-                  
-                  {aiSuggestResult && (
-                    <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
-                      {aiSuggestResult.length === 0 ? (
-                        <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>ไม่พบผลลัพธ์</div>
-                      ) : (
-                        aiSuggestResult.map((place, idx) => (
-                          <div key={idx} className="ai-place-row">
-                            <div>
-                              <div className="ai-place-name">{place.icon} {place.name}</div>
-                              <div className="ai-place-sub">{translateCategory(place.cat, activeLang)} · {place.dur}{activeLang === 'th' ? 'น.' : 'm'}</div>
-                            </div>
-                            <button className="btn btn-primary btn-sm" onClick={() => addAIPlace(place)}>+ เพิ่ม</button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* GOOGLE MAPS TAB */}
-              {activeAddTab === 'gmaps' && (
-                <div className="gmaps-box">
-                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{t('gmapsHow')}<br />1. {t('gmaps1')}<br />2. {t('gmaps2')}<br />3. {t('gmaps3')}</div>
-                  <div className="input-row">
-                    <input
-                      className="form-input"
-                      placeholder="https://maps.app.goo.gl/..."
-                      value={gmapsUrl}
-                      onChange={(e) => setGmapsUrl(e.target.value)}
-                    />
-                    <button className="btn btn-primary btn-sm" onClick={parseGmaps}>{t('gmapsPullBtn')}</button>
-                  </div>
-                  {gmapsResult && (
-                    <div style={{ marginTop: '10px' }}>
-                      {gmapsResult.error ? (
-                        <div style={{ fontSize: '11px', color: 'var(--red)', background: 'var(--red-l)', padding: '6px', borderRadius: '6px' }}>ไม่พบพิกัดในลิงก์นี้ กรุณาใช้ลิงก์แบบยาว (Full link)</div>
-                      ) : (
-                        <div className="info-box">
-                          <div style={{ fontSize: '12px', fontWeight: '500' }}>{gmapsResult.name || 'สถานที่ดึงจาก Maps'}</div>
-                          <div style={{ fontSize: '10px', color: 'var(--muted)' }}>GPS: {gmapsResult.lat.toFixed(5)}, {gmapsResult.lng.toFixed(5)}</div>
-                          <button className="btn btn-primary btn-sm" style={{ marginTop: '6px' }} onClick={() => fillFromMaps(gmapsResult.name, gmapsResult.lat, gmapsResult.lng, gmapsResult.address, gmapsResult.category, gmapsResult.icon, gmapsResult.gmaps_url, gmapsResult.rating, gmapsResult.photos)}>กรอกในฟอร์ม →</button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* JSON IMPORT TAB */}
-              {activeAddTab === 'json' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: '1.4' }}>
-                    {activeLang === 'th' 
-                      ? 'วางข้อความ JSON ที่ได้จาก Google Maps Console Script ของคุณ เพื่อนำเข้าข้อมูลทั้งหมดทีเดียว:' 
-                      : 'Paste the JSON array extracted from Google Maps Console Script to import all places at once:'}
-                  </div>
-                  
-                  <div className="form-group">
-                    <div className="form-label">{activeLang === 'th' ? 'เลือกเมืองที่ต้องการนำเข้าสถานที่ *:' : 'Select Target City *:'}</div>
-                    <select className="form-input" id="bulk-import-city" defaultValue={activeCity}>
-                      {COUNTRIES.map(country => 
-                        country.cities.map(city => (
-                          <option key={city.id} value={city.id}>
-                            {country.flag} {city.emoji} {getCityName(city, activeLang)} ({city.id})
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-
-                  <textarea
-                    className="form-input"
-                    rows={6}
-                    placeholder='[{"name": "APA HOTEL...", "address": "...", "lat": 35.69, "lng": 139.66}, ...]'
-                    id="bulk-json-input"
-                    style={{ fontFamily: 'monospace', fontSize: '11px' }}
-                  />
-                  <button 
-                    className="btn btn-primary"
-                    onClick={async () => {
-                      const input = document.getElementById('bulk-json-input');
-                      if (!input || !input.value.trim()) return;
-                      try {
-                        const parsed = JSON.parse(input.value.trim());
-                        if (!Array.isArray(parsed)) {
-                          toast(activeLang === 'th' ? 'ข้อมูลต้องอยู่ในรูปแบบ Array [ ... ]' : 'Data must be a JSON Array');
-                          return;
-                        }
-                        
-                        setAuthLoading(true);
-                        let successCount = 0;
-                        const targetCity = document.getElementById('bulk-import-city')?.value || activeCity;
-                        const customList = [...(customPlaces[targetCity] || [])];
-                        
-                        const landmarksToInsert = [];
-                        const placesObjList = [];
-                        
-                        for (let i = 0; i < parsed.length; i++) {
-                          const item = parsed[i];
-                          if (!item.name) continue;
-                          
-                          const localId = `lm_${Date.now()}_${Math.floor(Math.random() * 10000)}_${i}`;
-                          const placeObj = {
-                            id: localId,
-                            name: item.name,
-                            cat: 'อื่นๆ',
-                            dur: 90,
-                            icon: '📍',
-                            desc: item.description || item.address || '',
-                            addr: item.address || '',
-                            lat: item.lat ? parseFloat(item.lat) : null,
-                            lng: item.lng ? parseFloat(item.lng) : null,
-                            fee: '',
-                            transport: [],
-                            cover_image: null,
-                            names: {},
-                            descriptions: {},
-                            city_id: targetCity,
-                            _custom: true
-                          };
-                          
-                          placesObjList.push(placeObj);
-                          
-                          landmarksToInsert.push({
-                            id: String(localId),
-                            name: placeObj.name,
-                            cat: placeObj.cat,
-                            icon: placeObj.icon,
-                            city_id: placeObj.city_id,
-                            address: placeObj.addr,
-                            lat: placeObj.lat,
-                            lng: placeObj.lng,
-                            description: placeObj.desc,
-                            duration_min: placeObj.dur,
-                            fee: placeObj.fee,
-                            transport: placeObj.transport,
-                            status: 'user_custom'
-                          });
-                        }
-
-                        if (googleSheets && user && landmarksToInsert.length > 0) {
-                          try {
-                            const res = await googleSheets.bulkInsertLandmarks(user.email, landmarksToInsert);
-                            if (res.success) {
-                              successCount = landmarksToInsert.length;
-                            }
-                          } catch (err) {
-                            console.warn('Failed to save to Google Sheets:', err);
-                          }
-                        } else {
-                          successCount = landmarksToInsert.length;
-                        }
-
-                        if (successCount > 0) {
-                          const finalCustomList = [...customList, ...placesObjList];
-                          const updatedCustom = { ...customPlaces, [targetCity]: finalCustomList };
-                          setCustomPlaces(updatedCustom);
-                          localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: updatedCustom }));
-                          
-                          // Force refresh landmarks state if current active city matches
-                          if (targetCity === activeCity) {
-                            setLandmarks(prev => {
-                              const sheetIds = new Set(placesObjList.map(d => String(d.id)));
-                              const filteredPrev = prev.filter(p => !sheetIds.has(String(p.id)));
-                              return [...filteredPrev, ...placesObjList.map(item => ({
-                                ...item,
-                                dur: item.dur || 90,
-                                icon: item.icon || '📍',
-                                _custom: true
-                              }))];
-                            });
-                          }
-                        }
-                        
-                        toast(activeLang === 'th' ? `นำเข้าสำเร็จ ${successCount} รายการ! กรุณารอสักครู่ขณะระบบดึงข้อมูลใหม่...` : `Imported ${successCount} places! Refreshing...`);
-                        setAddModalOpen(false);
-                        
-                        if (googleSheets && user) {
-                          setTimeout(() => {
-                            window.location.reload();
-                          }, 1500);
-                        }
-                      } catch (e) {
-                        toast(activeLang === 'th' ? 'JSON ไม่ถูกต้อง: ' + e.message : 'Invalid JSON: ' + e.message);
-                      } finally {
-                        setAuthLoading(false);
-                      }
-                    }}
-                  >
-                    {activeLang === 'th' ? 'นำเข้าสถานที่ทั้งหมด' : 'Import All Places'}
-                  </button>
-                </div>
-              )}
-            </div>
-            
-            <div className="modal-foot">
-              <button className="btn btn-ghost" onClick={() => setAddModalOpen(false)}>{t('cancel')}</button>
-              {activeAddTab === 'manual' && <button className="btn btn-primary" onClick={saveNewPlace}>{t('save')}</button>}
-            </div>
-          </div>
-        </div>
-      )}
+      <AddPlaceModal
+        addModalOpen={addModalOpen}
+        setAddModalOpen={setAddModalOpen}
+        t={t}
+        activeLang={activeLang}
+        activeAddTab={activeAddTab}
+        setActiveAddTab={setActiveAddTab}
+        osmQuery={osmQuery}
+        setOsmQuery={setOsmQuery}
+        osmResults={osmResults}
+        searchOSM={searchOSM}
+        fillFromOSM={fillFromOSM}
+        fName={fName}
+        setFName={setFName}
+        fDesc={fDesc}
+        setFDesc={setFDesc}
+        fCat={fCat}
+        setFCat={setFCat}
+        fDur={fDur}
+        setFDur={setFDur}
+        fAddr={fAddr}
+        setFAddr={setFAddr}
+        fLat={fLat}
+        setFLat={setFLat}
+        fLng={fLng}
+        setFLng={setFLng}
+        fFee={fFee}
+        setFFee={setFFee}
+        fTransport={fTransport}
+        setFTransport={setFTransport}
+        fIcon={fIcon}
+        setFIcon={setFIcon}
+        fRating={fRating}
+        setFRating={setFRating}
+        fCity={fCity}
+        setFCity={setFCity}
+        activeCity={activeCity}
+        aiSuggestQuery={aiSuggestQuery}
+        setAiSuggestQuery={setAiSuggestQuery}
+        handleAISuggest={handleAISuggest}
+        aiSuggestLoading={aiSuggestLoading}
+        aiSuggestResult={aiSuggestResult}
+        addAIPlace={addAIPlace}
+        gmapsUrl={gmapsUrl}
+        setGmapsUrl={setGmapsUrl}
+        parseGmaps={parseGmaps}
+        gmapsResult={gmapsResult}
+        fillFromMaps={fillFromMaps}
+        toast={toast}
+        customPlaces={customPlaces}
+        setCustomPlaces={setCustomPlaces}
+        googleSheets={googleSheets}
+        user={user}
+        setAuthLoading={setAuthLoading}
+        setLandmarks={setLandmarks}
+        saveNewPlace={saveNewPlace}
+      />
 
       {/* ─── EXPORT & SHARE MODAL ───────────────────────────────────── */}
-      {exportModalOpen && (
-        <div className="overlay show" onClick={() => setExportModalOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div className="modal-title">{t('exportTitle')}</div>
-              <button className="modal-close" onClick={() => setExportModalOpen(false)}>✕</button>
-            </div>
-            
-            <div className="modal-body">
-              <div className="form-group">
-                <div className="form-label">{t('exportFmt')}</div>
-                <div className="style-grid">
-                  <div className={`style-card ${selectedStyle === 'A' ? 'active' : ''}`} onClick={() => setSelectedStyle('A')}>
-                    <div className="style-icon">🎨</div>
-                    <div className="style-name">Beautiful</div>
-                    <div className="style-desc">{t('pdfBeautiful')}</div>
-                  </div>
-                  <div className={`style-card ${selectedStyle === 'B' ? 'active' : ''}`} onClick={() => setSelectedStyle('B')}>
-                    <div className="style-icon">📄</div>
-                    <div className="style-name">Clean</div>
-                    <div className="style-desc">{t('pdfClean')}</div>
-                  </div>
-                  <div className={`style-card ${selectedStyle === 'C' ? 'active' : ''}`} onClick={() => setSelectedStyle('C')}>
-                    <div className="style-icon">📈</div>
-                    <div className="style-name">Timeline</div>
-                    <div className="style-desc">{t('pdfTimeline')}</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <div className="form-label">{t('exportShare')}</div>
-                <div className="share-box">
-                  <input
-                    type="text"
-                    readOnly
-                    className="share-url notranslate"
-                    translate="no"
-                    value={buildShareLink()}
-                    onClick={(e) => e.target.select()}
-                  />
-                  <button className="btn btn-primary btn-sm" onClick={() => { navigator.clipboard.writeText(buildShareLink()); toast(t('shareLinkCopied')); }}>{t('copyLink')}</button>
-                </div>
-                <div className="share-note">{t('exportShareNote')}</div>
-              </div>
-
-              {/* Google Maps Walking Routes By Day */}
-              <div className="form-group" style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '16px' }}>
-                <div className="form-label">{t('exportWalkTitle')}</div>
-                <p style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: '8px' }}>
-                  {activeLang === 'th'
-                    ? 'เปิดหรือแชร์เส้นทางนำทางเดินเท้าจริงผ่าน Google Maps สำหรับการเที่ยวแต่ละวัน'
-                    : 'Open or share turn-by-turn walking directions via Google Maps for each day.'}
-                </p>
-                <div className="export-walk-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {Array(nDays).fill(0).map((_, i) => {
-                    const day = i + 1;
-                    const dayItems = itin[day] || [];
-                    const walkUrl = getGmapsWalkingRouteUrl(dayItems, activeLang);
-                    const hasPlaces = dayItems.length > 0;
-                    const dayColor = DAY_COLORS[i % DAY_COLORS.length];
-                    const routeSummary = dayItems.map(p => (p.names && p.names[activeLang]) || p.name).join(' ➔ ');
-
-                    return (
-                      <div
-                        key={day}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          background: 'var(--surface-alt, rgba(0,0,0,0.02))',
-                          border: '1px solid var(--border, #e5e7eb)',
-                          fontSize: '12px',
-                          gap: '8px'
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ color: dayColor.t, background: dayColor.bg, padding: '1px 6px', borderRadius: '4px', fontSize: '11px', border: `1px solid ${dayColor.b}` }}>
-                              {t('dayLabel')} {day}
-                            </span>
-                            <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 'normal' }}>
-                              ({dayItems.length} {t('stopsCount')})
-                            </span>
-                          </div>
-                          {hasPlaces ? (
-                            <div style={{ fontSize: '11px', color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '3px' }} title={routeSummary}>
-                              {routeSummary}
-                            </div>
-                          ) : (
-                            <div style={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic', marginTop: '3px' }}>
-                              {t('noPlacesForRoute')}
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-xs"
-                            disabled={!hasPlaces}
-                            onClick={() => {
-                              if (walkUrl) window.open(walkUrl, '_blank', 'noopener,noreferrer');
-                            }}
-                            style={{ padding: '3px 8px', fontSize: '11px', border: '1px solid var(--border)' }}
-                          >
-                            {t('openWalkMaps')}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-xs"
-                            disabled={!hasPlaces}
-                            onClick={async () => {
-                              if (!walkUrl) return;
-                              await shareGmapsRoute({
-                                url: walkUrl,
-                                title: `${t('dayLabel')} ${day} - ${t('walkMaps')}`,
-                                text: `${t('dayLabel')} ${day}: ${routeSummary}`,
-                                onToast: toast,
-                                copiedMsg: t('walkRouteCopied')
-                              });
-                            }}
-                            style={{ padding: '3px 8px', fontSize: '11px' }}
-                          >
-                            {t('copyWalkLink')}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="form-group">
-                <div className="form-label">{t('exportPreview')}</div>
-                <pre className="out-box">{getFormattedItinerary()}</pre>
-              </div>
-
-              {/* Backup & Restore (JSON) Section */}
-              <div className="form-group" style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '16px' }}>
-                <div className="form-label">
-                  💾 {activeLang === 'th' ? 'สำรองและกู้คืนข้อมูล (Backup & Restore)' : 'Backup & Restore (JSON)'}
-                </div>
-                <p style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: '10px' }}>
-                  {activeLang === 'th' 
-                    ? 'ดาวน์โหลดไฟล์สำรองข้อมูล (รวมทุกแผนและสถานที่ที่เพิ่มเอง) เพื่อนำไปเปิดในเครื่องอื่น หรือกู้คืนข้อมูลกลับมาได้ทุกเมื่อ'
-                    : 'Download a backup file (includes all plans and custom places) to transfer to another device or restore anytime.'}
-                </p>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <button 
-                    type="button"
-                    className="btn btn-ghost btn-sm" 
-                    onClick={handleExportBackup}
-                    style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <span>📥</span>
-                    <span>{activeLang === 'th' ? 'ดาวน์โหลดไฟล์สำรอง (Export JSON)' : 'Export Backup (JSON)'}</span>
-                  </button>
-                  <label 
-                    className="btn btn-ghost btn-sm" 
-                    style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', margin: 0 }}
-                  >
-                    <span>📤</span>
-                    <span>{activeLang === 'th' ? 'นำเข้าไฟล์สำรอง (Import JSON)' : 'Import Backup (JSON)'}</span>
-                    <input 
-                      type="file" 
-                      accept=".json" 
-                      onChange={handleImportBackup} 
-                      style={{ display: 'none' }} 
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
-            
-            <div className="modal-foot">
-              <button className="btn btn-ghost" onClick={() => setExportModalOpen(false)}>{t('close')}</button>
-              <button className="btn btn-ghost" onClick={() => { navigator.clipboard.writeText(getFormattedItinerary()); toast(t('itineraryCopied')); }}>{t('copyText')}</button>
-              <button className="btn btn-primary" onClick={handleDownloadPDF}>{t('downloadPDF')}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExportModal
+        exportModalOpen={exportModalOpen}
+        setExportModalOpen={setExportModalOpen}
+        t={t}
+        activeLang={activeLang}
+        selectedStyle={selectedStyle}
+        setSelectedStyle={setSelectedStyle}
+        buildShareLink={buildShareLink}
+        shareGmapsRoute={shareGmapsRoute}
+        toast={toast}
+        nDays={nDays}
+        itin={itin}
+        getGmapsWalkingRouteUrl={getGmapsWalkingRouteUrl}
+        getFormattedItinerary={getFormattedItinerary}
+        handleDownloadPDF={handleDownloadPDF}
+        handleExportBackup={handleExportBackup}
+        handleImportBackup={handleImportBackup}
+      />
 
       {/* ─── AI PLANNER MODAL ───────────────────────────────────────── */}
-      {aiPlanModalOpen && (
-        <div className="overlay show" onClick={() => setAiPlanModalOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div className="modal-title">{t('aiModalTitle')}</div>
-              <button className="modal-close" onClick={() => setAiPlanModalOpen(false)}>✕</button>
-            </div>
-            
-            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-              <div className="ai-modal-info">{t('aiInfo')}</div>
-              
-              <div className="form-group">
-                <label className="form-label">{t('aiHotel')} <span style={{ fontWeight: 'normal', color: 'var(--muted)' }}>{t('aiHotelSub')}</span></label>
-                <input className="form-input" placeholder={t('aiHotelPh')} value={aiHotel} onChange={(e) => setAiHotel(e.target.value)} />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">{t('startDate')}</label>
-                  <input type="date" className="form-input" value={aiStart} onChange={(e) => setAiStart(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">{t('endDate')}</label>
-                  <input type="date" className="form-input" value={aiEnd} onChange={(e) => setAiEnd(e.target.value)} />
-                </div>
-              </div>
+      <AiPlanModal
+        aiPlanModalOpen={aiPlanModalOpen}
+        setAiPlanModalOpen={setAiPlanModalOpen}
+        t={t}
+        activeLang={activeLang}
+        aiHotel={aiHotel}
+        setAiHotel={setAiHotel}
+        aiStart={aiStart}
+        setAiStart={setAiStart}
+        aiEnd={aiEnd}
+        setAiEnd={setAiEnd}
+        selectedInterests={selectedInterests}
+        setSelectedInterests={setSelectedInterests}
+        aiPlanStatus={aiPlanStatus}
+        aiPlanLoading={aiPlanLoading}
+        aiPlanResult={aiPlanResult}
+        handleAIPlan={handleAIPlan}
+        applyAIPlan={applyAIPlan}
+      />
 
-              <div className="form-group">
-                <label className="form-label">{t('aiInterests')} <span style={{ fontWeight: 'normal', color: 'var(--muted)' }}>{t('aiInterestsSub')}</span></label>
-                <div className="interests-wrap">
-                  {['iFood', 'iShop', 'iTemple', 'iNature', 'iArt', 'iPhoto', 'iCafe', 'iBeach'].map(interestKey => {
-                    const isActive = selectedInterests.includes(interestKey);
-                    const interestLabel = t(interestKey);
-                    return (
-                      <button
-                        key={interestKey}
-                        className={`interest-chip ${isActive ? 'active' : ''}`}
-                        onClick={() => {
-                          if (isActive) {
-                            setSelectedInterests(selectedInterests.filter(i => i !== interestKey));
-                          } else {
-                            setSelectedInterests([...selectedInterests, interestKey]);
-                          }
-                        }}
-                      >
-                        {interestLabel}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Plan results display */}
-              {aiPlanStatus && (
-                <div style={{ marginTop: '12px' }}>
-                  {aiPlanStatus === 'generating' && (
-                    <div className="ai-generating">
-                      <div className="ai-gen-icon" style={{ fontSize: '24px', textAlign: 'center' }}>✦</div>
-                      <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>{activeLang === 'th' ? 'AI กำลังคำนวณและวางเส้นทางให้คุณอยู่...' : 'AI is calculating and planning your route...'}</div>
-                    </div>
-                  )}
-                  {aiPlanStatus === 'error' && (
-                    <div style={{ fontSize: '11px', color: 'var(--red)', background: 'var(--red-l)', padding: '8px', borderRadius: '8px' }}>
-                      {activeLang === 'th' ? 'เกิดข้อผิดพลาดในการสร้างแผน กรุณาลองอีกครั้ง' : 'Failed to generate itinerary. Please try again.'}
-                    </div>
-                  )}
-                  {aiPlanStatus === 'done' && aiPlanResult && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: '500' }}>{activeLang === 'th' ? 'แผนการเดินทางของคุณเสร็จเรียบร้อย!' : 'Your itinerary is ready!'}</div>
-                      <div className="ai-result-preview" style={{ fontSize: '11px', background: 'var(--bg)', padding: '10px', borderRadius: '8px', maxHeight: '180px', overflowY: 'auto' }}>
-                        {Object.entries(aiPlanResult).map(([d, items]) => (
-                          <div key={d} style={{ marginBottom: '8px' }}>
-                            <b>{activeLang === 'th' ? `วันที่ ${d}:` : `Day ${d}:`}</b> {items.map(it => it.name).join(' → ')}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            <div className="modal-foot">
-              <button className="btn btn-ghost" onClick={() => setAiPlanModalOpen(false)}>{t('close')}</button>
-              {aiPlanStatus !== 'done' ? (
-                <button className="btn btn-primary" disabled={aiPlanLoading} onClick={handleAIPlan}>
-                  {aiPlanLoading ? (activeLang === 'th' ? 'กำลังสร้าง...' : 'Generating...') : t('aiGenerate')}
-                </button>
-              ) : (
-                <button className="btn btn-primary" onClick={applyAIPlan}>{activeLang === 'th' ? 'ใช้แผนการเดินทางนี้' : 'Apply Itinerary'}</button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── QUICK DURATION EDIT MODAL ───────────────────────────────── */}
-      {editDurationModalOpen && editDurationTarget && (
-        <div className="overlay show" onClick={() => setEditDurationModalOpen(false)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div className="modal-title">⏱ {activeLang === 'th' ? 'แก้ไขเวลาเข้าชม' : 'Edit Visit Duration'}</div>
-              <button className="modal-close" onClick={() => setEditDurationModalOpen(false)}>✕</button>
-            </div>
-            <div className="modal-body" style={{ padding: '20px' }}>
-              <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '14px', lineHeight: '1.4' }}>
-                {activeLang === 'th' 
-                  ? `แก้ไขระยะเวลาเข้าชมสำหรับ "${(editDurationTarget.item.names && editDurationTarget.item.names[activeLang]) || editDurationTarget.item.name}"`
-                  : `Change visit duration for "${(editDurationTarget.item.names && editDurationTarget.item.names[activeLang]) || editDurationTarget.item.name}"`}
-              </p>
-              <div className="form-group">
-                <label className="form-label">{activeLang === 'th' ? 'ระยะเวลา (นาที):' : 'Duration (minutes):'}</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={editDurationTarget.value}
-                    onChange={(e) => setEditDurationTarget({ ...editDurationTarget, value: e.target.value })}
-                    style={{ flex: 1, fontSize: '15px', fontWeight: '500', padding: '10px' }}
-                    min="1"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveDurationQuick();
-                    }}
-                  />
-                  <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--muted)' }}>
-                    {activeLang === 'th' ? 'นาที' : 'mins'}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="modal-foot">
-              <button className="btn btn-ghost" onClick={() => setEditDurationModalOpen(false)}>{activeLang === 'th' ? 'ยกเลิก' : 'Cancel'}</button>
-              <button className="btn btn-primary" onClick={handleSaveDurationQuick}>{activeLang === 'th' ? 'บันทึก' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── QUICK TRAVEL TIME EDIT MODAL ────────────────────────────── */}
-      {editTravelModalOpen && editTravelTarget && (
-        <div className="overlay show" onClick={() => setEditTravelModalOpen(false)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div className="modal-title">🚗 {activeLang === 'th' ? 'แก้ไขเวลาเดินทาง' : 'Edit Travel Time'}</div>
-              <button className="modal-close" onClick={() => setEditTravelModalOpen(false)}>✕</button>
-            </div>
-            <div className="modal-body" style={{ padding: '20px' }}>
-              <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '14px', lineHeight: '1.4' }}>
-                {activeLang === 'th' 
-                  ? `แก้ไขระยะเวลาเดินทางไปยัง "${(editTravelTarget.item.names && editTravelTarget.item.names[activeLang]) || editTravelTarget.item.name}"`
-                  : `Change travel time to "${(editTravelTarget.item.names && editTravelTarget.item.names[activeLang]) || editTravelTarget.item.name}"`}
-              </p>
-              <div className="form-group">
-                <label className="form-label">{activeLang === 'th' ? 'ระยะเวลาเดินทาง (นาที):' : 'Travel Duration (minutes):'}</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={editTravelTarget.value}
-                    onChange={(e) => setEditTravelTarget({ ...editTravelTarget, value: e.target.value })}
-                    style={{ flex: 1, fontSize: '15px', fontWeight: '500', padding: '10px' }}
-                    min="0"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveTravelTimeQuick();
-                    }}
-                  />
-                  <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--muted)' }}>
-                    {activeLang === 'th' ? 'นาที' : 'mins'}
-                  </span>
-                </div>
-                <div style={{ 
-                  marginTop: '8px', 
-                  fontSize: '13px', 
-                  fontWeight: '600', 
-                  color: 'var(--teal)', 
-                  background: 'var(--teal-l)', 
-                  padding: '8px 12px', 
-                  borderRadius: '8px',
-                  display: editTravelTarget.value ? 'block' : 'none'
-                }}>
-                  {formatMinutesToHours(editTravelTarget.value)}
-                </div>
-              </div>
-            </div>
-            <div className="modal-foot">
-              <button className="btn btn-ghost" onClick={() => setEditTravelModalOpen(false)}>{activeLang === 'th' ? 'ยกเลิก' : 'Cancel'}</button>
-              <button className="btn btn-primary" onClick={handleSaveTravelTimeQuick}>{activeLang === 'th' ? 'บันทึก' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ─── QUICK EDIT MODALS ──────────────────────────────────────── */}
+      <QuickEditModals
+        editDurationModalOpen={editDurationModalOpen}
+        setEditDurationModalOpen={setEditDurationModalOpen}
+        editDurationTarget={editDurationTarget}
+        setEditDurationTarget={setEditDurationTarget}
+        handleSaveDurationQuick={handleSaveDurationQuick}
+        editTravelModalOpen={editTravelModalOpen}
+        setEditTravelModalOpen={setEditTravelModalOpen}
+        editTravelTarget={editTravelTarget}
+        setEditTravelTarget={setEditTravelTarget}
+        handleSaveTravelTimeQuick={handleSaveTravelTimeQuick}
+        activeLang={activeLang}
+        formatMinutesToHours={formatMinutesToHours}
+      />
 
       {/* ─── AUTHENTICATION MODAL ────────────────────────────────────── */}
-      {authModalOpen && (
-        <div className="overlay show" onClick={() => setAuthModalOpen(false)}>
-          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div className="modal-title">
-                {authMode === 'login' 
-                  ? (activeLang === 'th' ? '🔑 เข้าสู่ระบบ' : '🔑 Sign In')
-                  : (activeLang === 'th' ? '📝 สมัครสมาชิก' : '📝 Register')}
-              </div>
-              <button className="modal-close" onClick={() => setAuthModalOpen(false)}>✕</button>
-            </div>
-            
-            <div className="modal-body" style={{ padding: '20px' }}>
-              <div className="form-group">
-                <label className="form-label">{activeLang === 'th' ? 'อีเมล' : 'Email Address'}</label>
-                <input
-                  type="email"
-                  className="form-input"
-                  placeholder="name@example.com"
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                />
-              </div>
-              
-              <div className="form-group" style={{ marginTop: '12px' }}>
-                <label className="form-label">{activeLang === 'th' ? 'รหัสผ่าน' : 'Password'}</label>
-                <input
-                  type="password"
-                  className="form-input"
-                  placeholder="••••••••"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      if (authMode === 'login') handleSignIn();
-                      else handleSignUp();
-                    }
-                  }}
-                />
-              </div>
-
-              <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px', textAlign: 'center' }}>
-                {authMode === 'login' ? (
-                  <>
-                    {activeLang === 'th' ? 'ยังไม่มีบัญชีผู้ใช้?' : "Don't have an account?"}{' '}
-                    <span 
-                      style={{ color: 'var(--teal)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                      onClick={() => setAuthMode('register')}
-                    >
-                      {activeLang === 'th' ? 'สมัครสมาชิกที่นี่' : 'Register here'}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    {activeLang === 'th' ? 'มีบัญชีอยู่แล้ว?' : 'Already have an account?'}{' '}
-                    <span 
-                      style={{ color: 'var(--teal)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                      onClick={() => setAuthMode('login')}
-                    >
-                      {activeLang === 'th' ? 'เข้าสู่ระบบที่นี่' : 'Sign in here'}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-            
-            <div className="modal-foot">
-              <button className="btn btn-ghost" onClick={() => setAuthModalOpen(false)}>
-                {activeLang === 'th' ? 'ยกเลิก' : 'Cancel'}
-              </button>
-              <button 
-                className="btn btn-primary" 
-                disabled={authLoading}
-                onClick={authMode === 'login' ? handleSignIn : handleSignUp}
-              >
-                {authLoading 
-                  ? (activeLang === 'th' ? 'กำลังทำงาน...' : 'Loading...')
-                  : (authMode === 'login' 
-                      ? (activeLang === 'th' ? 'เข้าสู่ระบบ' : 'Sign In')
-                      : (activeLang === 'th' ? 'สมัครสมาชิก' : 'Register'))}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AuthModal
+        authModalOpen={authModalOpen}
+        setAuthModalOpen={setAuthModalOpen}
+        authMode={authMode}
+        setAuthMode={setAuthMode}
+        authEmail={authEmail}
+        setAuthEmail={setAuthEmail}
+        authPassword={authPassword}
+        setAuthPassword={setAuthPassword}
+        authLoading={authLoading}
+        handleSignIn={handleSignIn}
+        handleSignUp={handleSignUp}
+        activeLang={activeLang}
+      />
 
       {/* ─── GROUP COLLABORATION MODAL ─────────────────────────────── */}
-      {groupModalOpen && (
-        <div className="overlay show" onClick={() => setGroupModalOpen(false)}>
-          <div className="modal modal-sm group-collab-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <div className="modal-title">{t('groupModalTitle')}</div>
-              <button className="modal-close" onClick={() => setGroupModalOpen(false)}>✕</button>
-            </div>
-            
-            {/* Modal Tabs */}
-            <div className="group-modal-tabs">
-              <button 
-                type="button"
-                className={`group-tab-btn ${groupModalTab === 'create' ? 'active' : ''}`}
-                onClick={() => setGroupModalTab('create')}
-              >
-                {t('tabCreateRoom')}
-              </button>
-              <button 
-                type="button"
-                className={`group-tab-btn ${groupModalTab === 'join' ? 'active' : ''}`}
-                onClick={() => setGroupModalTab('join')}
-              >
-                {t('tabJoinRoom')}
-              </button>
-            </div>
-
-            <div className="modal-body" style={{ padding: '20px' }}>
-              <div className="form-group">
-                <label className="form-label">{t('nickname')} *</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder={t('nicknamePh')} 
-                  value={inputNickname}
-                  onChange={(e) => setInputNickname(e.target.value)}
-                  autoFocus
-                />
-              </div>
-
-              {groupModalTab === 'create' ? (
-                <>
-                  <div className="form-group">
-                    <label className="form-label">{t('roomName')}</label>
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder={t('roomNamePh')} 
-                      value={inputRoomName}
-                      onChange={(e) => setInputRoomName(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{t('roomCode')} ({activeLang === 'th' ? 'เว้นว่างเพื่อสุ่มอัตโนมัติ' : 'Optional / Auto-generated'})</label>
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder="เช่น TRIP-9922" 
-                      value={inputRoomCode}
-                      onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
-                      style={{ letterSpacing: '1px', textTransform: 'uppercase' }}
-                    />
-                  </div>
-                  <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '8px', lineHeight: '1.4' }}>
-                    {activeLang === 'th'
-                      ? '💡 ระบบจะสร้างห้องกลุ่มจากทริปปัจจุบันของคุณ และสร้างรหัสห้องสำหรับส่งให้เพื่อนเข้าร่วมได้ทันที'
-                      : '💡 A new group room will be created from your active trip, and a room code will be generated for friends.'}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="form-group">
-                    <label className="form-label">{t('roomCode')} *</label>
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder={t('roomCodePh')} 
-                      value={inputRoomCode}
-                      onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
-                      style={{ letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600 }}
-                    />
-                  </div>
-                  <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '8px', lineHeight: '1.4' }}>
-                    {activeLang === 'th'
-                      ? '💡 ใส่รหัสห้องที่ได้รับจากเพื่อน เพื่อโหลดแผนทริปและจัดตารางร่วมกัน'
-                      : '💡 Enter the room code shared by your friend to load the trip and collaborate.'}
-                  </p>
-                </>
-              )}
-            </div>
-
-            <div className="modal-foot">
-              <button className="btn btn-ghost" onClick={() => setGroupModalOpen(false)}>
-                {t('cancel')}
-              </button>
-              {groupModalTab === 'create' ? (
-                <button 
-                  className="btn btn-primary" 
-                  disabled={isRoomSyncing}
-                  onClick={handleCreateRoom}
-                >
-                  {isRoomSyncing ? (activeLang === 'th' ? 'กำลังสร้าง...' : 'Creating...') : t('createRoomBtn')}
-                </button>
-              ) : (
-                <button 
-                  className="btn btn-primary" 
-                  disabled={isRoomSyncing}
-                  onClick={() => handleJoinRoom(inputRoomCode, inputNickname)}
-                >
-                  {isRoomSyncing ? (activeLang === 'th' ? 'กำลังเข้าร่วม...' : 'Joining...') : t('joinRoomBtn')}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <GroupCollabModal
+        groupModalOpen={groupModalOpen}
+        setGroupModalOpen={setGroupModalOpen}
+        groupModalTab={groupModalTab}
+        setGroupModalTab={setGroupModalTab}
+        inputNickname={inputNickname}
+        setInputNickname={setInputNickname}
+        inputRoomName={inputRoomName}
+        setInputRoomName={setInputRoomName}
+        inputRoomCode={inputRoomCode}
+        setInputRoomCode={setInputRoomCode}
+        isRoomSyncing={isRoomSyncing}
+        handleCreateRoom={handleCreateRoom}
+        handleJoinRoom={handleJoinRoom}
+        t={t}
+        activeLang={activeLang}
+      />
 
       {/* ─── ROUTE OPTIMIZATION MODAL ──────────────────────────────── */}
-      {optModalOpen && optData && (
-        <div className="overlay show" onClick={() => setOptModalOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px', width: '92%' }}>
-            <div className="modal-head">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '20px' }}>⚡</span>
-                <div>
-                  <div className="modal-title" style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                    {t('optimizeModalTitle')} — {t('dayLabel')} {optData.day}
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
-                    {t('optComparisonSubtitle')}
-                  </div>
-                </div>
-              </div>
-              <button className="modal-close" onClick={() => setOptModalOpen(false)}>✕</button>
-            </div>
-
-            <div className="modal-body" style={{ padding: '16px 20px', maxHeight: '70vh', overflowY: 'auto' }}>
-              {/* Metric summary badges */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                gap: '10px',
-                marginBottom: '16px'
-              }}>
-                <div style={{
-                  background: 'var(--surface-alt, #f9fafb)',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border, #e5e7eb)',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{t('distanceSaved')}</div>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--teal, #0F6E56)', marginTop: '2px' }}>
-                    -{optData.savedDistKm} km
-                    <span style={{ fontSize: '11px', fontWeight: 'normal', marginLeft: '4px', color: 'var(--teal, #0F6E56)' }}>
-                      ({optData.savedDistPercent}%)
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{
-                  background: 'var(--surface-alt, #f9fafb)',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border, #e5e7eb)',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{t('timeSaved')}</div>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--teal, #0F6E56)', marginTop: '2px' }}>
-                    -{optData.savedTimeMins} {activeLang === 'th' ? 'นาที' : 'mins'}
-                  </div>
-                </div>
-
-                <div style={{
-                  background: 'var(--surface-alt, #f9fafb)',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border, #e5e7eb)',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{t('optTotalDist')}</div>
-                  <div style={{ fontSize: '13px', fontWeight: '600', marginTop: '4px' }}>
-                    <span style={{ textDecoration: 'line-through', color: 'var(--muted)', marginRight: '6px' }}>
-                      {optData.originalMetrics.totalDistKm} km
-                    </span>
-                    ➔ {optData.optimizedMetrics.totalDistKm} km
-                  </div>
-                </div>
-              </div>
-
-              {/* Side-by-side or stacked route comparison */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-                {/* Current order */}
-                <div style={{
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  background: 'rgba(0,0,0,0.01)'
-                }}>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--muted)', marginBottom: '8px' }}>
-                    {t('beforeOptimize')} ({optData.originalMetrics.totalDistKm} km)
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {optData.originalItems.map((it, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
-                        <span style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          background: 'var(--border, #e5e7eb)',
-                          color: 'var(--muted, #666)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '10px',
-                          fontWeight: 'bold',
-                          flexShrink: 0
-                        }}>
-                          {i + 1}
-                        </span>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {(it.names && it.names[activeLang]) || it.name}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Recommended order */}
-                <div style={{
-                  border: '1px solid var(--teal, #1D9E75)',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  background: 'var(--teal-light, #E1F5EE)'
-                }}>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--teal, #0F6E56)', marginBottom: '8px' }}>
-                    {t('afterOptimize')} ({optData.optimizedMetrics.totalDistKm} km) ✨
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {optData.optimizedItems.map((it, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
-                        <span style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          background: 'var(--teal, #1D9E75)',
-                          color: '#ffffff',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '10px',
-                          fontWeight: 'bold',
-                          flexShrink: 0
-                        }}>
-                          {i + 1}
-                        </span>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '600' }}>
-                          {(it.names && it.names[activeLang]) || it.name}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-foot" style={{ borderTop: '1px solid var(--border)', padding: '12px 20px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button className="btn btn-ghost" onClick={() => setOptModalOpen(false)}>
-                {t('keepOriginalRoute')}
-              </button>
-              <button className="btn btn-primary" onClick={handleApplyOptimizedRoute} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>{t('applyOptimizedRoute')}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RouteOptimizationModal
+        isOpen={optModalOpen}
+        optData={optData}
+        onClose={() => setOptModalOpen(false)}
+        onApply={handleApplyOptimizedRoute}
+        activeLang={activeLang}
+        t={t}
+      />
 
       {touchDrag && (
         <div

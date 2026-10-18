@@ -172,8 +172,7 @@ export default function TravelModeView({
           onClick={onClose}
           title={t('exitTravelMode')}
         >
-          <span>✕</span>
-          <span className="exit-text">{t('exitTravelMode')}</span>
+          ✕ <span className="exit-text">{t('exitTravelMode')}</span>
         </button>
       </div>
 
@@ -973,6 +972,83 @@ export default function TravelModeView({
           text-decoration: none;
           font-weight: 700;
           font-size: 14px;
+        }
+
+        /* ─── Landscape Optimization (Phones & Small Screens) ─── */
+        @media (orientation: landscape) and (max-height: 600px) {
+          .travel-mode-header {
+            padding: 4px 12px;
+          }
+          .travel-mode-days-bar {
+            padding: 4px 12px;
+          }
+          .travel-mode-container {
+            max-width: 900px;
+            padding: 8px 14px;
+            gap: 8px;
+          }
+          .travel-stepper {
+            padding-bottom: 2px;
+          }
+          .current-spot-card {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            grid-template-areas:
+              "status status"
+              "info actions";
+            gap: 10px;
+            padding: 10px 14px;
+          }
+          .card-status-strip {
+            grid-area: status;
+            margin-bottom: 2px;
+          }
+          .spot-main-info {
+            grid-area: info;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+          }
+          .spot-photo-wrapper {
+            width: 90px;
+            height: 90px;
+            min-width: 90px;
+            margin-bottom: 0;
+            border-radius: 8px;
+          }
+          .spot-name {
+            font-size: 16px;
+            line-height: 1.2;
+          }
+          .spot-local-name {
+            font-size: 13px;
+          }
+          .spot-address {
+            font-size: 11px;
+            margin-top: 2px;
+          }
+          .spot-meta-tags {
+            margin-top: 4px;
+          }
+          .travel-actions-grid {
+            grid-area: actions;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            justify-content: center;
+          }
+          .action-btn {
+            padding: 8px 10px;
+            font-size: 12px;
+            border-radius: 8px;
+          }
+          .btn-navigate {
+            padding: 8px 10px;
+            font-size: 12px;
+          }
+          .next-spot-card {
+            padding: 8px 12px;
+          }
         }
       `}</style>
     </div>

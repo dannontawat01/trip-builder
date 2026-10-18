@@ -1,0 +1,428 @@
+/**
+ * Translations, Country & City Data, Category Maps, and Static Configurations
+ */
+
+export const LANG_STRINGS = {
+  th: {
+    places: 'สถานที่ท่องเที่ยว', search: 'ค้นหา...', addManual: 'กรอกเอง', addAI: 'AI เพิ่ม', addGmaps: 'Google Maps',
+    itinerary: 'แผนการเดินทาง', clear: 'ล้าง', export: 'ส่งออก / แชร์',
+    startDate: 'วันเดินทาง', endDate: 'วันกลับ', departTime: 'เวลาออก', hotel: 'ที่พัก / โรงแรม', hotelPh: 'เช่น Myeongdong, Seoul',
+    numDays: 'จำนวนวัน', aiPlanBtn: 'ให้ AI สร้างแผนการเดินทาง',
+    statPlaces: 'สถานที่', statHours: 'เวลารวม', statDays: 'วัน', statCities: 'เมือง',
+    nearby: 'แนะนำใกล้เคียง', nearbyEmpty: 'เพิ่มสถานที่ในแผนก่อน\nเราจะแนะนำที่ใกล้เคียงให้',
+    mobPlan: 'แผน', mobPlaces: 'สถานที่', mobNearby: 'แนะนำ', mobExport: 'ส่งออก',
+    close: 'ปิด', cancel: 'ยกเลิก', save: 'บันทึกสถานที่', addToDay: 'เพิ่มเข้าวัน:',
+    addNew: 'เพิ่มสถานที่ใหม่', tabManual: '✏️ กรอกเอง', tabAI: '🤖 AI แนะนำ', tabGmaps: '📍 Google Maps', tabJson: '📋 นำเข้า JSON',
+    osmSearch: '🔍 ค้นหาสถานที่ (OpenStreetMap)', osmBtn: 'ค้นหา GPS', osmPh: 'พิมพ์ชื่อสถานที่ เช่น Gyeongbokgung Palace Seoul',
+    fName: 'ชื่อสถานที่ *', fDesc: 'รายละเอียด', fCat: 'หมวดหมู่', fDur: 'ระยะเวลา (นาที)',
+    fAddr: 'ที่อยู่', fFee: 'ค่าเข้าชม', fTransport: 'วิธีเดินทาง', fIcon: 'ไอคอน Emoji', fCity: 'เมือง',
+    fImg: 'รูปภาพสถานที่', fImgOpt: '(ไม่บังคับ)', fImgPh: 'แตะเพื่ออัพโหลดรูป (JPG, PNG, WEBP)',
+    aiModalTitle: '✦ ให้ AI สร้างแผนการเดินทาง', aiModalSub: 'บอก AI ว่าอยากไปไหน แล้วจะจัดแผนให้เลย',
+    aiInfo: 'AI จะดึงสถานที่จากฐานข้อมูลที่มี และจัดให้เหมาะกับจำนวนวัน โดยเรียงตาม GPS ใกล้ที่พัก',
+    aiHotel: 'ที่พัก / โรงแรม', aiHotelSub: '(ใช้เป็นจุดเริ่มต้น)', aiHotelPh: 'เช่น Myeongdong, Seoul หรือ ถนนนิมมาน เชียงใหม่',
+    aiInterests: 'ความสนใจ', aiInterestsSub: '(เลือกได้หลายอย่าง)', aiGenerate: 'สร้างแผนการเดินทาง',
+    iFood: '🍜 อาหาร', iShop: '🛍 ช้อปปิ้ง', iTemple: '🛕 วัด/ประวัติศาสตร์', iNature: '🌿 ธรรมชาติ',
+    iArt: '🎨 ศิลปะ/วัฒนธรรม', iPhoto: '📸 ถ่ายรูป', iCafe: '☕ คาเฟ่', iBeach: '🏖 ชายหาด',
+    exportTitle: 'ส่งออกแผนการเดินทาง', exportFmt: 'เลือกรูปแบบ PDF', exportPreview: 'Preview ข้อความ',
+    exportShare: '🔗 Share Link', exportShareNote: 'ลิงก์นี้มีข้อมูลแผนทั้งหมดฝังอยู่ แชร์ให้เพื่อนเปิดได้ทันทีในเว็บเดียวกัน',
+    copyText: 'คัดลอกข้อความ', downloadPDF: '⬇ ดาวน์โหลด PDF', creating: 'กำลังสร้างลิงก์...',
+    pdfBeautiful: 'สีสัน layout จัดเต็ม', pdfClean: 'เรียบ พิมพ์ง่าย', pdfTimeline: 'เส้นเวลา day-by-day',
+    gmapsHow: 'วิธีคัดลอก URL จาก Google Maps:', gmaps1: 'เปิด Google Maps แล้วค้นหาสถานที่',
+    gmaps2: 'กด Share (แชร์) → Copy link', gmaps3: 'วางลิงก์ที่นี่', gmapsFormats: 'รูปแบบที่รองรับ:',
+    detailAddr: 'ที่อยู่', detailGPS: 'พิกัด GPS', detailFee: 'ค่าเข้าชม', detailTransport: 'วิธีเดินทาง',
+    copyGPS: 'คัดลอก', openMaps: 'เปิด Maps ↗', alreadyAdded: '✅ เพิ่มในแผนแล้ว', addInDay: '+ เพิ่มในแผน',
+    dayLabel: 'วันที่', dragHere: 'ลากสถานที่มาวางที่นี่',
+    nearbyFrom: 'แนะนำจาก', nearbySort: 'เรียงตาม GPS + ประเภท + เมือง', noNearby: 'ไม่พบสถานที่ใกล้เคียง',
+    scoreTotal: 'คะแนนรวม', reasonWalk: 'เดินถึงกันได้', reasonNear: 'ใกล้กัน ขนส่งสะดวก',
+    reasonCat: 'ประเภทเดียวกัน', reasonCity: 'เมืองเดียวกัน', reasonRoute: 'แนะนำในเส้นทาง',
+    addBtn: '+ เพิ่มวันที่', addedBtn: 'เพิ่มแล้ว', gmapsPullBtn: 'ดึงข้อมูล',
+    tabNearby: 'แนะนำใกล้เคียง',
+    tabChecklist: 'สิ่งที่ต้องเตรียม',
+    checklistHeader: 'รายการตรวจสอบสำหรับทริป',
+    checklistAddPh: 'เพิ่มรายการใหม่...',
+    checklistCategory: 'หมวดหมู่',
+    checklistImportBtn: 'นำเข้าเทมเพลต',
+    checklistEmpty: 'ยังไม่มีรายการ ตรวจสอบหรือนำเข้าเทมเพลตเพื่อเริ่มต้น!',
+    checklistCatDocuments: '📄 เอกสาร & การเงิน',
+    checklistCatClothing: '👕 เสื้อผ้า & เครื่องแต่งกาย',
+    checklistCatToiletries: '🧴 อุปกรณ์ของใช้ส่วนตัว & ยา',
+    checklistCatElectronics: '🔌 อุปกรณ์ไอที / ไฟฟ้า',
+    checklistCatOthers: '🎒 อื่นๆ',
+    copyLink: 'คัดลอก',
+    shareLinkCopied: 'คัดลอกลิงก์แชร์แล้ว!',
+    itineraryCopied: 'คัดลอกข้อความแล้ว!',
+    walkMaps: '🚶 เส้นทางเดิน',
+    shareWalkRoute: 'แชร์เส้นทางเดิน Google Maps',
+    walkRouteCopied: 'คัดลอกลิงก์เส้นทางเดินแล้ว!',
+    noPlacesForRoute: 'ยังไม่มีสถานที่ในวันนี้',
+    exportWalkTitle: '🗺️ เส้นทางเดิน Google Maps (แยกตามวัน)',
+    stopsCount: 'จุดแวะ',
+    openWalkMaps: 'เปิด Maps ↗',
+    copyWalkLink: 'คัดลอกลิงก์',
+    groupPlan: 'วางแผนเป็นกลุ่ม',
+    groupModalTitle: '👥 วางแผนทริปเป็นกลุ่ม (Group Collaboration)',
+    tabCreateRoom: '✨ สร้างห้องใหม่',
+    tabJoinRoom: '🔑 เข้าร่วมด้วยรหัส',
+    roomCode: 'รหัสห้อง',
+    roomCodePh: 'เช่น TRIP-8821',
+    roomName: 'ชื่อกลุ่ม / ชื่อทริป',
+    roomNamePh: 'เช่น ทริปตะลุยโซลกับแก๊งเพื่อน',
+    nickname: 'ชื่อเล่นของคุณ',
+    nicknamePh: 'เช่น แบงค์, ปัง, ส้ม',
+    createRoomBtn: '🚀 สร้างห้องกลุ่ม',
+    joinRoomBtn: '🚀 เข้าร่วมกลุ่ม',
+    leaveRoom: 'ออกจากกลุ่ม',
+    confirmLeaveRoom: 'คุณต้องการออกจากห้องกลุ่มนี้และกลับสู่แผนส่วนตัวใช่หรือไม่?',
+    syncRoom: 'ซิงก์ข้อมูล',
+    syncingRoom: 'กำลังซิงก์...',
+    syncSuccess: 'ซิงก์ข้อมูลทริปล่าสุดสำเร็จ!',
+    activeRoomBanner: 'ห้องกลุ่ม',
+    roomMembers: 'สมาชิกในกลุ่ม',
+    roomInviteNote: 'ส่งรหัสห้องหรือลิงก์นี้ให้เพื่อน เพื่อร่วมกันจัดทริปได้ทันที',
+    roomCopiedLink: 'คัดลอกลิงก์เชิญเข้ากลุ่มแล้ว!',
+    copyInviteLink: 'คัดลอกลิงก์เชิญ',
+    assignee: 'ผู้รับผิดชอบ',
+    assigneePh: 'ระบุชื่อคนเตรียม...',
+    assignToMe: 'ฉันเตรียมเอง',
+    unassigned: 'ยังไม่ได้ระบุ',
+    saveRoomError: 'ไม่สามารถบันทึกข้อมูลห้องได้',
+    roomNotFound: 'ไม่พบรหัสห้องนี้ กรุณาตรวจสอบรหัสอีกครั้ง',
+    optimizeRoute: '⚡ จัดเส้นทางสั้นที่สุด',
+    optimizeModalTitle: '⚡ จัดลำดับเส้นทางให้สั้นที่สุด (Route Optimizer)',
+    routeAlreadyOptimal: 'เส้นทางในวันนี้จัดเรียงอย่างเหมาะสมที่สุดอยู่แล้ว ✨',
+    needMorePlacesToOptimize: 'ต้องมีสถานที่อย่างน้อย 3 แห่งขึ้นไปในการจัดลำดับ',
+    beforeOptimize: 'ลำดับเดิม',
+    afterOptimize: 'ลำดับใหม่ที่แนะนำ',
+    distanceSaved: 'ประหยัดระยะทางได้',
+    timeSaved: 'ประหยัดเวลาเดินทางได้',
+    applyOptimizedRoute: '✨ นำเส้นทางนี้ไปใช้',
+    keepOriginalRoute: 'คงเดิมไว้',
+    optComparisonSubtitle: 'วิเคราะห์และจัดลำดับสถานที่ใหม่โดยอัลกอริทึม 2-Opt เพื่อลดระยะเดินทางรวม',
+    optTotalDist: 'ระยะทางรวม',
+    optTotalTime: 'เวลาเดินทางรวม',
+    travelMode: '✈️ โหมดเที่ยวจริง',
+    exitTravelMode: 'ออกจากโหมดเที่ยว',
+    currentStop: '📍 ตอนนี้อยู่ที่นี่',
+    nextStop: 'จุดถัดไป',
+    checkInBtn: 'เช็กอิน / ถึงแล้ว',
+    undoCheckIn: 'เลิกทำ',
+    taxiCard: 'ยื่นให้คนขับแท็กซี่',
+    taxiCardTitle: '🚕 ข้อมูลสำหรับคนขับแท็กซี่',
+    taxiCardSubtitle: 'กรุณายื่นหน้านี้ให้คนขับรถเพื่อนำทาง',
+    returnToHotel: 'นำทางกลับโรงแรม',
+    allStopsCompleted: 'ยอดเยี่ยม! คุณเที่ยวครบทุกจุดของวันนี้แล้ว',
+  },
+  en: {
+    places: 'Attractions', search: 'Search...', addManual: 'Manual', addAI: 'AI Add', addGmaps: 'Google Maps',
+    itinerary: 'Itinerary', clear: 'Clear', export: 'Export / Share',
+    startDate: 'Start Date', endDate: 'End Date', departTime: 'Depart', hotel: 'Hotel / Base', hotelPh: 'e.g. Myeongdong, Seoul',
+    numDays: 'Days', aiPlanBtn: '✦ AI Build Itinerary',
+    statPlaces: 'Places', statHours: 'Total Time', statDays: 'Days', statCities: 'Cities',
+    nearby: 'Nearby Suggestions', nearbyEmpty: 'Add places to your plan\nand we\'ll suggest nearby spots',
+    mobPlan: 'Plan', mobPlaces: 'Places', mobNearby: 'Nearby', mobExport: 'Export',
+    close: 'Close', cancel: 'Cancel', save: 'Save Place', addToDay: 'Add to Day:',
+    addNew: 'Add New Place', tabManual: '✏️ Manual', tabAI: '🤖 AI Suggest', tabGmaps: '📍 Google Maps', tabJson: '📋 Import JSON',
+    osmSearch: '🔍 Search Place (OpenStreetMap)', osmBtn: 'Find GPS', osmPh: 'Type place name e.g. Gyeongbokgung Palace Seoul',
+    fName: 'Place Name *', fDesc: 'Description', fCat: 'Category', fDur: 'Duration (min)',
+    fAddr: 'Address', fFee: 'Entry Fee', fTransport: 'Getting There', fIcon: 'Emoji Icon', fCity: 'City',
+    fImg: 'Place Photo', fImgOpt: '(optional)', fImgPh: 'Tap to upload photo (JPG, PNG, WEBP)',
+    aiModalTitle: '✦ AI Trip Planner', aiModalSub: 'Tell AI where you want to go and it\'ll plan your trip',
+    aiInfo: 'AI will pull places from the database and arrange them by day, sorted by GPS distance from your hotel.',
+    aiHotel: 'Hotel / Base', aiHotelSub: '(starting point)', aiHotelPh: 'e.g. Myeongdong, Seoul',
+    aiInterests: 'Interests', aiInterestsSub: '(select multiple)', aiGenerate: 'Build Itinerary',
+    iFood: '🍜 Food', iShop: '🛍 Shopping', iTemple: '🛕 Temples/History', iNature: '🌿 Nature',
+    iArt: '🎨 Art/Culture', iPhoto: '📸 Photography', iCafe: '☕ Café', iBeach: '🏖 Beach',
+    exportTitle: 'Export Itinerary', exportFmt: 'Choose PDF Style', exportPreview: 'Text Preview',
+    exportShare: '🔗 Share Link', exportShareNote: 'This link contains your full plan. Share with friends to open instantly.',
+    copyText: 'Copy Text', downloadPDF: '⬇ Download PDF', creating: 'Generating link...',
+    pdfBeautiful: 'Colorful full layout', pdfClean: 'Clean, easy to print', pdfTimeline: 'Timeline day-by-day',
+    gmapsHow: 'How to copy URL from Google Maps:', gmaps1: 'Open Google Maps and search for the place',
+    gmaps2: 'Tap Share → Copy link', gmaps3: 'Paste the link here', gmapsFormats: 'Supported formats:',
+    detailAddr: 'Address', detailGPS: 'GPS Coordinates', detailFee: 'Entry Fee', detailTransport: 'Getting There',
+    copyGPS: 'Copy', openMaps: 'Open Maps ↗', alreadyAdded: '✅ Already in plan', addInDay: '+ Add to Plan',
+    dayLabel: 'Day', dragHere: 'Drag places here',
+    nearbyFrom: 'Suggestions from', nearbySort: 'Sorted by GPS + Category + City', noNearby: 'No nearby places found',
+    scoreTotal: 'Match Score', reasonWalk: 'Walkable distance', reasonNear: 'Nearby, easy transit',
+    reasonCat: 'Same category', reasonCity: 'Same city', reasonRoute: 'Suggested on route',
+    addBtn: '+ Add Day', addedBtn: 'Added', gmapsPullBtn: 'Extract',
+    tabNearby: 'Nearby Suggestions',
+    tabChecklist: 'Trip Checklist',
+    checklistHeader: 'Trip Checklist',
+    checklistAddPh: 'Add new item...',
+    checklistCategory: 'Category',
+    checklistImportBtn: 'Import Template',
+    checklistEmpty: 'No items yet. Add or import templates!',
+    checklistCatDocuments: '📄 Docs & Finance',
+    checklistCatClothing: '👕 Clothing & Apparel',
+    checklistCatToiletries: '🧴 Personal Care',
+    checklistCatElectronics: '🔌 Electronics',
+    checklistCatOthers: '🎒 Others',
+    copyLink: 'Copy',
+    shareLinkCopied: 'Share link copied!',
+    itineraryCopied: 'Itinerary text copied!',
+    walkMaps: '🚶 Walking Route',
+    shareWalkRoute: 'Share Walking Route',
+    walkRouteCopied: 'Walking route link copied!',
+    noPlacesForRoute: 'No places in this day yet',
+    exportWalkTitle: '🗺️ Google Maps Walking Routes (By Day)',
+    stopsCount: 'stops',
+    openWalkMaps: 'Open Maps ↗',
+    copyWalkLink: 'Copy Link',
+    groupPlan: 'Group Planning',
+    groupModalTitle: '👥 Group Trip Collaboration',
+    tabCreateRoom: '✨ Create Room',
+    tabJoinRoom: '🔑 Join with Code',
+    roomCode: 'Room Code',
+    roomCodePh: 'e.g. TRIP-8821',
+    roomName: 'Group / Trip Name',
+    roomNamePh: 'e.g. Seoul Trip with Friends',
+    nickname: 'Your Nickname',
+    nicknamePh: 'e.g. Alex, Sam, Chris',
+    createRoomBtn: '🚀 Create Room',
+    joinRoomBtn: '🚀 Join Room',
+    leaveRoom: 'Leave Room',
+    confirmLeaveRoom: 'Do you want to leave this group room and return to your personal plan?',
+    syncRoom: 'Sync Data',
+    syncingRoom: 'Syncing...',
+    syncSuccess: 'Trip data synced successfully!',
+    activeRoomBanner: 'Group Room',
+    roomMembers: 'Group Members',
+    roomInviteNote: 'Share this room code or invite link with friends to plan together.',
+    roomCopiedLink: 'Invite link copied!',
+    copyInviteLink: 'Copy Invite Link',
+    assignee: 'Assignee',
+    assigneePh: 'Person preparing this...',
+    assignToMe: 'Assign to me',
+    unassigned: 'Unassigned',
+    saveRoomError: 'Failed to save room data',
+    roomNotFound: 'Room code not found. Please verify the code.',
+    optimizeRoute: '⚡ Optimize Route',
+    optimizeModalTitle: '⚡ Optimize Day Route (Shortest Path)',
+    routeAlreadyOptimal: 'This day is already optimally ordered! ✨',
+    needMorePlacesToOptimize: 'At least 3 places with coordinates required to optimize.',
+    beforeOptimize: 'Current Order',
+    afterOptimize: 'Recommended Order',
+    distanceSaved: 'Distance saved',
+    timeSaved: 'Transit time saved',
+    applyOptimizedRoute: '✨ Apply Optimized Route',
+    keepOriginalRoute: 'Keep Current',
+    optComparisonSubtitle: 'Reordered by 2-Opt TSP algorithm to minimize backtracking and transit time',
+    optTotalDist: 'Total Distance',
+    optTotalTime: 'Total Transit Time',
+    travelMode: '✈️ Travel Mode',
+    exitTravelMode: 'Exit Travel Mode',
+    currentStop: '📍 Current Stop',
+    nextStop: 'Next Stop',
+    checkInBtn: 'Check-in / Arrived',
+    undoCheckIn: 'Undo',
+    taxiCard: 'Taxi Driver Card',
+    taxiCardTitle: '🚕 Taxi Driver Information',
+    taxiCardSubtitle: 'Please show this screen to your driver',
+    returnToHotel: 'Return to Hotel',
+    allStopsCompleted: 'Awesome! All stops completed for today!',
+  }
+};
+
+export const COUNTRIES = [
+  {
+    id: 'th', name: { th: 'ไทย', en: 'Thailand' }, flag: '🇹🇭', cities: [
+      { id: 'bkk', name: { th: 'กรุงเทพ', en: 'Bangkok' }, emoji: '🏙', color: '#1D9E75', light: '#E1F5EE', dark: '#0F6E56' },
+      { id: 'cnx', name: { th: 'เชียงใหม่', en: 'Chiang Mai' }, emoji: '🌸', color: '#D4537E', light: '#FBEAF0', dark: '#993556' },
+      { id: 'hkt', name: { th: 'ภูเก็ต', en: 'Phuket' }, emoji: '🏖', color: '#378ADD', light: '#E6F1FB', dark: '#185FA5' },
+      { id: 'ptt', name: { th: 'พัทยา', en: 'Pattaya' }, emoji: '🌊', color: '#EF9F27', light: '#FAEEDA', dark: '#854F0B' },
+      { id: 'aya', name: { th: 'อยุธยา', en: 'Ayutthaya' }, emoji: '🏛', color: '#7F77DD', light: '#EEEDFE', dark: '#534AB7' },
+    ]
+  },
+  {
+    id: 'kr', name: { th: 'เกาหลี', en: 'South Korea' }, flag: '🇰🇷', cities: [
+      { id: 'sel', name: { th: 'โซล', en: 'Seoul' }, emoji: '🏙', color: '#E24B4A', light: '#FCEBEB', dark: '#A32D2D' },
+      { id: 'bus', name: { th: 'ปูซาน', en: 'Busan' }, emoji: '🌊', color: '#185FA5', light: '#E6F1FB', dark: '#0C447C' },
+      { id: 'jej', name: { th: 'เจจู', en: 'Jeju' }, emoji: '🌋', color: '#3B6D11', light: '#EAF3DE', dark: '#27500A' },
+    ]
+  },
+  {
+    id: 'jp', name: { th: 'ญี่ปุ่น', en: 'Japan' }, flag: '🇯🇵', cities: [
+      { id: 'tky', name: { th: 'โตเกียว', en: 'Tokyo' }, emoji: '🗼', color: '#E24B4A', light: '#FCEBEB', dark: '#A32D2D' },
+      { id: 'kyo', name: { th: 'เกียวโต', en: 'Kyoto' }, emoji: '⛩', color: '#854F0B', light: '#FAEEDA', dark: '#633806' },
+      { id: 'osk', name: { th: 'โอซาก้า', en: 'Osaka' }, emoji: '🏯', color: '#7F77DD', light: '#EEEDFE', dark: '#534AB7' },
+    ]
+  },
+];
+
+export const CAT_TRANSLATIONS = {
+  'วัด': { th: 'วัด', en: 'Temple' },
+  'พระราชวัง': { th: 'พระราชวัง', en: 'Palace' },
+  'ตลาด': { th: 'ตลาด', en: 'Market' },
+  'ย่าน': { th: 'ย่าน', en: 'District' },
+  'พิพิธภัณฑ์': { th: 'พิพิธภัณฑ์', en: 'Museum' },
+  'ธรรมชาติ': { th: 'ธรรมชาติ', en: 'Nature' },
+  'ช้อปปิ้ง': { th: 'ช้อปปิ้ง', en: 'Shopping' },
+  'ห้างสรรพสินค้า': { th: 'ห้างสรรพสินค้า', en: 'Department Store' },
+  'ร้านอาหาร': { th: 'ร้านอาหาร', en: 'Restaurant' },
+  'คาเฟ่': { th: 'คาเฟ่', en: 'Café' },
+  'โรงแรม / ที่พัก': { th: 'โรงแรม / ที่พัก', en: 'Hotel / Base' },
+  'วิวทิวทัศน์': { th: 'วิวทิวทัศน์', en: 'Scenic View' },
+  'อื่นๆ': { th: 'อื่นๆ', en: 'Others' }
+};
+
+export const translateCategory = (cat, lang) => {
+  if (!cat) return lang === 'th' ? 'อื่นๆ' : 'Others';
+  if (CAT_TRANSLATIONS[cat]) {
+    return CAT_TRANSLATIONS[cat][lang] || cat;
+  }
+  for (const key in CAT_TRANSLATIONS) {
+    if (CAT_TRANSLATIONS[key].en.toLowerCase() === cat.toLowerCase()) {
+      return CAT_TRANSLATIONS[key][lang] || cat;
+    }
+  }
+  return cat;
+};
+
+export const getCityName = (cityObj, lang = 'th') => {
+  if (!cityObj) return '';
+  if (typeof cityObj.name === 'object') {
+    return cityObj.name[lang] || cityObj.name.en || '';
+  }
+  return cityObj.name || '';
+};
+
+export const getCountryName = (countryObj, lang = 'th') => {
+  if (!countryObj) return '';
+  if (typeof countryObj.name === 'object') {
+    return countryObj.name[lang] || countryObj.name.en || '';
+  }
+  return countryObj.name || '';
+};
+
+export const DAY_COLORS = [
+  { bg: "#EAF3DE", t: "#3B6D11", b: "#C0DD97", acc: "#639922" },
+  { bg: "#E1F5EE", t: "#0F6E56", b: "#9FE1CB", acc: "#1D9E75" },
+  { bg: "#E6F1FB", t: "#185FA5", b: "#B5D4F4", acc: "#378ADD" },
+  { bg: "#FAEEDA", t: "#854F0B", b: "#FAC775", acc: "#EF9F27" },
+  { bg: "#FBEAF0", t: "#993556", b: "#F4C0D1", acc: "#D4537E" },
+  { bg: "#FCEBEB", t: "#A32D2D", b: "#F7C1C1", acc: "#E24B4A" },
+  { bg: "#EEEDFE", t: "#534AB7", b: "#CECBF6", acc: "#7F77DD" },
+];
+
+export const CITY_KEYWORDS = {
+  bkk: 'bangkok',
+  cnx: 'chiangmai',
+  hkt: 'phuket',
+  ptt: 'pattaya',
+  aya: 'ayutthaya',
+  sel: 'seoul',
+  bus: 'busan',
+  jej: 'jeju',
+  tky: 'tokyo',
+  kyo: 'kyoto',
+  osk: 'osaka'
+};
+
+export const CITY_COVER_IMAGES = {
+  bangkok: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=600&q=80',
+  chiangmai: 'https://images.unsplash.com/photo-1548685913-fe6574340a49?auto=format&fit=crop&w=600&q=80',
+  phuket: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=600&q=80',
+  pattaya: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=600&q=80',
+  ayutthaya: 'https://images.unsplash.com/photo-1601058334419-5d3c8c7f766e?auto=format&fit=crop&w=600&q=80',
+  seoul: 'https://images.unsplash.com/photo-1538669715516-5c51a140f7b0?auto=format&fit=crop&w=600&q=80',
+  busan: 'https://images.unsplash.com/photo-1577971158586-fb7c6d66e855?auto=format&fit=crop&w=600&q=80',
+  jeju: 'https://images.unsplash.com/photo-1549693578-d683be217e58?auto=format&fit=crop&w=600&q=80',
+  tokyo: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
+  kyoto: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
+  osaka: 'https://images.unsplash.com/photo-1590250596356-a6c22c075775?auto=format&fit=crop&w=600&q=80',
+  travel: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=80'
+};
+
+export const CHECKLIST_CATEGORIES = [
+  { id: 'documents', label: { th: '📄 เอกสาร & การเงิน', en: '📄 Docs & Finance' }, color: '#378ADD' },
+  { id: 'clothing', label: { th: '👕 เสื้อผ้า & เครื่องแต่งกาย', en: '👕 Clothing & Apparel' }, color: '#EF9F27' },
+  { id: 'toiletries', label: { th: '🧴 อุปกรณ์ของใช้ส่วนตัว & ยา', en: '🧴 Personal Care' }, color: '#1D9E75' },
+  { id: 'electronics', label: { th: '🔌 อุปกรณ์ไอที / ไฟฟ้า', en: '🔌 Electronics' }, color: '#7F77DD' },
+  { id: 'others', label: { th: '🎒 อื่นๆ', en: '🎒 Others' }, color: '#993556' }
+];
+
+export const CHECKLIST_TEMPLATES = {
+  documents: [
+    { text: { th: 'หนังสือเดินทาง (Passports)', en: 'Passports' } },
+    { text: { th: 'ตั๋วเครื่องบิน (Flight tickets)', en: 'Flight tickets' } },
+    { text: { th: 'ใบจองโรงแรม (Hotel reservations)', en: 'Hotel reservations' } },
+    { text: { th: 'เงินสด / บัตร (Cash/cards)', en: 'Cash/cards' } }
+  ],
+  clothing: [
+    { text: { th: 'ชุดชั้นใน (Underwear)', en: 'Underwear' } },
+    { text: { th: 'เสื้อกันหนาว / แจ็กเก็ต (Jackets)', en: 'Jackets' } },
+    { text: { th: 'เสื้อเชิ้ต / เสื้อยืด (Shirts)', en: 'Shirts' } },
+    { text: { th: 'รองเท้าเดินสบาย (Comfortable shoes)', en: 'Comfortable shoes' } }
+  ],
+  toiletries: [
+    { text: { th: 'แปรงสีฟัน (Toothbrush)', en: 'Toothbrush' } },
+    { text: { th: 'ยาสามัญประจำตัว (Medicine)', en: 'Medicine' } },
+    { text: { th: 'อุปกรณ์อาบน้ำ (Toiletries)', en: 'Toiletries' } }
+  ],
+  electronics: [
+    { text: { th: 'สายชาร์จ / ที่ชาร์จ (Chargers)', en: 'Chargers' } },
+    { text: { th: 'หัวแปลงปลั๊กไฟ (Universal adapters)', en: 'Universal adapters' } },
+    { text: { th: 'พาวเวอร์แบงค์ (Power bank)', en: 'Power bank' } }
+  ],
+  others: [
+    { text: { th: 'ร่ม / เสื้อกันฝน', en: 'Umbrella / Raincoat' } },
+    { text: { th: 'กระเป๋าเป้ใบเล็ก', en: 'Daypack / Small Bag' } },
+    { text: { th: 'ขวดน้ำพกพา', en: 'Water Bottle' } }
+  ]
+};
+
+export const generateChecklistId = () => {
+  return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+export const CITY_COORDINATES = {
+  bkk: { lat: 13.7563, lng: 100.5018 },
+  cnx: { lat: 18.7883, lng: 98.9853 },
+  hkt: { lat: 7.8804, lng: 98.3923 },
+  ptt: { lat: 12.9236, lng: 100.8824 },
+  aya: { lat: 14.3532, lng: 100.5681 },
+  sel: { lat: 37.5665, lng: 126.9780 },
+  bus: { lat: 35.1796, lng: 129.0756 },
+  jej: { lat: 33.4996, lng: 126.5312 },
+  tky: { lat: 35.6762, lng: 139.6503 },
+  kyo: { lat: 35.0116, lng: 135.7681 },
+  osk: { lat: 34.6937, lng: 135.5023 }
+};
+
+export const WEATHER_CODES = {
+  0: { label: { th: 'ท้องฟ้าแจ่มใส', en: 'Clear sky' }, emoji: '☀️' },
+  1: { label: { th: 'ท้องฟ้าโปร่งส่วนใหญ่', en: 'Mainly clear' }, emoji: '🌤️' },
+  2: { label: { th: 'มีเมฆบางส่วน', en: 'Partly cloudy' }, emoji: '⛅' },
+  3: { label: { th: 'เมฆครึ้ม', en: 'Overcast' }, emoji: '☁️' },
+  45: { label: { th: 'หมอก', en: 'Fog' }, emoji: '🌫️' },
+  48: { label: { th: 'หมอกน้ำค้างแข็ง', en: 'Depositing rime fog' }, emoji: '🌫️' },
+  51: { label: { th: 'ฝนตกปรอยๆ ขนาดเบา', en: 'Light drizzle' }, emoji: '🌦️' },
+  53: { label: { th: 'ฝนตกปรอยๆ ขนาดปานกลาง', en: 'Moderate drizzle' }, emoji: '🌦️' },
+  55: { label: { th: 'ฝนตกปรอยๆ ขนาดหนาแน่น', en: 'Dense drizzle' }, emoji: '🌦️' },
+  56: { label: { th: 'ฝนละอองแช่แข็ง ขนาดเบา', en: 'Light freezing drizzle' }, emoji: '🌧️' },
+  57: { label: { th: 'ฝนละอองแช่แข็ง ขนาดหนาแน่น', en: 'Dense freezing drizzle' }, emoji: '🌧️' },
+  61: { label: { th: 'ฝนตกเล็กน้อย', en: 'Slight rain' }, emoji: '🌧️' },
+  63: { label: { th: 'ฝนตกปานกลาง', en: 'Moderate rain' }, emoji: '🌧️' },
+  65: { label: { th: 'ฝนตกหนัก', en: 'Heavy rain' }, emoji: '🌧️' },
+  66: { label: { th: 'ฝนแช่แข็ง ตกเล็กน้อย', en: 'Slight freezing rain' }, emoji: '🌧️' },
+  67: { label: { th: 'ฝนแช่แข็ง ตกหนัก', en: 'Heavy freezing rain' }, emoji: '🌧️' },
+  71: { label: { th: 'หิมะตกเล็กน้อย', en: 'Slight snow fall' }, emoji: '🌨️' },
+  73: { label: { th: 'หิมะตกปานกลาง', en: 'Moderate snow fall' }, emoji: '🌨️' },
+  75: { label: { th: 'หิมะตกหนัก', en: 'Heavy snow fall' }, emoji: '🌨️' },
+  77: { label: { th: 'เกล็ดหิมะ', en: 'Snow grains' }, emoji: '🌨️' },
+  80: { label: { th: 'ฝนไล่ช้าง ตกเล็กน้อย', en: 'Slight rain showers' }, emoji: '🌦️' },
+  81: { label: { th: 'ฝนไล่ช้าง ตกปานกลาง', en: 'Moderate rain showers' }, emoji: '🌦️' },
+  82: { label: { th: 'ฝนไล่ช้าง ตกรุนแรง', en: 'Violent rain showers' }, emoji: '🌧️' },
+  85: { label: { th: 'หิมะไล่ช้าง ตกเล็กน้อย', en: 'Slight snow showers' }, emoji: '🌨️' },
+  86: { label: { th: 'หิมะไล่ช้าง ตกหนัก', en: 'Heavy snow showers' }, emoji: '🌨️' },
+  95: { label: { th: 'พายุฝนฟ้าคะนอง', en: 'Thunderstorm' }, emoji: '⛈️' },
+  96: { label: { th: 'พายุฝนฟ้าคะนองพร้อมลูกเห็บตกเล็กน้อย', en: 'Thunderstorm with slight hail' }, emoji: '⛈️' },
+  99: { label: { th: 'พายุฝนฟ้าคะนองพร้อมลูกเห็บตกหนัก', en: 'Thunderstorm with heavy hail' }, emoji: '⛈️' }
+};
+
+export const getCountryOfCity = (cityId) => {
+  if (['bkk', 'cnx', 'hkt', 'ptt', 'aya'].includes(cityId)) return 'th';
+  if (['sel', 'bus', 'jej'].includes(cityId)) return 'kr';
+  if (['tky', 'kyo', 'osk'].includes(cityId)) return 'jp';
+  return 'th';
+};
