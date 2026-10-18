@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { googleSheets } from '@/lib/googleSheets';
 import { getGmapsWalkingRouteUrl, shareGmapsRoute } from '@/lib/gmapsRoute';
 import { optimizeDayRoute, calculateDistanceKm, estimateTravelTimeMins } from '@/lib/routeOptimizer';
+import { detectCityFromCoords, checkIsDuplicate } from '@/lib/cityDetector';
 import dynamic from 'next/dynamic';
 import OptimizedImage from './components/OptimizedImage';
 import HeaderNav from './components/HeaderNav';
@@ -50,7 +51,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.13.0';
+const APP_VERSION = 'v1.14.0';
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -360,6 +361,21 @@ function TripBuilderApp() {
   const [gmapsUrl, setGmapsUrl] = useState('');
   const [gmapsResult, setGmapsResult] = useState(null);
   const [gmapsLoading, setGmapsLoading] = useState(false);
+  const [gmapsSyncUrl, setGmapsSyncUrl] = useState('');
+  const [gmapsSyncLoading, setGmapsSyncLoading] = useState(false);
+
+  // Memoized all existing places across landmarks and all custom places for duplicate detection
+  const allExistingPlaces = useMemo(() => {
+    const list = [...(landmarks || [])];
+    if (customPlaces && typeof customPlaces === 'object') {
+      Object.values(customPlaces).forEach(cityList => {
+        if (Array.isArray(cityList)) {
+          list.push(...cityList);
+        }
+      });
+    }
+    return list;
+  }, [landmarks, customPlaces]);
 
   // AI Planner states
   const [aiHotel, setAiHotel] = useState('');
@@ -798,6 +814,14 @@ function TripBuilderApp() {
       if (raw) {
         const parsed = JSON.parse(raw);
         setCustomPlaces(parsed.custom || {});
+      }
+    } catch (_) {}
+
+    // Load linked Google Maps sync URL
+    try {
+      const savedSyncUrl = localStorage.getItem('trip_builder_gmaps_sync_url');
+      if (savedSyncUrl) {
+        setGmapsSyncUrl(savedSyncUrl);
       }
     } catch (_) {}
 
@@ -2319,6 +2343,132 @@ function TripBuilderApp() {
     }
   };
 
+  const syncGmaps = async (targetUrl = gmapsSyncUrl, isAutoPrompt = false) => {
+    const urlToSync = targetUrl || gmapsSyncUrl;
+    if (!urlToSync || !urlToSync.trim()) return;
+
+    setGmapsSyncLoading(true);
+    try {
+      const res = await fetch('/api/resolve-gmaps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlToSync.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error || !data.isList || !Array.isArray(data.places)) {
+        if (!isAutoPrompt) {
+          toast(activeLang === 'th' ? 'ไม่สามารถดึงข้อมูลจาก Google Maps ได้ในขณะนี้' : 'Failed to sync with Google Maps');
+        }
+        return;
+      }
+
+      // Check each place for duplicates
+      const newPlaces = [];
+      data.places.forEach(p => {
+        const { isDuplicate } = checkIsDuplicate(p, allExistingPlaces);
+        if (!isDuplicate) {
+          newPlaces.push(p);
+        }
+      });
+
+      if (newPlaces.length === 0) {
+        if (!isAutoPrompt) {
+          toast(activeLang === 'th' ? 'ข้อมูลสถานที่ซิงก์ตรงกับ Google Maps ล่าสุดแล้ว ✨' : 'Places are already completely up to date ✨');
+        }
+        return;
+      }
+
+      // If auto-prompt check on load, show notification toast
+      if (isAutoPrompt) {
+        toast(activeLang === 'th' 
+          ? `💡 พบ ${newPlaces.length} สถานที่ใหม่ใน Google Maps ที่ผูกไว้! กดปุ่มซิงก์บนแถบด้านบนเพื่อนำเข้า` 
+          : `💡 Found ${newPlaces.length} new places in linked Google Maps! Tap Sync in header to import`);
+        return;
+      }
+
+      // Import new places grouped by detected city
+      const grouped = {};
+      newPlaces.forEach((p, idx) => {
+        let city = detectCityFromCoords(p.lat, p.lng);
+        if (city === 'other') city = activeCity;
+        if (!grouped[city]) grouped[city] = [];
+
+        const localId = `lm_${Date.now()}_${Math.floor(Math.random() * 10000)}_${idx}`;
+        const placeObj = {
+          id: localId,
+          name: p.name,
+          cat: p.category || 'อื่นๆ',
+          dur: 90,
+          icon: p.icon || '📍',
+          desc: p.note || p.address || '',
+          addr: p.address || '',
+          lat: p.lat ? parseFloat(p.lat) : null,
+          lng: p.lng ? parseFloat(p.lng) : null,
+          fee: '',
+          transport: [],
+          cover_image: null,
+          names: {},
+          descriptions: {},
+          city_id: city,
+          _custom: true
+        };
+        grouped[city].push(placeObj);
+      });
+
+      let totalImported = 0;
+      let updatedCustom = { ...customPlaces };
+      const allLandmarksToInsert = [];
+
+      Object.entries(grouped).forEach(([cId, placesList]) => {
+        totalImported += placesList.length;
+        const currentList = updatedCustom[cId] || [];
+        updatedCustom[cId] = [...currentList, ...placesList];
+
+        placesList.forEach(placeObj => {
+          allLandmarksToInsert.push({
+            id: String(placeObj.id),
+            name: placeObj.name,
+            cat: placeObj.cat,
+            icon: placeObj.icon,
+            city_id: placeObj.city_id,
+            address: placeObj.addr,
+            lat: placeObj.lat,
+            lng: placeObj.lng,
+            description: placeObj.desc,
+            duration_min: placeObj.dur,
+            fee: placeObj.fee,
+            transport: placeObj.transport,
+            status: 'user_custom'
+          });
+        });
+      });
+
+      if (googleSheets && user && allLandmarksToInsert.length > 0) {
+        try {
+          await googleSheets.bulkInsertLandmarks(user.email, allLandmarksToInsert);
+        } catch (err) {
+          console.warn('Failed to save to Google Sheets:', err);
+        }
+      }
+
+      setCustomPlaces(updatedCustom);
+      localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: updatedCustom }));
+
+      // Update landmarks if current active city has new places
+      if (grouped[activeCity] && Array.isArray(grouped[activeCity])) {
+        setLandmarks(prev => [...prev, ...grouped[activeCity]]);
+      }
+
+      toast(activeLang === 'th' ? `ซิงก์สำเร็จ! เพิ่ม ${totalImported} สถานที่ใหม่เข้าสู่ทริปแล้ว ✨` : `Synced successfully! Added ${totalImported} new places to trip ✨`);
+    } catch (err) {
+      if (!isAutoPrompt) {
+        toast(activeLang === 'th' ? 'เกิดข้อผิดพลาดในการซิงก์: ' + err.message : 'Error syncing: ' + err.message);
+      }
+    } finally {
+      setGmapsSyncLoading(false);
+    }
+  };
+
   const fillFromMaps = (name, lat, lng, address = '', category = 'อื่นๆ', icon = '📍', gmapsUrl = '', rating = null, photos = []) => {
     setActiveAddTab('manual');
     setFName(name || 'สถานที่จาก Google Maps');
@@ -3361,6 +3511,9 @@ function TripBuilderApp() {
         setActiveCity={setActiveCity}
         setFilterCat={setFilterCat}
         getCityObj={getCityObj}
+        gmapsSyncUrl={gmapsSyncUrl}
+        gmapsSyncLoading={gmapsSyncLoading}
+        syncGmaps={syncGmaps}
         t={t}
       />
 
@@ -4619,6 +4772,9 @@ function TripBuilderApp() {
         setAuthLoading={setAuthLoading}
         setLandmarks={setLandmarks}
         saveNewPlace={saveNewPlace}
+        allExistingPlaces={allExistingPlaces}
+        gmapsSyncUrl={gmapsSyncUrl}
+        setGmapsSyncUrl={setGmapsSyncUrl}
       />
 
       {/* ─── EXPORT & SHARE MODAL ───────────────────────────────────── */}

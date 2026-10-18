@@ -36,6 +36,9 @@ export default function HeaderNav({
   setActiveCity,
   setFilterCat,
   getCityObj,
+  gmapsSyncUrl,
+  gmapsSyncLoading,
+  syncGmaps,
   t
 }) {
   return (
@@ -95,6 +98,28 @@ export default function HeaderNav({
             </button>
             <button className="btn btn-ghost btn-sm topbar-clear-btn" onClick={clearAll}>{t('clear')}</button>
             <button className="btn btn-primary btn-sm topbar-export-btn" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
+            {gmapsSyncUrl && (
+              <button 
+                className="btn btn-ghost btn-sm topbar-sync-btn"
+                onClick={() => syncGmaps()}
+                disabled={gmapsSyncLoading}
+                title={t('gmapsSyncBtn')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: 'var(--primary)',
+                  border: '1px solid var(--border)'
+                }}
+              >
+                <span style={{ display: 'inline-block', animation: gmapsSyncLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+                <span className="sync-btn-text" style={{ fontSize: '11px', fontWeight: '600' }}>
+                  {gmapsSyncLoading 
+                    ? (activeLang === 'th' ? 'กำลังซิงก์...' : 'Syncing...') 
+                    : (activeLang === 'th' ? 'ซิงก์ Maps' : 'Sync Maps')}
+                </span>
+              </button>
+            )}
             <button 
               className={`btn btn-sm ${activeRoom ? 'btn-primary' : 'btn-ghost'} topbar-group-btn`} 
               onClick={() => setGroupModalOpen(true)}
