@@ -17,6 +17,7 @@ import QuickEditModals from './components/modals/QuickEditModals';
 import AuthModal from './components/modals/AuthModal';
 import GroupCollabModal from './components/modals/GroupCollabModal';
 import RouteOptimizationModal from './components/modals/RouteOptimizationModal';
+import BudgetTab from './components/BudgetTab';
 import {
   LANG_STRINGS,
   COUNTRIES,
@@ -41,7 +42,22 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.10.7';
+const APP_VERSION = 'v1.11.0';
+
+// ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
+const DEFAULT_BUDGET = {
+  totalBudget: 30000,
+  baseCurrency: 'THB',
+  exchangeRates: {
+    THB: 1.0,
+    KRW: 0.027,
+    JPY: 0.23,
+    USD: 36.5,
+    EUR: 39.5,
+    TWD: 1.15
+  },
+  expenses: []
+};
 
 
 const parseDateSafe = (dateVal) => {
@@ -166,6 +182,7 @@ function TripBuilderApp() {
   const searchParams = useSearchParams();
   const tripParam = searchParams.get('trip');
   const chkParam = searchParams.get('chk');
+  const bgtParam = searchParams.get('bgt');
   const roomParam = searchParams.get('room');
   const [activeRoom, setActiveRoom] = useState(null);
   const [myNickname, setMyNickname] = useState('');
@@ -196,6 +213,29 @@ function TripBuilderApp() {
   
   const [itin, setItin] = useState({ 1: [], 2: [], 3: [] });
   const [checklist, setChecklist] = useState([]);
+  const [budget, setBudget] = useState(DEFAULT_BUDGET);
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsOffline(!navigator.onLine);
+      const handleOnline = () => setIsOffline(false);
+      const handleOffline = () => setIsOffline(true);
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+        navigator.serviceWorker.register('/sw.js').catch(err => {
+          console.warn('Service Worker registration failed:', err);
+        });
+      }
+
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
+  }, []);
   const [activeRightTab, setActiveRightTab] = useState('nearby');
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [newChecklistCat, setNewChecklistCat] = useState('documents');
@@ -856,6 +896,13 @@ function TripBuilderApp() {
       setActivePlanId(currentPlan.id);
       setItin(currentPlan.itin || { 1: [], 2: [], 3: [] });
       setChecklist(currentPlan.checklist || []);
+      let loadedBudget = currentPlan.budget || DEFAULT_BUDGET;
+      try {
+        const localBgt = localStorage.getItem(`budget_${currentPlan.id}`) || localStorage.getItem(`trip_builder_budget_${currentPlan.id}`);
+        if (localBgt) loadedBudget = JSON.parse(localBgt);
+      } catch (_) {}
+      setBudget(loadedBudget);
+
       setNDays(currentPlan.nDays || 3);
       setStartDate(currentPlan.start || new Date().toISOString().split('T')[0]);
       setStartTime(currentPlan.time || '09:00');
@@ -890,6 +937,13 @@ function TripBuilderApp() {
           }
         } catch (_) {}
         setChecklist(loadedChecklist);
+
+        let loadedBudget = activePlan.budget || DEFAULT_BUDGET;
+        try {
+          const localBgt = localStorage.getItem(`budget_${activePlan.id}`) || localStorage.getItem(`trip_builder_budget_${activePlan.id}`);
+          if (localBgt) loadedBudget = JSON.parse(localBgt);
+        } catch (_) {}
+        setBudget(loadedBudget);
         
         setNDays(activePlan.nDays || 3);
         setStartDate(activePlan.start || new Date().toISOString().split('T')[0]);
@@ -1200,6 +1254,7 @@ function TripBuilderApp() {
         city_id: activeCity,
         itin: { 1: [], 2: [], 3: [] },
         checklist: [],
+        budget: DEFAULT_BUDGET,
         nDays: 3,
         start: new Date().toISOString().split('T')[0],
         time: '09:00',
@@ -1215,6 +1270,7 @@ function TripBuilderApp() {
       setActivePlanId(defaultPlanId);
       setItin(newPlan.itin);
       setChecklist(newPlan.checklist);
+      setBudget(DEFAULT_BUDGET);
       setNDays(newPlan.nDays);
       setStartDate(newPlan.start);
       setStartTime(newPlan.time);
@@ -1339,6 +1395,15 @@ function TripBuilderApp() {
       }
     } catch (_) {}
     setChecklist(loadedChecklist);
+
+    let loadedBudget = plan.budget || DEFAULT_BUDGET;
+    try {
+      const localBgt = localStorage.getItem(`budget_${planId}`) || localStorage.getItem(`trip_builder_budget_${planId}`);
+      if (localBgt) {
+        loadedBudget = JSON.parse(localBgt);
+      }
+    } catch (_) {}
+    setBudget(loadedBudget);
     
     setNDays(plan.nDays || 3);
     setStartDate(plan.start || new Date().toISOString().split('T')[0]);
@@ -1667,7 +1732,7 @@ function TripBuilderApp() {
   }, [activePlanId, plansList, activeCity, startDate, nDays]);
 
   // Save itinerary to LocalStorage or Cloud
-  const saveItinData = async (newItin, newNDays, currentChecklist = checklist) => {
+  const saveItinData = async (newItin, newNDays, currentChecklist = checklist, currentBudget = budget) => {
     try {
       const data = {
         itin: newItin,
@@ -1675,7 +1740,8 @@ function TripBuilderApp() {
         start: startDate,
         time: startTime,
         hotel: hotel,
-        checklist: currentChecklist
+        checklist: currentChecklist,
+        budget: currentBudget
       };
       localStorage.setItem('trip_builder_itin_v1', JSON.stringify(data));
     } catch (_) {}
@@ -1693,6 +1759,7 @@ function TripBuilderApp() {
         start_time: startTime,
         hotel: hotel,
         checklist: currentChecklist,
+        budget: currentBudget,
         members: activeMembersList.length > 0 ? activeMembersList : [myNickname || 'Member'],
         last_updated: Date.now(),
         last_updated_by: myNickname || 'Member'
@@ -1730,7 +1797,8 @@ function TripBuilderApp() {
               start: startDate,
               time: startTime,
               hotel: hotel,
-              checklist: currentChecklist
+              checklist: currentChecklist,
+              budget: currentBudget
             };
           }
           return p;
@@ -1759,7 +1827,8 @@ function TripBuilderApp() {
                   start: startDate,
                   time: startTime,
                   hotel: hotel,
-                  checklist: currentChecklist
+                  checklist: currentChecklist,
+                  budget: currentBudget
                 };
               }
               return p;
@@ -1786,7 +1855,8 @@ function TripBuilderApp() {
               start: startDate,
               time: startTime,
               hotel: hotel,
-              checklist: currentChecklist
+              checklist: currentChecklist,
+              budget: currentBudget
             };
           }
           return p;
@@ -1805,10 +1875,10 @@ function TripBuilderApp() {
       return;
     }
     const timer = setTimeout(() => {
-      saveItinData(itin, nDays, checklist);
+      saveItinData(itin, nDays, checklist, budget);
     }, 500);
     return () => clearTimeout(timer);
-  }, [itin, nDays, startDate, startTime, hotel, checklist]);
+  }, [itin, nDays, startDate, startTime, hotel, checklist, budget]);
 
   // Sync checklist state to localStorage based on active plan ID
   useEffect(() => {
@@ -1823,6 +1893,16 @@ function TripBuilderApp() {
       } catch (_) {}
     }
   }, [activePlanId, checklist]);
+
+  // Sync budget state to localStorage based on active plan ID
+  useEffect(() => {
+    if (activePlanId) {
+      try {
+        localStorage.setItem(`budget_${activePlanId}`, JSON.stringify(budget));
+        localStorage.setItem(`trip_builder_budget_${activePlanId}`, JSON.stringify(budget));
+      } catch (_) {}
+    }
+  }, [activePlanId, budget]);
 
   // Sync dates from start/end input
   const handleDateSync = (startVal, endVal) => {
@@ -2564,6 +2644,10 @@ function TripBuilderApp() {
         const chkEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(checklist))));
         url += '&chk=' + chkEncoded;
       }
+      if (budget && (budget.totalBudget > 0 || (budget.expenses && budget.expenses.length > 0))) {
+        const bgtEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(budget))));
+        url += '&bgt=' + bgtEncoded;
+      }
       return url;
     } catch (_) {
       return window.location.href;
@@ -2765,6 +2849,20 @@ function TripBuilderApp() {
       console.warn('Checklist share link decoding failed:', e);
     }
   }, [chkParam]);
+
+  // Load budget from Share Link on startup
+  useEffect(() => {
+    if (!bgtParam) return;
+    try {
+      const cleanParam = bgtParam.replace(/ /g, '+');
+      const loadedBudget = JSON.parse(decodeURIComponent(escape(atob(cleanParam))));
+      if (loadedBudget && typeof loadedBudget === 'object') {
+        setBudget(prev => ({ ...prev, ...loadedBudget }));
+      }
+    } catch (e) {
+      console.warn('Budget share link decoding failed:', e);
+    }
+  }, [bgtParam]);
 
   // ─── GROUP ROOM LOGIC & HANDLERS ──────────────────────────────────
   const generateRoomCode = () => {
@@ -3176,6 +3274,11 @@ function TripBuilderApp() {
 
   return (
     <>
+      {isOffline && (
+        <div className="offline-banner">
+          <span>{t('offlineBannerMsg')}</span>
+        </div>
+      )}
       <div 
         className="ambient-background" 
         style={{ backgroundImage: activeCity ? `url(${CITY_COVER_IMAGES[activeCity] || CITY_COVER_IMAGES.travel})` : 'none' }} 
@@ -3989,6 +4092,13 @@ function TripBuilderApp() {
             >
               📋 {t('tabChecklist')}
             </button>
+            <button 
+              className={`sidebar-tab-btn ${activeRightTab === 'budget' ? 'active' : ''}`}
+              onClick={() => setActiveRightTab('budget')}
+              id="tab-budget"
+            >
+              💰 {t('tabBudget')}
+            </button>
           </div>
           <div className="nearby-body">
             {activeRightTab === 'nearby' ? (
@@ -4173,6 +4283,23 @@ function TripBuilderApp() {
                   </div>
                 )}
               </div>
+            )}
+
+            {activeRightTab === 'budget' && (
+              <BudgetTab
+                budget={budget}
+                onUpdateBudget={(newBudget) => {
+                  setBudget(newBudget);
+                  saveItinData(itin, nDays, checklist, newBudget);
+                }}
+                activeLang={activeLang}
+                t={t}
+                itin={itin}
+                nDays={nDays}
+                landmarks={landmarks}
+                groupMembers={activeMembersList}
+                toast={toast}
+              />
             )}
           </div>
         </aside>
