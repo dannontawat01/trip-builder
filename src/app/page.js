@@ -505,6 +505,21 @@ function TripBuilderApp() {
   const [toastMessage, setToastMessage] = useState('');
   const [mobileTab, setMobileTab] = useState('plan');
   
+  // Touch & Popover states for iPad / Mobile
+  const [moveDayPopover, setMoveDayPopover] = useState(null); // { itinId, fromDay, idx, item }
+  const [addPlacePopover, setAddPlacePopover] = useState(null); // { landmarkId, place }
+  const [touchDrag, setTouchDrag] = useState(null); // { item, source, index, x, y, name, icon }
+  const [touchOverDay, setTouchOverDay] = useState(null);
+  const touchStateRef = useRef({
+    startX: 0,
+    startY: 0,
+    isDragging: false,
+    timer: null,
+    item: null,
+    source: null,
+    index: null,
+  });
+  
   // Add modal states
   const [osmQuery, setOsmQuery] = useState('');
   const [osmResults, setOsmResults] = useState([]);
@@ -1594,6 +1609,23 @@ function TripBuilderApp() {
     } catch (_) {}
   }, [startDate, nDays]);
 
+  // Close popovers on click outside
+  useEffect(() => {
+    const handleGlobalClick = (e) => {
+      if (!e.target.closest('.move-day-popover') && !e.target.closest('.move-day-btn')) {
+        setMoveDayPopover(null);
+      }
+      if (!e.target.closest('.lm-day-picker-popover') && !e.target.closest('.lm-card')) {
+        setAddPlacePopover(null);
+      }
+      if (!e.target.closest('.user-dropdown') && !e.target.closest('.user-badge')) {
+        setUserDropdownOpen(false);
+      }
+    };
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, []);
+
   // Load landmarks when activeCity or customPlaces changes
   useEffect(() => {
     const customList = customPlaces[activeCity] || [];
@@ -1926,6 +1958,29 @@ function TripBuilderApp() {
     
     setItin(currentItin);
     saveItinData(currentItin, nDays);
+  };
+
+  const moveItinItemToDay = (fromDay, fromIdx, toDay) => {
+    if (parseInt(fromDay) === parseInt(toDay)) return;
+    const currentItin = { ...itin };
+    if (!currentItin[fromDay] || !currentItin[fromDay][fromIdx]) return;
+    if (!currentItin[toDay]) currentItin[toDay] = [];
+
+    if (currentItin[toDay].length >= 5) {
+      toast(`${t('dayLabel')} ${toDay} ${activeLang === 'th' ? 'เต็มแล้ว (สูงสุด 5 ที่/วัน)' : 'is full (max 5 places/day)'}`);
+      return;
+    }
+
+    const [itemToMove] = currentItin[fromDay].splice(fromIdx, 1);
+    currentItin[toDay].push(itemToMove);
+
+    setItin(currentItin);
+    setLastId(itemToMove.id);
+    setLastDay(toDay);
+    saveItinData(currentItin, nDays);
+
+    const displayName = (itemToMove.names && itemToMove.names[activeLang]) || itemToMove.name;
+    toast(`✅ ${activeLang === 'th' ? `ย้าย ${displayName} → วันที่ ${toDay} แล้ว` : `Moved ${displayName} → Day ${toDay}`}`);
   };
 
   const clearAll = () => {
@@ -3174,6 +3229,54 @@ function TripBuilderApp() {
                                       {item.rating && <span style={{ color: '#EF9F27', fontSize: '9px', fontWeight: 'bold', marginLeft: '5px', whiteSpace: 'nowrap' }}>⭐ {item.rating}</span>}
                                     </div>
                                     <div className="it-actions">
+                                      <div className="move-day-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
+                                        <button
+                                          className="mvbtn move-day-btn"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const itemKey = item.itinId || `${item.id}_${day}_${idx}`;
+                                            setMoveDayPopover(prev => (prev?.itinId === itemKey ? null : {
+                                              itinId: itemKey,
+                                              fromDay: day,
+                                              idx,
+                                              item
+                                            }));
+                                          }}
+                                          title={activeLang === 'th' ? 'ย้ายวัน' : 'Move to Day'}
+                                        >
+                                          📅
+                                        </button>
+                                        {moveDayPopover?.itinId === (item.itinId || `${item.id}_${day}_${idx}`) && (
+                                          <div className="move-day-popover" onClick={(e) => e.stopPropagation()}>
+                                            <div className="popover-title">{activeLang === 'th' ? 'ย้ายไปยังวันไหน?' : 'Move to Day:'}</div>
+                                            <div className="popover-days-grid">
+                                              {Array.from({ length: nDays }, (_, i) => i + 1).map((d) => {
+                                                const count = (itin[d] || []).length;
+                                                const isCurrent = d === day;
+                                                const isFull = count >= 5 && !isCurrent;
+                                                const dayColor = DAY_COLORS[(d - 1) % DAY_COLORS.length];
+                                                return (
+                                                  <button
+                                                    key={d}
+                                                    disabled={isCurrent || isFull}
+                                                    className={`popover-day-btn ${isCurrent ? 'current' : ''} ${isFull ? 'full' : ''}`}
+                                                    style={!isFull && !isCurrent ? { borderColor: dayColor.b, background: dayColor.bg, color: dayColor.t } : {}}
+                                                    onClick={() => {
+                                                      moveItinItemToDay(day, idx, d);
+                                                      setMoveDayPopover(null);
+                                                    }}
+                                                  >
+                                                    <b>{t('dayLabel')} {d}</b>
+                                                    <span className="popover-day-sub">
+                                                      {isCurrent ? (activeLang === 'th' ? '(วันนี้)' : '(here)') : isFull ? (activeLang === 'th' ? '(เต็ม)' : '(full)') : `(${count}/5)`}
+                                                    </span>
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
                                       {idx > 0 && <button className="mvbtn" onClick={() => moveItinItem(day, idx, -1)}>↑</button>}
                                       {idx < items.length - 1 && <button className="mvbtn" onClick={() => moveItinItem(day, idx, 1)}>↓</button>}
                                       <button className="xbtn" onClick={() => removeItinItem(day, idx)}>✕</button>
