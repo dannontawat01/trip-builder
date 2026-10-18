@@ -462,7 +462,7 @@ export default function TravelModeView({
           bottom: 0;
           background: #0f172a;
           color: #f8fafc;
-          z-index: 9999;
+          z-index: 15000;
           display: flex;
           flex-direction: column;
           overflow-y: auto;

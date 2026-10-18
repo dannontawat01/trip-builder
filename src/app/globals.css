@@ -2774,22 +2774,25 @@ textarea.form-input {
   border: 1px dashed var(--border);
 }
 
-/* Fullscreen Map Styles */
+/* Fullscreen Map Styles & Stacking Isolation */
 .map-component-wrapper {
   border-radius: 16px;
   overflow: hidden;
+  isolation: isolate;
+  position: relative;
+  z-index: 1;
 }
 .map-component-wrapper.fullscreen {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 10000 !important; /* Keep below toast but above everything else */
+  z-index: 10000 !important; /* Keep below modal overlays and travel mode */
   width: 100vw !important;
   height: 100vh !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
 
-/* Elevate sticky parent stacking context when map is fullscreen to prevent sidebar elements leaking */
+/* Elevate sticky parent stacking context when map is fullscreen */
 .map-sidebar-wrapper:has(.map-component-wrapper.fullscreen) {
   z-index: 10000 !important;
 }
@@ -2798,7 +2801,7 @@ textarea.form-input {
   position: absolute;
   top: 12px;
   right: 12px;
-  z-index: 10005;
+  z-index: 500; /* Scoped inside isolated map container */
   width: 34px;
   height: 34px;
   background: var(--card);
@@ -2814,6 +2817,10 @@ textarea.form-input {
   transition: all 0.2s ease;
 }
 
+.map-component-wrapper.fullscreen .map-fullscreen-btn {
+  z-index: 10005 !important;
+}
+
 .map-fullscreen-btn:hover {
   background: var(--teal-l);
   color: var(--teal);
@@ -2826,10 +2833,13 @@ textarea.form-input {
   z-index: 10010 !important;
 }
 .overlay {
-  z-index: 10030 !important; /* Overlay above dropdown menu */
+  z-index: 10030 !important; /* Modal Overlay */
+}
+.travel-mode-overlay {
+  z-index: 15000 !important; /* Fullscreen Travel Mode */
 }
 .toast {
-  z-index: 10040 !important; /* Topmost alerts */
+  z-index: 20000 !important; /* Topmost alerts */
 }
 
 /* --- Checklist UI & Sidebar Tabs --- */
