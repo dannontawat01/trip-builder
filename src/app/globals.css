@@ -2363,9 +2363,24 @@ textarea.form-input {
   color: var(--teal-d);
 }
 
-/* Mobile bottom nav center ADD tab */
+/* Mobile bottom nav 5-column balanced layout */
+.mob-nav-btn,
 .mob-nav-center-add {
-  flex: 1;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 20% !important;
+  box-sizing: border-box !important;
+}
+
+.mob-nav-btn span:last-child {
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.mob-nav-center-add {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2373,7 +2388,7 @@ textarea.form-input {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  padding: 2px;
   -webkit-tap-highlight-color: transparent;
 }
 .mob-nav-center-add .add-ring {
