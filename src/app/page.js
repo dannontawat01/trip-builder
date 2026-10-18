@@ -20,6 +20,7 @@ import {
   CITY_KEYWORDS,
   CITY_COVER_IMAGES,
   getSmartCategoryCover,
+  getBrandPlacePhotos,
   CHECKLIST_CATEGORIES,
   CHECKLIST_TEMPLATES,
   generateChecklistId,
@@ -52,7 +53,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.17.0';
+const APP_VERSION = 'v1.17.1';
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -422,7 +423,33 @@ function TripBuilderApp() {
   };
 
   const getCoverImage = (place) => {
-    if (place && localCoverOverrides[place.id]) return localCoverOverrides[place.id];
+    const brandPhotos = getBrandPlacePhotos(place);
+    if (place && localCoverOverrides[place.id]) {
+      const ov = localCoverOverrides[place.id];
+      const isKnownGeneric = typeof ov === 'string' && (
+        ov.includes('photo-1503899036084-c55cdd92da26') ||
+        ov.includes('photo-1441986300917-64674bd600d8') ||
+        ov.includes('photo-1483985988355-763728e1935b') ||
+        ov.includes('photo-1536098561742-ca998e48cbcc') ||
+        ov.includes('AKB48') ||
+        ov.includes('Bicycle')
+      );
+      if (brandPhotos && brandPhotos.length > 0 && isKnownGeneric) {
+        return brandPhotos[0];
+      }
+      return ov;
+    }
+    if (brandPhotos && brandPhotos.length > 0) {
+      if (!place?.cover_image ||
+          place.cover_image.includes('photo-1483985988355-763728e1935b') ||
+          place.cover_image.includes('photo-1536098561742-ca998e48cbcc') ||
+          place.cover_image.includes('photo-1503899036084-c55cdd92da26') ||
+          place.cover_image.includes('AKB48') ||
+          place.cover_image.includes('Bicycle')) {
+        return brandPhotos[0];
+      }
+      return place.cover_image;
+    }
     if (place && place.cover_image) return place.cover_image;
     return getSmartCategoryCover(place, place?.city_id || activeCity);
   };
@@ -497,7 +524,11 @@ function TripBuilderApp() {
       const res = await fetch('/api/search-photos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: `${place.name} ${getCityName(getCityObj(place.city_id || activeCity), 'en')}`.trim() })
+        body: JSON.stringify({
+          query: place.name,
+          city: getCityName(getCityObj(place.city_id || activeCity), 'en'),
+          cat: place.cat || ''
+        })
       });
       if (res.ok) {
         const data = await res.json();

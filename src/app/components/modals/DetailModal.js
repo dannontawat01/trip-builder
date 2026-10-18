@@ -8,6 +8,7 @@ import {
   CITY_COVER_IMAGES,
   CATEGORY_COVER_IMAGES,
   getSmartCategoryCover,
+  getBrandPlacePhotos,
   translateCategory,
   getCityName
 } from '@/app/constants/translations';
@@ -152,28 +153,36 @@ export default function DetailModal({
                       {activeLang === 'th' ? '🔄 กำลังค้นหาภาพจริงของสถานที่...' : '🔄 Searching for real photos...'}
                     </div>
                   ) : (() => {
+                    const activeCover = getCoverImage(selectedPlace);
+                    const brandPhotos = getBrandPlacePhotos(selectedPlace) || [];
                     const placePhotos = (selectedPlace.photos && selectedPlace.photos.length > 0)
                       ? selectedPlace.photos
-                      : searchedPhotos;
-                    const displayUrls = placePhotos.length > 0 
-                      ? placePhotos.slice(0, 6) 
-                      : (() => {
-                          const cat = (selectedPlace.cat || '').toLowerCase();
-                          let key = 'general';
-                          if (cat.includes('โรงแรม') || cat.includes('hotel')) key = 'hotel';
-                          else if (cat.includes('อาหาร') || cat.includes('restaurant')) key = 'restaurant';
-                          else if (cat.includes('คาเฟ่') || cat.includes('cafe')) key = 'cafe';
-                          else if (cat.includes('ช้อปปิ้ง') || cat.includes('ห้าง') || cat.includes('shop')) key = 'shopping';
-                          else if (cat.includes('ตลาด') || cat.includes('market')) key = 'market';
-                          else if (cat.includes('วัด') || cat.includes('temple')) key = 'temple';
-                          else if (cat.includes('วัง') || cat.includes('palace')) key = 'palace';
-                          else if (cat.includes('พิพิธภัณฑ์') || cat.includes('museum')) key = 'museum';
-                          else if (cat.includes('ธรรมชาติ') || cat.includes('nature') || cat.includes('park')) key = 'nature';
-                          return (CATEGORY_COVER_IMAGES && CATEGORY_COVER_IMAGES[key]) || [CITY_COVER_IMAGES.travel];
-                        })();
+                      : (searchedPhotos && searchedPhotos.length > 0 ? searchedPhotos : []);
+                    
+                    const pool = [];
+                    if (activeCover) pool.push(activeCover);
+                    pool.push(...brandPhotos);
+                    pool.push(...placePhotos);
+
+                    if (pool.length === 0) {
+                      const cat = (selectedPlace.cat || '').toLowerCase();
+                      let key = 'general';
+                      if (cat.includes('โรงแรม') || cat.includes('hotel')) key = 'hotel';
+                      else if (cat.includes('อาหาร') || cat.includes('restaurant')) key = 'restaurant';
+                      else if (cat.includes('คาเฟ่') || cat.includes('cafe')) key = 'cafe';
+                      else if (cat.includes('ช้อปปิ้ง') || cat.includes('ห้าง') || cat.includes('shop')) key = 'shopping';
+                      else if (cat.includes('ตลาด') || cat.includes('market')) key = 'market';
+                      else if (cat.includes('วัด') || cat.includes('temple')) key = 'temple';
+                      else if (cat.includes('วัง') || cat.includes('palace')) key = 'palace';
+                      else if (cat.includes('พิพิธภัณฑ์') || cat.includes('museum')) key = 'museum';
+                      else if (cat.includes('ธรรมชาติ') || cat.includes('nature') || cat.includes('park')) key = 'nature';
+                      pool.push(...((CATEGORY_COVER_IMAGES && CATEGORY_COVER_IMAGES[key]) || [CITY_COVER_IMAGES.travel]));
+                    }
+
+                    const displayUrls = Array.from(new Set(pool.filter(u => typeof u === 'string' && u.startsWith('http')))).slice(0, 6);
 
                     return displayUrls.map((url, idx) => {
-                      const isSelected = editSelectedImage === url;
+                      const isSelected = editSelectedImage === url || (!editSelectedImage && (url === activeCover || idx === 0));
 
                       return (
                         <div

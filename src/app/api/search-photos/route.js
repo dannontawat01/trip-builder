@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSmartCategoryCover, BRAND_PLACE_IMAGES } from '@/app/constants/translations';
+import { getSmartCategoryCover, getBrandPlacePhotos, BRAND_PLACE_IMAGES } from '@/app/constants/translations';
 
 const photoCache = new Map();
 
@@ -138,6 +138,15 @@ async function resolvePlacePhotos(query, city = '', cat = '') {
 
   // 1. Check Brand & Specific Landmark Matching
   const placeMock = { name: query, cat: cat || '', city_id: city };
+  const brandPhotos = getBrandPlacePhotos(query) || getBrandPlacePhotos(placeMock);
+  if (brandPhotos && brandPhotos.length > 0) {
+    const result = {
+      photos: brandPhotos,
+      cover_image: brandPhotos[0]
+    };
+    photoCache.set(cacheKey, result);
+    return result;
+  }
   const brandCover = getSmartCategoryCover(placeMock, city);
   if (brandCover) {
     photos.push(brandCover);
