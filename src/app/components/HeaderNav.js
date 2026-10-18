@@ -39,6 +39,10 @@ export default function HeaderNav({
   gmapsSyncUrl,
   gmapsSyncLoading,
   syncGmaps,
+  setAddModalOpen,
+  setActiveAddTab,
+  setGmapsSyncUrl,
+  gmapsLastSyncTime,
   t
 }) {
   return (
@@ -98,28 +102,60 @@ export default function HeaderNav({
             </button>
             <button className="btn btn-ghost btn-sm topbar-clear-btn" onClick={clearAll}>{t('clear')}</button>
             <button className="btn btn-primary btn-sm topbar-export-btn" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
-            {gmapsSyncUrl && (
+            {/* Google Maps Sync Action (Always visible & interactive) */}
+            <div className="topbar-sync-group" style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
               <button 
-                className="btn btn-ghost btn-sm topbar-sync-btn"
-                onClick={() => syncGmaps()}
+                className={`btn btn-sm ${gmapsSyncUrl ? 'btn-ghost' : 'btn-ghost'} topbar-sync-btn`}
+                onClick={() => {
+                  if (gmapsSyncUrl) {
+                    syncGmaps();
+                  } else {
+                    if (setAddModalOpen) setAddModalOpen(true);
+                    if (setActiveAddTab) setActiveAddTab('gmaps');
+                  }
+                }}
                 disabled={gmapsSyncLoading}
-                title={t('gmapsSyncBtn')}
+                title={gmapsSyncUrl 
+                  ? (activeLang === 'th' ? `ซิงก์ข้อมูลจาก Google Maps (ซิงก์ล่าสุด: ${gmapsLastSyncTime || 'ยังไม่ได้ซิงก์'})` : `Sync from Google Maps (Last: ${gmapsLastSyncTime || 'Never'})`)
+                  : (activeLang === 'th' ? 'เชื่อมต่อ Google Maps เพื่อซิงก์สถานที่อัตโนมัติ' : 'Connect Google Maps to auto-sync places')}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
-                  color: 'var(--primary)',
-                  border: '1px solid var(--border)'
+                  color: gmapsSyncUrl ? 'var(--teal)' : 'var(--muted)',
+                  border: gmapsSyncUrl ? '1px solid var(--teal-m)' : '1px dashed var(--border)',
+                  background: gmapsSyncUrl ? 'rgba(29, 158, 117, 0.08)' : 'transparent'
                 }}
               >
                 <span style={{ display: 'inline-block', animation: gmapsSyncLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
                 <span className="sync-btn-text" style={{ fontSize: '11px', fontWeight: '600' }}>
                   {gmapsSyncLoading 
                     ? (activeLang === 'th' ? 'กำลังซิงก์...' : 'Syncing...') 
-                    : (activeLang === 'th' ? 'ซิงก์ Maps' : 'Sync Maps')}
+                    : gmapsSyncUrl 
+                      ? (activeLang === 'th' ? 'ซิงก์ Maps' : 'Sync Maps')
+                      : (activeLang === 'th' ? 'ซิงก์ Maps (เชื่อมต่อ)' : 'Sync Maps (Connect)')}
                 </span>
               </button>
-            )}
+              {gmapsSyncUrl && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => {
+                    if (setAddModalOpen) setAddModalOpen(true);
+                    if (setActiveAddTab) setActiveAddTab('gmaps');
+                  }}
+                  title={activeLang === 'th' ? 'จัดการ / เปลี่ยนลิงก์ Google Maps' : 'Manage / Change Google Maps Link'}
+                  style={{
+                    padding: '0 4px',
+                    height: '24px',
+                    color: 'var(--muted)',
+                    fontSize: '11px'
+                  }}
+                >
+                  ⚙️
+                </button>
+              )}
+            </div>
             <button 
               className={`btn btn-sm ${activeRoom ? 'btn-primary' : 'btn-ghost'} topbar-group-btn`} 
               onClick={() => setGroupModalOpen(true)}

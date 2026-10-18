@@ -73,7 +73,7 @@ export default function AddPlaceModal({
   const [activeCityFilter, setActiveCityFilter] = React.useState('all');
   const [hideDuplicates, setHideDuplicates] = React.useState(false);
   const [otherTargetCity, setOtherTargetCity] = React.useState(activeCity);
-  const [linkGmapsToTrip, setLinkGmapsToTrip] = React.useState(false);
+  const [linkGmapsToTrip, setLinkGmapsToTrip] = React.useState(true);
   const [bulkImporting, setBulkImporting] = React.useState(false);
 
   // Helper map for fast city lookups
@@ -113,11 +113,17 @@ export default function AddPlaceModal({
       setSelectedListIndices(nonDupIndices);
       setActiveCityFilter('all');
       setHideDuplicates(false);
-      setLinkGmapsToTrip(!!gmapsSyncUrl);
+      setLinkGmapsToTrip(true);
     } else {
       setSelectedListIndices([]);
     }
   }, [processedPlaces, gmapsSyncUrl]);
+
+  React.useEffect(() => {
+    if (activeAddTab === 'gmaps' && !gmapsUrl && gmapsSyncUrl) {
+      setGmapsUrl(gmapsSyncUrl);
+    }
+  }, [activeAddTab, gmapsSyncUrl]);
 
   React.useEffect(() => {
     if (activeCity) {
@@ -453,6 +459,55 @@ export default function AddPlaceModal({
               }}>
                 {t('gmapsSavedListHint')}
               </div>
+
+              {/* Currently Linked Google Maps URL Banner */}
+              {gmapsSyncUrl && (
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  marginBottom: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px'
+                }}>
+                  <div style={{ overflow: 'hidden', minWidth: 0 }}>
+                    <div style={{ fontSize: '11px', fontWeight: '600', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>🔗</span>
+                      <span>{activeLang === 'th' ? 'ลิงก์ Google Maps ที่ผูกไว้กับทริปนี้' : 'Linked Google Maps URL'}</span>
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={gmapsSyncUrl}>
+                      {gmapsSyncUrl}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => setGmapsUrl(gmapsSyncUrl)}
+                      style={{ fontSize: '10px', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.3)', height: '22px' }}
+                      title={activeLang === 'th' ? 'นำลิงก์ที่ผูกไว้มาใส่ในช่อง' : 'Use this URL in textarea'}
+                    >
+                      📋 {activeLang === 'th' ? 'ใส่ในช่อง' : 'Insert'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => {
+                        setGmapsSyncUrl('');
+                        try { localStorage.removeItem('trip_builder_gmaps_sync_url'); } catch (_) {}
+                        toast(activeLang === 'th' ? 'ยกเลิกการผูกลิงก์ Google Maps แล้ว' : 'Unlinked Google Maps URL');
+                      }}
+                      style={{ fontSize: '10px', color: 'var(--red)', border: '1px solid rgba(239, 68, 68, 0.3)', height: '22px' }}
+                      title={activeLang === 'th' ? 'ยกเลิกการผูกลิงก์นี้กับทริป' : 'Unlink from trip'}
+                    >
+                      ✕ {activeLang === 'th' ? 'ยกเลิกผูก' : 'Unlink'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <textarea

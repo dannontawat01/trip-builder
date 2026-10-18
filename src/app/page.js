@@ -51,7 +51,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.14.1';
+const APP_VERSION = 'v1.15.0';
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -363,6 +363,7 @@ function TripBuilderApp() {
   const [gmapsLoading, setGmapsLoading] = useState(false);
   const [gmapsSyncUrl, setGmapsSyncUrl] = useState('');
   const [gmapsSyncLoading, setGmapsSyncLoading] = useState(false);
+  const [gmapsLastSyncTime, setGmapsLastSyncTime] = useState('');
 
   // Memoized all existing places across landmarks and all custom places for duplicate detection
   const allExistingPlaces = useMemo(() => {
@@ -817,11 +818,15 @@ function TripBuilderApp() {
       }
     } catch (_) {}
 
-    // Load linked Google Maps sync URL
+    // Load linked Google Maps sync URL & last sync time
     try {
       const savedSyncUrl = localStorage.getItem('trip_builder_gmaps_sync_url');
       if (savedSyncUrl) {
         setGmapsSyncUrl(savedSyncUrl);
+      }
+      const savedLastSync = localStorage.getItem('trip_builder_gmaps_last_sync');
+      if (savedLastSync) {
+        setGmapsLastSyncTime(savedLastSync);
       }
     } catch (_) {}
 
@@ -2372,8 +2377,11 @@ function TripBuilderApp() {
       });
 
       if (newPlaces.length === 0) {
+        const nowStr = new Date().toLocaleTimeString(activeLang === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+        setGmapsLastSyncTime(nowStr);
+        try { localStorage.setItem('trip_builder_gmaps_last_sync', nowStr); } catch (_) {}
         if (!isAutoPrompt) {
-          toast(activeLang === 'th' ? 'ข้อมูลสถานที่ซิงก์ตรงกับ Google Maps ล่าสุดแล้ว ✨' : 'Places are already completely up to date ✨');
+          toast(activeLang === 'th' ? `ข้อมูลสถานที่ซิงก์ตรงกับ Google Maps ล่าสุดแล้ว ✨ (เวลา ${nowStr})` : `Places are already completely up to date ✨ (${nowStr})`);
         }
         return;
       }
@@ -2459,7 +2467,11 @@ function TripBuilderApp() {
         setLandmarks(prev => [...prev, ...grouped[activeCity]]);
       }
 
-      toast(activeLang === 'th' ? `ซิงก์สำเร็จ! เพิ่ม ${totalImported} สถานที่ใหม่เข้าสู่ทริปแล้ว ✨` : `Synced successfully! Added ${totalImported} new places to trip ✨`);
+      const nowStr = new Date().toLocaleTimeString(activeLang === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+      setGmapsLastSyncTime(nowStr);
+      try { localStorage.setItem('trip_builder_gmaps_last_sync', nowStr); } catch (_) {}
+
+      toast(activeLang === 'th' ? `ซิงก์สำเร็จ! เพิ่ม ${totalImported} สถานที่ใหม่เข้าสู่ทริปแล้ว ✨ (เวลา ${nowStr})` : `Synced successfully! Added ${totalImported} new places to trip ✨ (${nowStr})`);
     } catch (err) {
       if (!isAutoPrompt) {
         toast(activeLang === 'th' ? 'เกิดข้อผิดพลาดในการซิงก์: ' + err.message : 'Error syncing: ' + err.message);
@@ -3514,6 +3526,10 @@ function TripBuilderApp() {
         gmapsSyncUrl={gmapsSyncUrl}
         gmapsSyncLoading={gmapsSyncLoading}
         syncGmaps={syncGmaps}
+        setAddModalOpen={setAddModalOpen}
+        setActiveAddTab={setActiveAddTab}
+        setGmapsSyncUrl={setGmapsSyncUrl}
+        gmapsLastSyncTime={gmapsLastSyncTime}
         t={t}
       />
 
@@ -3655,10 +3671,42 @@ function TripBuilderApp() {
             })}
           </div>
 
-          <div className="places-meta-row">
+          <div className="places-meta-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px 2px' }}>
             <span className="places-count-label">
               {activeLang === 'th' ? `พบ ${filteredLandmarks.length} สถานที่` : `${filteredLandmarks.length} places`}
             </span>
+            {gmapsSyncUrl ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span 
+                  style={{ fontSize: '10px', color: 'var(--teal)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }} 
+                  title={gmapsSyncUrl}
+                  onClick={() => { setAddModalOpen(true); setActiveAddTab('gmaps'); }}
+                >
+                  🔗 {activeLang === 'th' ? 'ผูก Maps' : 'Maps Linked'}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => syncGmaps()}
+                  disabled={gmapsSyncLoading}
+                  title={activeLang === 'th' ? `ซิงก์ข้อมูลจาก Google Maps (ซิงก์ล่าสุด: ${gmapsLastSyncTime || 'ยังไม่ได้ซิงก์'})` : `Sync from Google Maps (Last: ${gmapsLastSyncTime || 'Never'})`}
+                  style={{ fontSize: '10px', padding: '1px 6px', height: '20px', borderRadius: '4px', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                >
+                  <span style={{ display: 'inline-block', animation: gmapsSyncLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+                  <span>{gmapsSyncLoading ? (activeLang === 'th' ? 'ซิงก์...' : 'Syncing...') : (activeLang === 'th' ? 'ซิงก์' : 'Sync')}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={() => { setAddModalOpen(true); setActiveAddTab('gmaps'); }}
+                style={{ fontSize: '10px', color: 'var(--muted)', padding: '1px 6px', height: '20px', border: '1px dashed var(--border)', borderRadius: '4px' }}
+                title={activeLang === 'th' ? 'เชื่อมต่อ Google Maps เพื่อซิงก์สถานที่อัตโนมัติ' : 'Connect Google Maps to auto-sync places'}
+              >
+                🔗 {activeLang === 'th' ? '+ เชื่อม Maps' : '+ Link Maps'}
+              </button>
+            )}
           </div>
 
           {/* Landmarks list rendering */}
