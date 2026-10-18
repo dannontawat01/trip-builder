@@ -432,6 +432,8 @@ function TripBuilderApp() {
         ov.includes('photo-1483985988355-763728e1935b') ||
         ov.includes('photo-1536098561742-ca998e48cbcc') ||
         ov.includes('photo-1579871494447-9811cf80d66c') ||
+        ov.includes('photo-1488646953014-85cb44e25828') ||
+        ov.includes('photo-1542051841857-5f90071e7989') ||
         ov.includes('AKB48') ||
         ov.includes('Bicycle')
       );
@@ -446,6 +448,8 @@ function TripBuilderApp() {
           place.cover_image.includes('photo-1536098561742-ca998e48cbcc') ||
           place.cover_image.includes('photo-1503899036084-c55cdd92da26') ||
           place.cover_image.includes('photo-1579871494447-9811cf80d66c') ||
+          place.cover_image.includes('photo-1488646953014-85cb44e25828') ||
+          place.cover_image.includes('photo-1542051841857-5f90071e7989') ||
           place.cover_image.includes('AKB48') ||
           place.cover_image.includes('Bicycle')) {
         return brandPhotos[0];
