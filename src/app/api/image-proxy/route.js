@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import sharp from 'sharp';
 
 // Private IP checks to prevent SSRF
 function isPrivateUrl(urlStr) {
@@ -85,34 +84,45 @@ export async function GET(req) {
       });
     }
 
-    // Process & compress with sharp
+    // Attempt processing & compressing with sharp (dynamically loaded)
+    let sharpInstance = null;
     try {
-      const optimizedBuffer = await sharp(buffer)
-        .rotate() // Auto-orient by EXIF
-        .resize({ width, withoutEnlargement: true })
-        .webp({ quality })
-        .toBuffer();
-
-      return new Response(optimizedBuffer, {
-        headers: {
-          'Content-Type': 'image/webp',
-          'Cache-Control': 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400',
-          'Vary': 'Accept'
-        }
-      });
-    } catch (sharpError) {
-      console.warn('[ImageProxy] Sharp processing failed, returning original:', sharpError.message);
-      // Fallback: return original buffer with caching
-      return new Response(buffer, {
-        headers: {
-          'Content-Type': contentType || 'image/jpeg',
-          'Cache-Control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400'
-        }
-      });
+      const sharpModule = await import('sharp');
+      sharpInstance = sharpModule.default || sharpModule;
+    } catch (_) {
+      // sharp is not available on this serverless environment
     }
+
+    if (sharpInstance) {
+      try {
+        const optimizedBuffer = await sharpInstance(buffer)
+          .rotate() // Auto-orient by EXIF
+          .resize({ width, withoutEnlargement: true })
+          .webp({ quality })
+          .toBuffer();
+
+        return new Response(optimizedBuffer, {
+          headers: {
+            'Content-Type': 'image/webp',
+            'Cache-Control': 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400',
+            'Vary': 'Accept'
+          }
+        });
+      } catch (sharpError) {
+        console.warn('[ImageProxy] Sharp processing error, falling back to original:', sharpError.message);
+      }
+    }
+
+    // Bulletproof Fallback: return source image directly with proper content-type & caching
+    return new Response(buffer, {
+      headers: {
+        'Content-Type': contentType || 'image/jpeg',
+        'Cache-Control': 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400'
+      }
+    });
 
   } catch (err) {
     console.error('[ImageProxy] Error handling image:', err.message);
-    return NextResponse.json({ error: 'Image proxy error' }, { status: 500 });
+    return NextResponse.json({ error: 'Image proxy error', details: err.message }, { status: 502 });
   }
 }
