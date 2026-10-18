@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { googleSheets } from '@/lib/googleSheets';
+import { getGmapsWalkingRouteUrl, shareGmapsRoute } from '@/lib/gmapsRoute';
 import dynamic from 'next/dynamic';
 
 const MapComponent = dynamic(() => import('./components/MapComponent'), {
@@ -11,7 +12,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.2.0';
+const APP_VERSION = 'v1.3.0';
 
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
 const LANG_STRINGS = {
@@ -63,6 +64,14 @@ const LANG_STRINGS = {
     copyLink: 'คัดลอก',
     shareLinkCopied: 'คัดลอกลิงก์แชร์แล้ว!',
     itineraryCopied: 'คัดลอกข้อความแล้ว!',
+    walkMaps: '🚶 เส้นทางเดิน',
+    shareWalkRoute: 'แชร์เส้นทางเดิน Google Maps',
+    walkRouteCopied: 'คัดลอกลิงก์เส้นทางเดินแล้ว!',
+    noPlacesForRoute: 'ยังไม่มีสถานที่ในวันนี้',
+    exportWalkTitle: '🗺️ เส้นทางเดิน Google Maps (แยกตามวัน)',
+    stopsCount: 'จุดแวะ',
+    openWalkMaps: 'เปิด Maps ↗',
+    copyWalkLink: 'คัดลอกลิงก์',
   },
   en: {
     places: 'Attractions', search: 'Search...', addManual: 'Manual', addAI: 'AI Add', addGmaps: 'Google Maps',
@@ -112,6 +121,14 @@ const LANG_STRINGS = {
     copyLink: 'Copy',
     shareLinkCopied: 'Share link copied!',
     itineraryCopied: 'Itinerary text copied!',
+    walkMaps: '🚶 Walking Route',
+    shareWalkRoute: 'Share Walking Route',
+    walkRouteCopied: 'Walking route link copied!',
+    noPlacesForRoute: 'No places in this day yet',
+    exportWalkTitle: '🗺️ Google Maps Walking Routes (By Day)',
+    stopsCount: 'stops',
+    openWalkMaps: 'Open Maps ↗',
+    copyWalkLink: 'Copy Link',
   }
 };
 
@@ -3504,9 +3521,85 @@ function TripBuilderApp() {
                             return null;
                           }
                         })()}
-                        <span className="day-info">
-                          {items.length} · {durationLabel}
-                        </span>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="day-info">
+                            {items.length} · {durationLabel}
+                          </span>
+                          {(() => {
+                            const walkUrl = getGmapsWalkingRouteUrl(items, activeLang);
+                            const hasItems = items.length > 0;
+                            return (
+                              <div className="day-route-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <button
+                                  type="button"
+                                  className="day-walk-btn"
+                                  disabled={!hasItems}
+                                  onClick={() => {
+                                    if (!walkUrl) {
+                                      toast(t('noPlacesForRoute'));
+                                      return;
+                                    }
+                                    window.open(walkUrl, '_blank', 'noopener,noreferrer');
+                                  }}
+                                  title={hasItems ? (activeLang === 'th' ? `เปิดเส้นทางเดินวันที่ ${day} ใน Google Maps` : `Open Day ${day} walking route in Google Maps`) : t('noPlacesForRoute')}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    padding: '2px 7px',
+                                    borderRadius: '10px',
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    background: hasItems ? 'var(--teal-light, #E1F5EE)' : 'rgba(0,0,0,0.05)',
+                                    color: hasItems ? 'var(--teal, #0F6E56)' : 'var(--muted, #888)',
+                                    border: '1px solid ' + (hasItems ? 'rgba(29, 158, 117, 0.3)' : 'transparent'),
+                                    cursor: hasItems ? 'pointer' : 'not-allowed',
+                                    lineHeight: '1.2',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <span>🚶</span>
+                                  <span>Maps</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="day-share-btn"
+                                  disabled={!hasItems}
+                                  onClick={async () => {
+                                    if (!walkUrl) {
+                                      toast(t('noPlacesForRoute'));
+                                      return;
+                                    }
+                                    await shareGmapsRoute({
+                                      url: walkUrl,
+                                      title: `${t('dayLabel')} ${day} - ${t('walkMaps')}`,
+                                      text: `${t('dayLabel')} ${day}: ${items.map(p => (p.names && p.names[activeLang]) || p.name).join(' ➔ ')}`,
+                                      onToast: toast,
+                                      copiedMsg: t('walkRouteCopied')
+                                    });
+                                  }}
+                                  title={t('shareWalkRoute')}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '20px',
+                                    height: '20px',
+                                    borderRadius: '50%',
+                                    fontSize: '11px',
+                                    background: hasItems ? 'var(--surface, #ffffff)' : 'transparent',
+                                    border: '1px solid ' + (hasItems ? 'var(--border, #e5e7eb)' : 'transparent'),
+                                    color: hasItems ? 'var(--fg, #333)' : 'var(--muted, #aaa)',
+                                    cursor: hasItems ? 'pointer' : 'not-allowed',
+                                    boxShadow: hasItems ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+                                  }}
+                                >
+                                  🔗
+                                </button>
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
 
                       {/* Smart Alert Banner */}
@@ -4602,7 +4695,95 @@ function TripBuilderApp() {
                 </div>
                 <div className="share-note">{t('exportShareNote')}</div>
               </div>
-              
+
+              {/* Google Maps Walking Routes By Day */}
+              <div className="form-group" style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '16px' }}>
+                <div className="form-label">{t('exportWalkTitle')}</div>
+                <p style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: '8px' }}>
+                  {activeLang === 'th'
+                    ? 'เปิดหรือแชร์เส้นทางนำทางเดินเท้าจริงผ่าน Google Maps สำหรับการเที่ยวแต่ละวัน'
+                    : 'Open or share turn-by-turn walking directions via Google Maps for each day.'}
+                </p>
+                <div className="export-walk-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {Array(nDays).fill(0).map((_, i) => {
+                    const day = i + 1;
+                    const dayItems = itin[day] || [];
+                    const walkUrl = getGmapsWalkingRouteUrl(dayItems, activeLang);
+                    const hasPlaces = dayItems.length > 0;
+                    const dayColor = DAY_COLORS[i % DAY_COLORS.length];
+                    const routeSummary = dayItems.map(p => (p.names && p.names[activeLang]) || p.name).join(' ➔ ');
+
+                    return (
+                      <div
+                        key={day}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          background: 'var(--surface-alt, rgba(0,0,0,0.02))',
+                          border: '1px solid var(--border, #e5e7eb)',
+                          fontSize: '12px',
+                          gap: '8px'
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: dayColor.t, background: dayColor.bg, padding: '1px 6px', borderRadius: '4px', fontSize: '11px', border: `1px solid ${dayColor.b}` }}>
+                              {t('dayLabel')} {day}
+                            </span>
+                            <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 'normal' }}>
+                              ({dayItems.length} {t('stopsCount')})
+                            </span>
+                          </div>
+                          {hasPlaces ? (
+                            <div style={{ fontSize: '11px', color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '3px' }} title={routeSummary}>
+                              {routeSummary}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic', marginTop: '3px' }}>
+                              {t('noPlacesForRoute')}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs"
+                            disabled={!hasPlaces}
+                            onClick={() => {
+                              if (walkUrl) window.open(walkUrl, '_blank', 'noopener,noreferrer');
+                            }}
+                            style={{ padding: '3px 8px', fontSize: '11px', border: '1px solid var(--border)' }}
+                          >
+                            {t('openWalkMaps')}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-xs"
+                            disabled={!hasPlaces}
+                            onClick={async () => {
+                              if (!walkUrl) return;
+                              await shareGmapsRoute({
+                                url: walkUrl,
+                                title: `${t('dayLabel')} ${day} - ${t('walkMaps')}`,
+                                text: `${t('dayLabel')} ${day}: ${routeSummary}`,
+                                onToast: toast,
+                                copiedMsg: t('walkRouteCopied')
+                              });
+                            }}
+                            style={{ padding: '3px 8px', fontSize: '11px' }}
+                          >
+                            {t('copyWalkLink')}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="form-group">
                 <div className="form-label">{t('exportPreview')}</div>
                 <pre className="out-box">{getFormattedItinerary()}</pre>
