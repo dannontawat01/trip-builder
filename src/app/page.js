@@ -6,6 +6,7 @@ import { googleSheets } from '@/lib/googleSheets';
 import { getGmapsWalkingRouteUrl, shareGmapsRoute } from '@/lib/gmapsRoute';
 import { optimizeDayRoute, calculateDistanceKm, estimateTravelTimeMins } from '@/lib/routeOptimizer';
 import dynamic from 'next/dynamic';
+import TravelModeView from './components/TravelModeView';
 
 const MapComponent = dynamic(() => import('./components/MapComponent'), {
   ssr: false,
@@ -13,7 +14,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.7.2';
+const APP_VERSION = 'v1.8.0';
 
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
 const LANG_STRINGS = {
@@ -114,6 +115,17 @@ const LANG_STRINGS = {
     optComparisonSubtitle: 'วิเคราะห์และจัดลำดับสถานที่ใหม่โดยอัลกอริทึม 2-Opt เพื่อลดระยะเดินทางรวม',
     optTotalDist: 'ระยะทางรวม',
     optTotalTime: 'เวลาเดินทางรวม',
+    travelMode: '✈️ โหมดเที่ยวจริง',
+    exitTravelMode: '✕ ออกจากโหมดเที่ยว',
+    currentStop: '📍 ตอนนี้อยู่ที่นี่',
+    nextStop: 'จุดถัดไป',
+    checkInBtn: '✅ เช็กอิน / ถึงแล้ว',
+    undoCheckIn: '↩️ เลิกทำ',
+    taxiCard: '🚕 ยื่นให้คนขับแท็กซี่',
+    taxiCardTitle: '🚕 ข้อมูลสำหรับคนขับแท็กซี่',
+    taxiCardSubtitle: 'กรุณายื่นหน้านี้ให้คนขับรถเพื่อนำทาง',
+    returnToHotel: '🏨 นำทางกลับโรงแรม',
+    allStopsCompleted: '🎉 ยอดเยี่ยม! คุณเที่ยวครบทุกจุดของวันนี้แล้ว',
   },
   en: {
     places: 'Attractions', search: 'Search...', addManual: 'Manual', addAI: 'AI Add', addGmaps: 'Google Maps',
@@ -212,6 +224,17 @@ const LANG_STRINGS = {
     optComparisonSubtitle: 'Reordered by 2-Opt TSP algorithm to minimize backtracking and transit time',
     optTotalDist: 'Total Distance',
     optTotalTime: 'Total Transit Time',
+    travelMode: '✈️ Travel Mode',
+    exitTravelMode: '✕ Exit Travel Mode',
+    currentStop: '📍 Current Stop',
+    nextStop: 'Next Stop',
+    checkInBtn: '✅ Check-in / Arrived',
+    undoCheckIn: '↩️ Undo',
+    taxiCard: '🚕 Taxi Driver Card',
+    taxiCardTitle: '🚕 Taxi Driver Information',
+    taxiCardSubtitle: 'Please show this screen to your driver',
+    returnToHotel: '🏨 Return to Hotel',
+    allStopsCompleted: '🎉 Awesome! All stops completed for today!',
   }
 };
 
@@ -604,6 +627,9 @@ function TripBuilderApp() {
   // Route Optimization states
   const [optModalOpen, setOptModalOpen] = useState(false);
   const [optData, setOptData] = useState(null);
+  
+  // Travel Mode state
+  const [travelModeOpen, setTravelModeOpen] = useState(false);
   
   // Auth states
   const [user, setUser] = useState(null);
@@ -3577,6 +3603,26 @@ function TripBuilderApp() {
             </div>
 
             <div className="topbar-action-group">
+              <button 
+                className="btn btn-sm topbar-travel-btn" 
+                onClick={() => setTravelModeOpen(true)}
+                title={t('travelMode')}
+                style={{
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: '700',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.35)',
+                  padding: '5px 10px',
+                  borderRadius: '8px'
+                }}
+              >
+                <span>✈️</span>
+                <span className="travel-btn-text">{activeLang === 'th' ? 'เที่ยวจริง' : 'Travel'}</span>
+              </button>
               <button className={`btn btn-sm ${showMap ? 'btn-primary' : 'btn-ghost'} topbar-map-btn`} onClick={() => setShowMap(!showMap)}>
                 <span className="map-btn-icon">🗺️</span>
                 <span className="map-btn-text"> {activeLang === 'th' ? 'แผนที่' : 'Map'}</span>
@@ -4683,6 +4729,10 @@ function TripBuilderApp() {
         <button className={`mob-nav-btn ${mobileTab === 'nearby' ? 'active' : ''}`} onClick={() => setMobileTab('nearby')}>
           <span className="nav-icon">💡</span>
           <span>{t('mobNearby')}</span>
+        </button>
+        <button className="mob-nav-btn travel-mob-btn" onClick={() => setTravelModeOpen(true)} style={{ color: '#0284c7', fontWeight: 'bold' }}>
+          <span className="nav-icon">✈️</span>
+          <span>{activeLang === 'th' ? 'เที่ยวจริง' : 'Travel'}</span>
         </button>
         <button className="mob-nav-btn" onClick={() => setExportModalOpen(true)}>
           <span className="nav-icon">📤</span>
@@ -6062,6 +6112,21 @@ function TripBuilderApp() {
           <span className="ghost-icon">{touchDrag.icon}</span>
           <span className="ghost-name">{touchDrag.name}</span>
         </div>
+      )}
+
+      {/* ─── TRAVEL MODE FULLSCREEN VIEW ────────────────────────────── */}
+      {travelModeOpen && (
+        <TravelModeView
+          itin={itin}
+          nDays={nDays}
+          activeCity={activeCity}
+          activeLang={activeLang}
+          hotel={hotel}
+          planId={activePlanId || (user ? user.email : 'guest')}
+          onClose={() => setTravelModeOpen(false)}
+          findLandmarkGlobally={findLandmarkGlobally}
+          t={t}
+        />
       )}
     </>
   );
