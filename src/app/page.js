@@ -12,7 +12,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.3.0';
+const APP_VERSION = 'v1.4.0';
 
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
 const LANG_STRINGS = {
@@ -72,6 +72,34 @@ const LANG_STRINGS = {
     stopsCount: 'จุดแวะ',
     openWalkMaps: 'เปิด Maps ↗',
     copyWalkLink: 'คัดลอกลิงก์',
+    groupPlan: '👥 วางแผนเป็นกลุ่ม',
+    groupModalTitle: '👥 วางแผนทริปเป็นกลุ่ม (Group Collaboration)',
+    tabCreateRoom: '✨ สร้างห้องใหม่',
+    tabJoinRoom: '🔑 เข้าร่วมด้วยรหัส',
+    roomCode: 'รหัสห้อง',
+    roomCodePh: 'เช่น TRIP-8821',
+    roomName: 'ชื่อกลุ่ม / ชื่อทริป',
+    roomNamePh: 'เช่น ทริปตะลุยโซลกับแก๊งเพื่อน',
+    nickname: 'ชื่อเล่นของคุณ',
+    nicknamePh: 'เช่น แบงค์, ปัง, ส้ม',
+    createRoomBtn: '🚀 สร้างห้องกลุ่ม',
+    joinRoomBtn: '🚀 เข้าร่วมกลุ่ม',
+    leaveRoom: 'ออกจากกลุ่ม',
+    confirmLeaveRoom: 'คุณต้องการออกจากห้องกลุ่มนี้และกลับสู่แผนส่วนตัวใช่หรือไม่?',
+    syncRoom: 'ซิงก์ข้อมูล',
+    syncingRoom: 'กำลังซิงก์...',
+    syncSuccess: 'ซิงก์ข้อมูลทริปล่าสุดสำเร็จ!',
+    activeRoomBanner: 'ห้องกลุ่ม',
+    roomMembers: 'สมาชิกในกลุ่ม',
+    roomInviteNote: 'ส่งรหัสห้องหรือลิงก์นี้ให้เพื่อน เพื่อร่วมกันจัดทริปได้ทันที',
+    roomCopiedLink: 'คัดลอกลิงก์เชิญเข้ากลุ่มแล้ว!',
+    copyInviteLink: 'คัดลอกลิงก์เชิญ',
+    assignee: 'ผู้รับผิดชอบ',
+    assigneePh: 'ระบุชื่อคนเตรียม...',
+    assignToMe: 'ฉันเตรียมเอง',
+    unassigned: 'ยังไม่ได้ระบุ',
+    saveRoomError: 'ไม่สามารถบันทึกข้อมูลห้องได้',
+    roomNotFound: 'ไม่พบรหัสห้องนี้ กรุณาตรวจสอบรหัสอีกครั้ง',
   },
   en: {
     places: 'Attractions', search: 'Search...', addManual: 'Manual', addAI: 'AI Add', addGmaps: 'Google Maps',
@@ -129,6 +157,34 @@ const LANG_STRINGS = {
     stopsCount: 'stops',
     openWalkMaps: 'Open Maps ↗',
     copyWalkLink: 'Copy Link',
+    groupPlan: '👥 Group Planning',
+    groupModalTitle: '👥 Group Trip Collaboration',
+    tabCreateRoom: '✨ Create Room',
+    tabJoinRoom: '🔑 Join with Code',
+    roomCode: 'Room Code',
+    roomCodePh: 'e.g. TRIP-8821',
+    roomName: 'Group / Trip Name',
+    roomNamePh: 'e.g. Seoul Trip with Friends',
+    nickname: 'Your Nickname',
+    nicknamePh: 'e.g. Alex, Sam, Chris',
+    createRoomBtn: '🚀 Create Room',
+    joinRoomBtn: '🚀 Join Room',
+    leaveRoom: 'Leave Room',
+    confirmLeaveRoom: 'Do you want to leave this group room and return to your personal plan?',
+    syncRoom: 'Sync Data',
+    syncingRoom: 'Syncing...',
+    syncSuccess: 'Trip data synced successfully!',
+    activeRoomBanner: 'Group Room',
+    roomMembers: 'Group Members',
+    roomInviteNote: 'Share this room code or invite link with friends to plan together.',
+    roomCopiedLink: 'Invite link copied!',
+    copyInviteLink: 'Copy Invite Link',
+    assignee: 'Assignee',
+    assigneePh: 'Person preparing this...',
+    assignToMe: 'Assign to me',
+    unassigned: 'Unassigned',
+    saveRoomError: 'Failed to save room data',
+    roomNotFound: 'Room code not found. Please verify the code.',
   }
 };
 
@@ -461,6 +517,16 @@ function TripBuilderApp() {
   const searchParams = useSearchParams();
   const tripParam = searchParams.get('trip');
   const chkParam = searchParams.get('chk');
+  const roomParam = searchParams.get('room');
+  const [activeRoom, setActiveRoom] = useState(null);
+  const [myNickname, setMyNickname] = useState('');
+  const [activeMembersList, setActiveMembersList] = useState([]);
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [groupModalTab, setGroupModalTab] = useState('create');
+  const [inputRoomCode, setInputRoomCode] = useState('');
+  const [inputRoomName, setInputRoomName] = useState('');
+  const [inputNickname, setInputNickname] = useState('');
+  const [isRoomSyncing, setIsRoomSyncing] = useState(false);
   const [activeLang, setActiveLang] = useState('th');
   const [activeCountry, setActiveCountry] = useState('th');
   const [activeCity, setActiveCity] = useState('bkk');
@@ -1894,6 +1960,45 @@ function TripBuilderApp() {
       localStorage.setItem('trip_builder_itin_v1', JSON.stringify(data));
     } catch (_) {}
 
+    // Group Room mode: sync directly to shared room
+    if (activeRoom) {
+      const roomCodeUpper = activeRoom.code.toUpperCase();
+      const roomPlanData = {
+        id: activeRoom.id || `plan_${roomCodeUpper}`,
+        name: activeRoom.name || `ทริปกลุ่ม ${roomCodeUpper}`,
+        city_id: activeCity,
+        itin: newItin,
+        n_days: newNDays,
+        start_date: startDate,
+        start_time: startTime,
+        hotel: hotel,
+        checklist: currentChecklist,
+        members: activeMembersList.length > 0 ? activeMembersList : [myNickname || 'Member'],
+        last_updated: Date.now(),
+        last_updated_by: myNickname || 'Member'
+      };
+
+      try {
+        localStorage.setItem(`tb_cache_room_${roomCodeUpper}`, JSON.stringify(roomPlanData));
+      } catch (_) {}
+
+      if (googleSheets) {
+        try {
+          await googleSheets.updateItinerary(roomPlanData);
+        } catch (err) {
+          console.warn('Failed to update group room itinerary in Google Sheets:', err.message);
+        }
+      } else {
+        try {
+          const rawRooms = localStorage.getItem('tb_mock_rooms') || '{}';
+          const mockRooms = JSON.parse(rawRooms);
+          mockRooms[roomCodeUpper] = roomPlanData;
+          localStorage.setItem('tb_mock_rooms', JSON.stringify(mockRooms));
+        } catch (_) {}
+      }
+      return;
+    }
+
     if (user && activePlanId && activePlanId !== 'guest') {
       if (!googleSheets) {
         const updatedPlans = plansList.map(p => {
@@ -2941,6 +3046,350 @@ function TripBuilderApp() {
     }
   }, [chkParam]);
 
+  // ─── GROUP ROOM LOGIC & HANDLERS ──────────────────────────────────
+  const generateRoomCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `TRIP-${code}`;
+  };
+
+  const handleCreateRoom = async () => {
+    if (!inputNickname.trim()) {
+      toast(activeLang === 'th' ? 'กรุณากรอกชื่อเล่นของคุณ' : 'Please enter your nickname');
+      return;
+    }
+    const code = (inputRoomCode.trim() || generateRoomCode()).toUpperCase();
+    const roomName = inputRoomName.trim() || (activeLang === 'th' ? `ทริปกลุ่ม ${code}` : `Group Trip ${code}`);
+    const nick = inputNickname.trim();
+
+    setIsRoomSyncing(true);
+    const roomKey = `room:${code}`;
+    const planId = `plan_${code}_${Date.now()}`;
+
+    const roomPlanData = {
+      id: planId,
+      name: roomName,
+      city_id: activeCity,
+      itin: itin,
+      n_days: nDays,
+      start_date: startDate || new Date().toISOString().split('T')[0],
+      start_time: startTime || '09:00',
+      hotel: hotel || '',
+      checklist: checklist || [],
+      members: [nick],
+      host: nick,
+      last_updated: Date.now(),
+      last_updated_by: nick
+    };
+
+    try {
+      if (googleSheets) {
+        await googleSheets.insertItinerary(roomKey, roomPlanData);
+      } else {
+        const rawRooms = localStorage.getItem('tb_mock_rooms') || '{}';
+        const mockRooms = JSON.parse(rawRooms);
+        mockRooms[code] = roomPlanData;
+        localStorage.setItem('tb_mock_rooms', JSON.stringify(mockRooms));
+      }
+
+      const roomObj = { code, name: roomName, id: planId, host: nick };
+      setActiveRoom(roomObj);
+      setMyNickname(nick);
+      setActiveMembersList([nick]);
+      localStorage.setItem('tb_active_room', JSON.stringify(roomObj));
+      localStorage.setItem('tb_my_nickname', nick);
+      localStorage.setItem(`tb_cache_room_${code}`, JSON.stringify(roomPlanData));
+
+      setGroupModalOpen(false);
+      toast(activeLang === 'th' ? `🎉 สร้างห้องกลุ่ม ${code} สำเร็จ!` : `🎉 Group room ${code} created!`);
+    } catch (err) {
+      console.error('Create room error:', err);
+      toast(activeLang === 'th' ? `สร้างห้องไม่สำเร็จ: ${err.message}` : `Failed to create room: ${err.message}`);
+    } finally {
+      setIsRoomSyncing(false);
+    }
+  };
+
+  const handleJoinRoom = async (codeToJoin, nicknameToUse) => {
+    const code = (codeToJoin || inputRoomCode).trim().toUpperCase();
+    const nick = (nicknameToUse || inputNickname).trim();
+
+    if (!code) {
+      toast(activeLang === 'th' ? 'กรุณากรอกรหัสห้อง' : 'Please enter room code');
+      return;
+    }
+    if (!nick) {
+      toast(activeLang === 'th' ? 'กรุณากรอกชื่อเล่นของคุณ' : 'Please enter your nickname');
+      return;
+    }
+
+    setIsRoomSyncing(true);
+    const roomKey = `room:${code}`;
+
+    try {
+      let roomPlan = null;
+      if (googleSheets) {
+        const cloudPlans = await googleSheets.getItineraries(roomKey);
+        if (cloudPlans && cloudPlans.length > 0) {
+          roomPlan = cloudPlans[0];
+        }
+      } else {
+        const rawRooms = localStorage.getItem('tb_mock_rooms') || '{}';
+        const mockRooms = JSON.parse(rawRooms);
+        if (mockRooms[code]) {
+          roomPlan = mockRooms[code];
+        }
+      }
+
+      if (!roomPlan) {
+        toast(t('roomNotFound'));
+        setIsRoomSyncing(false);
+        return;
+      }
+
+      const existingMembers = Array.isArray(roomPlan.members) ? roomPlan.members : [];
+      const updatedMembers = existingMembers.includes(nick) ? existingMembers : [...existingMembers, nick];
+
+      let parsedItin = roomPlan.itin;
+      if (typeof parsedItin === 'string') {
+        try { parsedItin = JSON.parse(parsedItin); } catch (_) { parsedItin = {}; }
+      }
+      if (!parsedItin || typeof parsedItin !== 'object') parsedItin = { 1: [], 2: [], 3: [] };
+
+      let parsedChecklist = roomPlan.checklist;
+      if (typeof parsedChecklist === 'string') {
+        try { parsedChecklist = JSON.parse(parsedChecklist); } catch (_) { parsedChecklist = []; }
+      }
+      if (!Array.isArray(parsedChecklist)) parsedChecklist = [];
+
+      setItin(parsedItin);
+      setChecklist(parsedChecklist);
+      setNDays(roomPlan.n_days || roomPlan.nDays || 3);
+      setStartDate(roomPlan.start_date || roomPlan.start || '');
+      setStartTime(roomPlan.start_time || roomPlan.time || '09:00');
+      setHotel(roomPlan.hotel || '');
+      if (roomPlan.city_id) {
+        setActiveCity(roomPlan.city_id);
+        setActiveCountry(getCountryOfCity(roomPlan.city_id));
+      }
+
+      const roomObj = {
+        code,
+        name: roomPlan.name || `ทริปกลุ่ม ${code}`,
+        id: roomPlan.id || `plan_${code}`,
+        host: roomPlan.host || updatedMembers[0]
+      };
+      setActiveRoom(roomObj);
+      setMyNickname(nick);
+      setActiveMembersList(updatedMembers);
+
+      localStorage.setItem('tb_active_room', JSON.stringify(roomObj));
+      localStorage.setItem('tb_my_nickname', nick);
+
+      const updatedPlanData = {
+        ...roomPlan,
+        id: roomPlan.id || `plan_${code}`,
+        name: roomPlan.name || `ทริปกลุ่ม ${code}`,
+        city_id: roomPlan.city_id || activeCity,
+        itin: parsedItin,
+        checklist: parsedChecklist,
+        members: updatedMembers,
+        last_updated: Date.now(),
+        last_updated_by: nick
+      };
+      localStorage.setItem(`tb_cache_room_${code}`, JSON.stringify(updatedPlanData));
+
+      if (googleSheets) {
+        googleSheets.updateItinerary(updatedPlanData).catch(() => {});
+      } else {
+        const rawRooms = localStorage.getItem('tb_mock_rooms') || '{}';
+        const mockRooms = JSON.parse(rawRooms);
+        mockRooms[code] = updatedPlanData;
+        localStorage.setItem('tb_mock_rooms', JSON.stringify(mockRooms));
+      }
+
+      setGroupModalOpen(false);
+      toast(activeLang === 'th' ? `🎉 เข้าร่วมห้อง ${code} เรียบร้อย!` : `🎉 Joined room ${code}!`);
+    } catch (err) {
+      console.error('Join room error:', err);
+      toast(activeLang === 'th' ? `ไม่สามารถเข้าร่วมห้องได้: ${err.message}` : `Failed to join room: ${err.message}`);
+    } finally {
+      setIsRoomSyncing(false);
+    }
+  };
+
+  const handleLeaveRoom = () => {
+    if (!confirm(t('confirmLeaveRoom'))) return;
+    setActiveRoom(null);
+    setActiveMembersList([]);
+    localStorage.removeItem('tb_active_room');
+    toast(activeLang === 'th' ? 'ออกจากห้องกลุ่มแล้ว กลับสู่แผนส่วนตัว' : 'Left group room, returned to personal plan');
+
+    if (typeof window !== 'undefined' && window.location.search.includes('room=')) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    if (user) {
+      if (googleSheets) loadCloudPlans(user.email);
+      else loadLocalMockPlans(user.email);
+    } else {
+      loadGuestPlans();
+    }
+  };
+
+  const syncRoomData = async (isManual = false) => {
+    if (!activeRoom) return;
+    if (isManual) setIsRoomSyncing(true);
+    const roomKey = `room:${activeRoom.code.toUpperCase()}`;
+
+    try {
+      let freshPlan = null;
+      if (googleSheets) {
+        const cloudPlans = await googleSheets.getItineraries(roomKey);
+        if (cloudPlans && cloudPlans.length > 0) freshPlan = cloudPlans[0];
+      } else {
+        const rawRooms = localStorage.getItem('tb_mock_rooms') || '{}';
+        const mockRooms = JSON.parse(rawRooms);
+        if (mockRooms[activeRoom.code.toUpperCase()]) freshPlan = mockRooms[activeRoom.code.toUpperCase()];
+      }
+
+      if (freshPlan) {
+        let parsedItin = freshPlan.itin;
+        if (typeof parsedItin === 'string') {
+          try { parsedItin = JSON.parse(parsedItin); } catch (_) { parsedItin = {}; }
+        }
+        let parsedChecklist = freshPlan.checklist;
+        if (typeof parsedChecklist === 'string') {
+          try { parsedChecklist = JSON.parse(parsedChecklist); } catch (_) { parsedChecklist = []; }
+        }
+
+        const freshDays = freshPlan.n_days || freshPlan.nDays || nDays;
+        const freshHotel = freshPlan.hotel || '';
+        const currentCache = localStorage.getItem(`tb_cache_room_${activeRoom.code.toUpperCase()}`);
+        const freshStr = JSON.stringify({ itin: parsedItin, checklist: parsedChecklist, nDays: freshDays, hotel: freshHotel });
+
+        let isDifferent = true;
+        if (currentCache) {
+          try {
+            const c = JSON.parse(currentCache);
+            const cachedStr = JSON.stringify({ itin: c.itin, checklist: c.checklist, nDays: c.n_days || c.nDays, hotel: c.hotel });
+            if (cachedStr === freshStr) isDifferent = false;
+          } catch (_) {}
+        }
+
+        if (isDifferent) {
+          if (parsedItin) setItin(parsedItin);
+          if (Array.isArray(parsedChecklist)) setChecklist(parsedChecklist);
+          if (freshPlan.n_days || freshPlan.nDays) setNDays(freshDays);
+          if (freshPlan.start_date || freshPlan.start) setStartDate(freshPlan.start_date || freshPlan.start);
+          if (freshPlan.start_time || freshPlan.time) setStartTime(freshPlan.start_time || freshPlan.time);
+          if (freshPlan.hotel !== undefined) setHotel(freshHotel);
+          if (freshPlan.city_id && freshPlan.city_id !== activeCity) {
+            setActiveCity(freshPlan.city_id);
+            setActiveCountry(getCountryOfCity(freshPlan.city_id));
+          }
+          localStorage.setItem(`tb_cache_room_${activeRoom.code.toUpperCase()}`, JSON.stringify(freshPlan));
+        }
+
+        if (Array.isArray(freshPlan.members)) {
+          setActiveMembersList(freshPlan.members);
+        }
+
+        if (isManual) {
+          toast(t('syncSuccess'));
+        }
+      }
+    } catch (err) {
+      if (isManual) toast(activeLang === 'th' ? `ซิงก์ไม่สำเร็จ: ${err.message}` : `Sync failed: ${err.message}`);
+    } finally {
+      if (isManual) setIsRoomSyncing(false);
+    }
+  };
+
+  const copyRoomInviteLink = () => {
+    if (!activeRoom) return;
+    const url = window.location.origin + window.location.pathname + `?room=${encodeURIComponent(activeRoom.code)}`;
+    navigator.clipboard.writeText(url);
+    toast(t('roomCopiedLink'));
+  };
+
+  // Group Room background auto-sync (every 25 seconds)
+  useEffect(() => {
+    if (!activeRoom) return;
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        syncRoomData(false);
+      }
+    }, 25000);
+    return () => clearInterval(interval);
+  }, [activeRoom]);
+
+  // Handle ?room=CODE param or restore activeRoom
+  useEffect(() => {
+    try {
+      const savedNick = localStorage.getItem('tb_my_nickname');
+      if (savedNick) {
+        setMyNickname(savedNick);
+        setInputNickname(savedNick);
+      }
+
+      if (roomParam) {
+        const code = roomParam.trim().toUpperCase();
+        setInputRoomCode(code);
+        setGroupModalTab('join');
+        if (savedNick) {
+          handleJoinRoom(code, savedNick);
+        } else {
+          setGroupModalOpen(true);
+        }
+        return;
+      }
+
+      const savedRoom = localStorage.getItem('tb_active_room');
+      if (savedRoom) {
+        const parsedRoom = JSON.parse(savedRoom);
+        setActiveRoom(parsedRoom);
+        const cached = localStorage.getItem(`tb_cache_room_${parsedRoom.code}`);
+        if (cached) {
+          try {
+            const d = JSON.parse(cached);
+            if (d.itin) setItin(d.itin);
+            if (d.checklist) setChecklist(d.checklist);
+            if (d.n_days || d.nDays) setNDays(d.n_days || d.nDays);
+            if (d.start_date || d.start) setStartDate(d.start_date || d.start);
+            if (d.start_time || d.time) setStartTime(d.start_time || d.time);
+            if (d.hotel) setHotel(d.hotel);
+            if (d.members) setActiveMembersList(d.members);
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+  }, [roomParam]);
+
+  const handleSetChecklistAssignee = (itemId, assigneeName) => {
+    const updatedChecklist = checklist.map(item => {
+      if (item.id === itemId) {
+        return { ...item, assignee: assigneeName };
+      }
+      return item;
+    });
+    setChecklist(updatedChecklist);
+    saveItinData(itin, nDays, updatedChecklist);
+  };
+
+  const handlePromptAssignee = (itemId, currentAssignee) => {
+    const promptText = activeLang === 'th' 
+      ? `ระบุชื่อผู้รับผิดชอบสิ่งนี้ (พิมพ์ชื่อเล่น เช่น ${myNickname || 'แบงค์'}):`
+      : `Assign this item to (e.g. ${myNickname || 'Sam'}):`;
+    const name = window.prompt(promptText, currentAssignee || myNickname || '');
+    if (name !== null) {
+      handleSetChecklistAssignee(itemId, name.trim());
+    }
+  };
+
   // ─── CALCULATE SUMMARY STATS ───────────────────────────────────────
   const getSummaryStats = () => {
     let placesCount = 0;
@@ -3048,6 +3497,14 @@ function TripBuilderApp() {
               </button>
               <button className="btn btn-ghost btn-sm topbar-clear-btn" onClick={clearAll}>{t('clear')}</button>
               <button className="btn btn-primary btn-sm topbar-export-btn" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
+              <button 
+                className={`btn btn-sm ${activeRoom ? 'btn-primary' : 'btn-ghost'} topbar-group-btn`} 
+                onClick={() => setGroupModalOpen(true)}
+                title={t('groupPlan')}
+              >
+                <span>👥</span>
+                <span className="group-btn-text">{activeRoom ? activeRoom.code : t('groupPlan')}</span>
+              </button>
             </div>
 
             {/* Plans Selector Dropdown (Available for ALL users) */}
@@ -3201,6 +3658,54 @@ function TripBuilderApp() {
 
         <div className="topbar-sep desktop-sep-2" />
       </div>
+
+      {/* ─── ACTIVE GROUP ROOM BANNER ─────────────────────────────── */}
+      {activeRoom && (
+        <div className="group-room-banner">
+          <div className="room-banner-left">
+            <div className="room-badge-pill">
+              <span className="room-indicator-dot"></span>
+              <span className="room-badge-label">{t('activeRoomBanner')}:</span>
+              <strong>{activeRoom.code}</strong>
+            </div>
+            <span className="room-title-text">{activeRoom.name}</span>
+            <div className="room-members-avatars">
+              {activeMembersList.map((m, idx) => (
+                <span key={idx} className={`room-member-tag ${m === myNickname ? 'is-me' : ''}`} title={m}>
+                  👤 {m} {m === myNickname ? `(${activeLang === 'th' ? 'ฉัน' : 'You'})` : ''}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="room-banner-actions">
+            <button 
+              className={`btn btn-sm ${isRoomSyncing ? 'btn-ghost is-syncing' : 'btn-ghost'}`} 
+              onClick={() => syncRoomData(true)}
+              disabled={isRoomSyncing}
+              title={t('syncRoom')}
+            >
+              <span className={isRoomSyncing ? 'spin-icon' : ''}>🔄</span>
+              <span className="hide-on-mobile">{isRoomSyncing ? t('syncingRoom') : t('syncRoom')}</span>
+            </button>
+            <button 
+              className="btn btn-sm btn-ghost" 
+              onClick={copyRoomInviteLink}
+              title={t('copyInviteLink')}
+            >
+              <span>🔗</span>
+              <span className="hide-on-mobile">{t('copyInviteLink')}</span>
+            </button>
+            <button 
+              className="btn btn-sm btn-ghost room-leave-btn" 
+              onClick={handleLeaveRoom}
+              title={t('leaveRoom')}
+            >
+              <span>🚪</span>
+              <span className="hide-on-mobile">{t('leaveRoom')}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ─── MAIN LAYOUT ────────────────────────────────────────────── */}
       <div className="layout">
@@ -3987,6 +4492,26 @@ function TripBuilderApp() {
                                 />
                                 <span className="checklist-text">{item.text}</span>
                               </label>
+                              <div className="checklist-assignee-box">
+                                {item.assignee ? (
+                                  <span 
+                                    className="checklist-assignee-tag"
+                                    onClick={() => handlePromptAssignee(item.id, item.assignee)}
+                                    title={t('assignee')}
+                                  >
+                                    👤 {item.assignee}
+                                  </span>
+                                ) : (
+                                  <button 
+                                    type="button"
+                                    className="checklist-assignee-btn"
+                                    onClick={() => handlePromptAssignee(item.id, '')}
+                                    title={t('assignee')}
+                                  >
+                                    +👤 {t('assignee')}
+                                  </button>
+                                )}
+                              </div>
                               <button 
                                 onClick={() => handleDeleteChecklistItem(item.id)} 
                                 className="checklist-delete-btn"
@@ -5112,6 +5637,123 @@ function TripBuilderApp() {
                       ? (activeLang === 'th' ? 'เข้าสู่ระบบ' : 'Sign In')
                       : (activeLang === 'th' ? 'สมัครสมาชิก' : 'Register'))}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── GROUP COLLABORATION MODAL ─────────────────────────────── */}
+      {groupModalOpen && (
+        <div className="overlay show" onClick={() => setGroupModalOpen(false)}>
+          <div className="modal modal-sm group-collab-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div className="modal-title">{t('groupModalTitle')}</div>
+              <button className="modal-close" onClick={() => setGroupModalOpen(false)}>✕</button>
+            </div>
+            
+            {/* Modal Tabs */}
+            <div className="group-modal-tabs">
+              <button 
+                type="button"
+                className={`group-tab-btn ${groupModalTab === 'create' ? 'active' : ''}`}
+                onClick={() => setGroupModalTab('create')}
+              >
+                {t('tabCreateRoom')}
+              </button>
+              <button 
+                type="button"
+                className={`group-tab-btn ${groupModalTab === 'join' ? 'active' : ''}`}
+                onClick={() => setGroupModalTab('join')}
+              >
+                {t('tabJoinRoom')}
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <div className="form-group">
+                <label className="form-label">{t('nickname')} *</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder={t('nicknamePh')} 
+                  value={inputNickname}
+                  onChange={(e) => setInputNickname(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              {groupModalTab === 'create' ? (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">{t('roomName')}</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder={t('roomNamePh')} 
+                      value={inputRoomName}
+                      onChange={(e) => setInputRoomName(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">{t('roomCode')} ({activeLang === 'th' ? 'เว้นว่างเพื่อสุ่มอัตโนมัติ' : 'Optional / Auto-generated'})</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="เช่น TRIP-9922" 
+                      value={inputRoomCode}
+                      onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
+                      style={{ letterSpacing: '1px', textTransform: 'uppercase' }}
+                    />
+                  </div>
+                  <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '8px', lineHeight: '1.4' }}>
+                    {activeLang === 'th'
+                      ? '💡 ระบบจะสร้างห้องกลุ่มจากทริปปัจจุบันของคุณ และสร้างรหัสห้องสำหรับส่งให้เพื่อนเข้าร่วมได้ทันที'
+                      : '💡 A new group room will be created from your active trip, and a room code will be generated for friends.'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">{t('roomCode')} *</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder={t('roomCodePh')} 
+                      value={inputRoomCode}
+                      onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
+                      style={{ letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600 }}
+                    />
+                  </div>
+                  <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '8px', lineHeight: '1.4' }}>
+                    {activeLang === 'th'
+                      ? '💡 ใส่รหัสห้องที่ได้รับจากเพื่อน เพื่อโหลดแผนทริปและจัดตารางร่วมกัน'
+                      : '💡 Enter the room code shared by your friend to load the trip and collaborate.'}
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div className="modal-foot">
+              <button className="btn btn-ghost" onClick={() => setGroupModalOpen(false)}>
+                {t('cancel')}
+              </button>
+              {groupModalTab === 'create' ? (
+                <button 
+                  className="btn btn-primary" 
+                  disabled={isRoomSyncing}
+                  onClick={handleCreateRoom}
+                >
+                  {isRoomSyncing ? (activeLang === 'th' ? 'กำลังสร้าง...' : 'Creating...') : t('createRoomBtn')}
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-primary" 
+                  disabled={isRoomSyncing}
+                  onClick={() => handleJoinRoom(inputRoomCode, inputNickname)}
+                >
+                  {isRoomSyncing ? (activeLang === 'th' ? 'กำลังเข้าร่วม...' : 'Joining...') : t('joinRoomBtn')}
+                </button>
+              )}
             </div>
           </div>
         </div>
