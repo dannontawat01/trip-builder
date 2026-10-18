@@ -1,23 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { googleSheets } from '@/lib/googleSheets';
 import { getGmapsWalkingRouteUrl, shareGmapsRoute } from '@/lib/gmapsRoute';
 import { optimizeDayRoute, calculateDistanceKm, estimateTravelTimeMins } from '@/lib/routeOptimizer';
 import dynamic from 'next/dynamic';
-import TravelModeView from './components/TravelModeView';
 import OptimizedImage from './components/OptimizedImage';
 import HeaderNav from './components/HeaderNav';
-import DetailModal from './components/modals/DetailModal';
-import AddPlaceModal from './components/modals/AddPlaceModal';
-import ExportModal from './components/modals/ExportModal';
-import AiPlanModal from './components/modals/AiPlanModal';
-import QuickEditModals from './components/modals/QuickEditModals';
-import AuthModal from './components/modals/AuthModal';
-import GroupCollabModal from './components/modals/GroupCollabModal';
-import RouteOptimizationModal from './components/modals/RouteOptimizationModal';
-import BudgetTab from './components/BudgetTab';
 import {
   LANG_STRINGS,
   COUNTRIES,
@@ -36,13 +26,31 @@ import {
   getCountryOfCity
 } from './constants/translations';
 
+// ─── DYNAMIC ON-DEMAND MODALS & VIEWS (CODE-SPLIT) ───────────────────
+const DetailModal = dynamic(() => import('./components/modals/DetailModal'), { ssr: false });
+const AddPlaceModal = dynamic(() => import('./components/modals/AddPlaceModal'), { ssr: false });
+const ExportModal = dynamic(() => import('./components/modals/ExportModal'), { ssr: false });
+const AiPlanModal = dynamic(() => import('./components/modals/AiPlanModal'), { ssr: false });
+const QuickEditModals = dynamic(() => import('./components/modals/QuickEditModals'), { ssr: false });
+const AuthModal = dynamic(() => import('./components/modals/AuthModal'), { ssr: false });
+const GroupCollabModal = dynamic(() => import('./components/modals/GroupCollabModal'), { ssr: false });
+const RouteOptimizationModal = dynamic(() => import('./components/modals/RouteOptimizationModal'), { ssr: false });
+const TravelModeView = dynamic(() => import('./components/TravelModeView'), {
+  ssr: false,
+  loading: () => <div className="travel-mode-loading">✈️ Loading Travel Mode...</div>
+});
+const BudgetTab = dynamic(() => import('./components/BudgetTab'), {
+  ssr: false,
+  loading: () => <div className="budget-loading-placeholder">💰 Loading Budget...</div>
+});
+
 const MapComponent = dynamic(() => import('./components/MapComponent'), {
   ssr: false,
   loading: () => <div className="map-loading-placeholder">กำลังโหลดแผนที่...</div>
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.11.0';
+const APP_VERSION = 'v1.12.0';
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -3234,8 +3242,13 @@ function TripBuilderApp() {
     return { placesCount, hours, activeDays, citiesStr };
   };
 
-  const stats = getSummaryStats();
-  const nearbySuggestions = getNearbyPlaces();
+  const stats = useMemo(() => {
+    return getSummaryStats();
+  }, [itin, nDays, activeLang]);
+
+  const nearbySuggestions = useMemo(() => {
+    return getNearbyPlaces();
+  }, [lastId, landmarks, itin]);
 
   // Apply visual theme to body class
   useEffect(() => {
@@ -3255,20 +3268,24 @@ function TripBuilderApp() {
     setFilterCat('__all__');
   };
 
-  const getCategories = () => {
+  const categoriesList = useMemo(() => {
     const list = landmarks.map(l => l.cat).filter(Boolean);
     return ['__all__', ...Array.from(new Set(list))];
-  };
+  }, [landmarks]);
 
-  const filteredLandmarks = landmarks.filter(l => {
-    if (filterCat !== '__all__' && l.cat !== filterCat) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const localName = ((l.names && l.names[activeLang]) || l.name).toLowerCase();
-      return l.name.toLowerCase().includes(q) || localName.includes(q) || l.cat.toLowerCase().includes(q);
-    }
-    return true;
-  });
+  const getCategories = () => categoriesList;
+
+  const filteredLandmarks = useMemo(() => {
+    return landmarks.filter(l => {
+      if (filterCat !== '__all__' && l.cat !== filterCat) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const localName = ((l.names && l.names[activeLang]) || l.name).toLowerCase();
+        return l.name.toLowerCase().includes(q) || localName.includes(q) || l.cat.toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [landmarks, filterCat, searchQuery, activeLang]);
 
   const cityColor = getCityObj(activeCity)?.color || '#1D9E75';
 
