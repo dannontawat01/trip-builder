@@ -353,6 +353,30 @@ const parseDateSafe = (dateVal) => {
   return null;
 };
 
+const parseTimeSafe = (timeVal) => {
+  if (!timeVal) return '09:00';
+  const timeStr = String(timeVal).trim();
+  if (!timeStr || timeStr === 'null' || timeStr === 'undefined') return '09:00';
+  
+  if (timeStr.includes('T')) {
+    try {
+      const d = new Date(timeStr);
+      if (!isNaN(d.getTime())) {
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return `${hh}:${mm}`;
+      }
+    } catch (_) {}
+  }
+  
+  if (/^\d{1,2}:\d{2}/.test(timeStr)) {
+    const parts = timeStr.split(':');
+    return `${parts[0].padStart(2, '0')}:${parts[1]}`;
+  }
+  
+  return '09:00';
+};
+
 function generateMockWeather(dateStr, lat) {
   const isCold = Math.abs(lat) > 30;
   let hash = 0;
@@ -429,7 +453,10 @@ function TripBuilderApp() {
     setStartDateInternal(d ? d.toISOString().split('T')[0] : '');
   };
   const [endDate, setEndDate] = useState('');
-  const [startTime, setStartTime] = useState('09:00');
+  const [startTime, setStartTimeInternal] = useState('09:00');
+  const setStartTime = (val) => {
+    setStartTimeInternal(parseTimeSafe(val));
+  };
   const [hotel, setHotel] = useState('');
   
   const [itin, setItin] = useState({ 1: [], 2: [], 3: [] });

@@ -65,11 +65,23 @@ export default function MapComponent({ itin, nDays, activeCity, activeLang }) {
     }).addTo(map);
 
     // Add tile layer
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
-      maxZoom: 20
-    }).addTo(map);
+    const cartoKey = typeof process.env.NEXT_PUBLIC_CARTO_API_KEY === 'string' ? process.env.NEXT_PUBLIC_CARTO_API_KEY.trim() : '';
+    let tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    let tileOptions = {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    };
+
+    if (cartoKey && cartoKey.length > 0) {
+      tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${cartoKey}`;
+      tileOptions = {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+      };
+    }
+
+    L.tileLayer(tileUrl, tileOptions).addTo(map);
 
     // Initialize Layers for markers and paths
     const markersLayer = L.layerGroup().addTo(map);
