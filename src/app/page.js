@@ -12,7 +12,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.4.0';
+const APP_VERSION = 'v1.5.0';
 
 // ─── TRANSLATIONS ───────────────────────────────────────────────────
 const LANG_STRINGS = {
@@ -3519,7 +3519,7 @@ function TripBuilderApp() {
                 <span className="plans-btn-title" style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {plansList.find(p => p.id === activePlanId)?.name || (activeLang === 'th' ? 'แผนการเดินทาง' : 'My Plan')}
                 </span>
-                <span style={{ fontSize: '10px', opacity: 0.7 }}>▼</span>
+                <span className="plans-btn-chevron" style={{ fontSize: '10px', opacity: 0.7 }}>▼</span>
               </button>
 
               {plansDropdownOpen && (
