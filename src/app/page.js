@@ -19,6 +19,7 @@ import {
   DAY_COLORS,
   CITY_KEYWORDS,
   CITY_COVER_IMAGES,
+  getSmartCategoryCover,
   CHECKLIST_CATEGORIES,
   CHECKLIST_TEMPLATES,
   generateChecklistId,
@@ -51,7 +52,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.15.0';
+const APP_VERSION = 'v1.16.0';
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -415,14 +416,13 @@ function TripBuilderApp() {
   };
 
   const getCityFallbackImage = (place) => {
-    const cityKey = place ? (CITY_KEYWORDS[place.city_id || activeCity] || 'travel') : 'travel';
-    return CITY_COVER_IMAGES[cityKey] || CITY_COVER_IMAGES.travel;
+    return getSmartCategoryCover(place, place?.city_id || activeCity);
   };
 
   const getCoverImage = (place) => {
     if (place && localCoverOverrides[place.id]) return localCoverOverrides[place.id];
     if (place && place.cover_image) return place.cover_image;
-    return getCityFallbackImage(place);
+    return getSmartCategoryCover(place, place?.city_id || activeCity);
   };
 
   const handleImageError = (e, place) => {
@@ -2376,12 +2376,58 @@ function TripBuilderApp() {
         }
       });
 
+      // Enrich existing places with real photos from data.places if missing
+      let enrichedPhotoCount = 0;
+      let enrichedCustom = { ...customPlaces };
+      data.places.forEach(p => {
+        const photoToUse = p.cover_image || (p.photos && p.photos[0]);
+        if (photoToUse) {
+          Object.keys(enrichedCustom).forEach(cId => {
+            if (Array.isArray(enrichedCustom[cId])) {
+              enrichedCustom[cId] = enrichedCustom[cId].map(existing => {
+                if ((!existing.cover_image || existing.cover_image === '') && existing.name.trim().toLowerCase() === p.name.trim().toLowerCase()) {
+                  enrichedPhotoCount++;
+                  return {
+                    ...existing,
+                    cover_image: photoToUse,
+                    photos: p.photos && p.photos.length > 0 ? p.photos : [photoToUse]
+                  };
+                }
+                return existing;
+              });
+            }
+          });
+        }
+      });
+
+      if (enrichedPhotoCount > 0) {
+        setCustomPlaces(enrichedCustom);
+        try {
+          localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: enrichedCustom }));
+        } catch (_) {}
+        setLandmarks(prev => prev.map(lm => {
+          const matched = data.places.find(p => p.name.trim().toLowerCase() === lm.name.trim().toLowerCase());
+          if (matched && (matched.cover_image || (matched.photos && matched.photos[0]))) {
+            return {
+              ...lm,
+              cover_image: matched.cover_image || matched.photos[0],
+              photos: matched.photos || [matched.cover_image || matched.photos[0]]
+            };
+          }
+          return lm;
+        }));
+      }
+
       if (newPlaces.length === 0) {
         const nowStr = new Date().toLocaleTimeString(activeLang === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' });
         setGmapsLastSyncTime(nowStr);
         try { localStorage.setItem('trip_builder_gmaps_last_sync', nowStr); } catch (_) {}
         if (!isAutoPrompt) {
-          toast(activeLang === 'th' ? `ข้อมูลสถานที่ซิงก์ตรงกับ Google Maps ล่าสุดแล้ว ✨ (เวลา ${nowStr})` : `Places are already completely up to date ✨ (${nowStr})`);
+          if (enrichedPhotoCount > 0) {
+            toast(activeLang === 'th' ? `อัปเดตรูปภาพจริงให้กับ ${enrichedPhotoCount} สถานที่เรียบร้อย ✨ (เวลา ${nowStr})` : `Enriched ${enrichedPhotoCount} places with real photos ✨ (${nowStr})`);
+          } else {
+            toast(activeLang === 'th' ? `ข้อมูลสถานที่ซิงก์ตรงกับ Google Maps ล่าสุดแล้ว ✨ (เวลา ${nowStr})` : `Places are already completely up to date ✨ (${nowStr})`);
+          }
         }
         return;
       }
@@ -2414,7 +2460,8 @@ function TripBuilderApp() {
           lng: p.lng ? parseFloat(p.lng) : null,
           fee: '',
           transport: [],
-          cover_image: null,
+          cover_image: p.cover_image || (p.photos && p.photos[0]) || null,
+          photos: p.photos || (p.cover_image ? [p.cover_image] : []),
           names: {},
           descriptions: {},
           city_id: city,

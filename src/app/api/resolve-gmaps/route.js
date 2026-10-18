@@ -89,6 +89,34 @@ async function resolvePlacelist(html, finalUrl) {
 
     if (name && lat && lng) {
       const { category, icon } = classifyCategory(`${name} ${note} ${address}`);
+      
+      // Search for place photos embedded inside item
+      const foundPhotos = [];
+      function searchPhotosInItem(obj) {
+        if (!obj) return;
+        if (typeof obj === 'string') {
+          if (
+            (obj.startsWith('https://lh') || obj.startsWith('http://lh') || obj.includes('googleusercontent.com') || obj.includes('ggpht.com')) &&
+            !obj.includes('s40-c') && !obj.includes('s44-p') && !obj.includes('photo.jpg') && !obj.includes('/photo.')
+          ) {
+            let cleanUrl = obj;
+            if (cleanUrl.includes('=')) {
+              cleanUrl = cleanUrl.replace(/=[wshedcptb0-9-]+$/i, '=w800-h500-k-no');
+            } else {
+              cleanUrl = cleanUrl + '=w800-h500-k-no';
+            }
+            foundPhotos.push(cleanUrl);
+          }
+        } else if (Array.isArray(obj)) {
+          obj.forEach(searchPhotosInItem);
+        } else if (typeof obj === 'object') {
+          Object.values(obj).forEach(searchPhotosInItem);
+        }
+      }
+      searchPhotosInItem(item);
+      const photos = Array.from(new Set(foundPhotos)).slice(0, 6);
+      const cover_image = photos[0] || null;
+
       places.push({
         name,
         lat,
@@ -98,7 +126,8 @@ async function resolvePlacelist(html, finalUrl) {
         category,
         icon,
         rating: null,
-        photos: []
+        photos,
+        cover_image
       });
     }
   }

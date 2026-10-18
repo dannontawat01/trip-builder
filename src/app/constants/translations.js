@@ -452,6 +452,126 @@ export const CITY_COVER_IMAGES = {
   travel: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=80'
 };
 
+export const CATEGORY_COVER_IMAGES = {
+  hotel: [
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=600&q=80'
+  ],
+  restaurant: [
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80'
+  ],
+  cafe: [
+    'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1559925393-8be0ec4767c8?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=600&q=80'
+  ],
+  shopping: [
+    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1519748771451-a14ef59b3a0c?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?auto=format&fit=crop&w=600&q=80'
+  ],
+  market: [
+    'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1506485338663-c77840e5a5c7?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1526367790999-0150786686a2?auto=format&fit=crop&w=600&q=80'
+  ],
+  temple: [
+    'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1528164344705-475426879c0d?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1570459027562-4a916cc6113f?auto=format&fit=crop&w=600&q=80'
+  ],
+  palace: [
+    'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1578637387939-43c525550085?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1590250596356-a6c22c075775?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1576085898323-218337e3e43c?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80'
+  ],
+  museum: [
+    'https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1554907984-15263bfd63bd?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=600&q=80'
+  ],
+  nature: [
+    'https://images.unsplash.com/photo-1528164344705-475426879c0d?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'
+  ],
+  general: [
+    'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1513407030348-c983a97b98d8?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=80'
+  ]
+};
+
+export function getSmartCategoryCover(place, cityId = 'tokyo') {
+  if (!place) return CATEGORY_COVER_IMAGES.general[0];
+  
+  const cat = (place.cat || '').toLowerCase();
+  let listKey = 'general';
+  
+  if (cat.includes('โรงแรม') || cat.includes('ที่พัก') || cat.includes('hotel') || cat.includes('hostel') || cat.includes('resort')) {
+    listKey = 'hotel';
+  } else if (cat.includes('อาหาร') || cat.includes('ภัตตาคาร') || cat.includes('restaurant') || cat.includes('food')) {
+    listKey = 'restaurant';
+  } else if (cat.includes('คาเฟ่') || cat.includes('กาแฟ') || cat.includes('cafe') || cat.includes('coffee') || cat.includes('tea')) {
+    listKey = 'cafe';
+  } else if (cat.includes('ช้อปปิ้ง') || cat.includes('ร้าน') || cat.includes('shop') || cat.includes('store') || cat.includes('ห้าง') || cat.includes('mall')) {
+    listKey = 'shopping';
+  } else if (cat.includes('ตลาด') || cat.includes('market') || cat.includes('bazaar')) {
+    listKey = 'market';
+  } else if (cat.includes('วัด') || cat.includes('temple') || cat.includes('ศาลเจ้า') || cat.includes('shrine')) {
+    listKey = 'temple';
+  } else if (cat.includes('วัง') || cat.includes('พระราชวัง') || cat.includes('palace') || cat.includes('castle')) {
+    listKey = 'palace';
+  } else if (cat.includes('พิพิธภัณฑ์') || cat.includes('museum') || cat.includes('gallery') || cat.includes('art')) {
+    listKey = 'museum';
+  } else if (cat.includes('ธรรมชาติ') || cat.includes('สวน') || cat.includes('park') || cat.includes('garden')) {
+    listKey = 'nature';
+  }
+  
+  const images = CATEGORY_COVER_IMAGES[listKey] || CATEGORY_COVER_IMAGES.general;
+  // Calculate deterministic index based on place name + id
+  const str = String(place.id || place.name || 'place');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff;
+  }
+  const index = Math.abs(hash) % images.length;
+  return images[index];
+}
+
 export const CHECKLIST_CATEGORIES = [
   { id: 'documents', label: { th: '📄 เอกสาร & การเงิน', en: '📄 Docs & Finance' }, color: '#378ADD' },
   { id: 'clothing', label: { th: '👕 เสื้อผ้า & เครื่องแต่งกาย', en: '👕 Clothing & Apparel' }, color: '#EF9F27' },

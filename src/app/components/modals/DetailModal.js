@@ -6,6 +6,8 @@ import {
   DAY_COLORS,
   CITY_KEYWORDS,
   CITY_COVER_IMAGES,
+  CATEGORY_COVER_IMAGES,
+  getSmartCategoryCover,
   translateCategory,
   getCityName
 } from '@/app/constants/translations';
@@ -155,10 +157,20 @@ export default function DetailModal({
                       : searchedPhotos;
                     const displayUrls = placePhotos.length > 0 
                       ? placePhotos.slice(0, 6) 
-                      : [1, 2, 3, 4, 5, 6].map(lock => {
-                          const cityKey = CITY_KEYWORDS[selectedPlace.city_id || activeCity] || 'travel';
-                          return `https://picsum.photos/seed/${cityKey}-${lock}/400/300`;
-                        });
+                      : (() => {
+                          const cat = (selectedPlace.cat || '').toLowerCase();
+                          let key = 'general';
+                          if (cat.includes('โรงแรม') || cat.includes('hotel')) key = 'hotel';
+                          else if (cat.includes('อาหาร') || cat.includes('restaurant')) key = 'restaurant';
+                          else if (cat.includes('คาเฟ่') || cat.includes('cafe')) key = 'cafe';
+                          else if (cat.includes('ช้อปปิ้ง') || cat.includes('ห้าง') || cat.includes('shop')) key = 'shopping';
+                          else if (cat.includes('ตลาด') || cat.includes('market')) key = 'market';
+                          else if (cat.includes('วัด') || cat.includes('temple')) key = 'temple';
+                          else if (cat.includes('วัง') || cat.includes('palace')) key = 'palace';
+                          else if (cat.includes('พิพิธภัณฑ์') || cat.includes('museum')) key = 'museum';
+                          else if (cat.includes('ธรรมชาติ') || cat.includes('nature') || cat.includes('park')) key = 'nature';
+                          return (CATEGORY_COVER_IMAGES && CATEGORY_COVER_IMAGES[key]) || [CITY_COVER_IMAGES.travel];
+                        })();
 
                     return displayUrls.map((url, idx) => {
                       const isSelected = editSelectedImage === url;
