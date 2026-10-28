@@ -370,15 +370,17 @@ body {
   background: var(--red-l);
 }
 .places-meta-row {
-  padding: 4px 12px 0;
+  padding: 12px 12px 4px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
 }
 .places-count-label {
   font-size: 11px;
   color: var(--muted);
   font-weight: 500;
+  white-space: nowrap;
 }
 .add-mode-row {
   display: grid;
@@ -1678,6 +1680,9 @@ textarea.form-input {
 
 /* --- Theme mode select container --- */
 .theme-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   border-radius: 6px;
@@ -5278,8 +5283,7 @@ body .modal-title {
 }
 
 .btn-ghost,
-.topbar :is(.topbar-sync-btn, .topbar-group-btn, .topbar-plans-btn, .topbar-signin-btn, .user-badge):not(.btn-primary),
-.places-meta-row button,
+.topbar .user-badge,
 .main-head button:not(.btn-primary) {
   background: rgba(118, 118, 128, .12) !important;
   color: var(--dark) !important;
@@ -5287,15 +5291,13 @@ body .modal-title {
 }
 
 .btn-ghost:hover,
-.topbar :is(.topbar-sync-btn, .topbar-group-btn, .topbar-plans-btn, .topbar-signin-btn, .user-badge):not(.btn-primary):hover,
-.places-meta-row button:hover,
+.topbar .user-badge:hover,
 .main-head button:not(.btn-primary):hover {
   background: rgba(118, 118, 128, .2) !important;
 }
 
 body.theme-dark .btn-ghost,
-body.theme-dark .topbar :is(.topbar-sync-btn, .topbar-group-btn, .topbar-plans-btn, .topbar-signin-btn, .user-badge):not(.btn-primary),
-body.theme-dark .places-meta-row button,
+body.theme-dark .topbar .user-badge,
 body.theme-dark .main-head button:not(.btn-primary) {
   background: rgba(255, 255, 255, .12) !important;
 }
@@ -5311,6 +5313,94 @@ body.theme-dark .main-head button:not(.btn-primary) {
   background-color: rgba(118, 118, 128, .12) !important;
   color: var(--dark) !important;
   border-radius: 10px !important;
+}
+
+.toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .18s ease, color .18s ease;
+}
+
+.toolbar-button:not(:disabled):hover,
+.toolbar-button[aria-expanded="true"] {
+  background: var(--accent-soft);
+  color: var(--teal-d);
+}
+
+.toolbar-button[aria-pressed="true"] {
+  background: var(--teal-l);
+  color: var(--teal-d);
+}
+
+.toolbar-button:disabled {
+  opacity: .45;
+  cursor: progress;
+}
+
+.toolbar-icon {
+  display: block;
+  flex: none;
+}
+
+.toolbar-icon.is-spinning {
+  animation: spin 1s linear infinite;
+}
+
+.plans-btn-chevron .toolbar-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.topbar-sync-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.places-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.places-maps-actions {
+  display: contents;
+}
+
+.places-tool-btn {
+  min-height: 36px;
+  padding: 8px;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.places-tool-btn .toolbar-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.places-tool-btn.is-linked {
+  color: var(--teal-d);
+}
+
+@media (max-width: 1024px) {
+  .places-tool-btn {
+    min-height: 44px;
+  }
 }
 
 /* Topbar: brand + actions on one row, country tabs underneath */
@@ -5405,7 +5495,7 @@ body.theme-dark .main-head button:not(.btn-primary) {
 
   .topbar-action-group {
     flex-wrap: nowrap !important;
-    gap: 0 !important;
+    gap: 6px !important;
     justify-content: flex-end;
   }
 
@@ -5441,7 +5531,7 @@ body.theme-dark .main-head button:not(.btn-primary) {
     justify-content: center;
   }
 
-  .topbar-sync-group > .btn-xs {
+  .topbar-sync-settings {
     display: inline-flex;
     align-items: center;
     justify-content: center;

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { COUNTRIES, getCountryName, getCityName } from '@/app/constants/translations';
+import ToolbarIcon from './ToolbarIcon';
 
 export default function HeaderNav({
   APP_VERSION,
@@ -71,8 +72,8 @@ export default function HeaderNav({
           </select>
           
           <div className="theme-toggle-container" style={{ display: 'flex', gap: '2px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '9px', padding: '2px' }}>
-            <button className={`theme-mode-btn ${theme === 'clean' ? 'active' : ''}`} onClick={() => setTheme('clean')} title="Clean" aria-label={activeLang === 'th' ? 'ธีมสว่าง' : 'Light theme'} aria-pressed={theme === 'clean'}>☀</button>
-            <button className={`theme-mode-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title="Dark" aria-label={activeLang === 'th' ? 'ธีมมืด' : 'Dark theme'} aria-pressed={theme === 'dark'}>🌙</button>
+            <button className={`theme-mode-btn ${theme === 'clean' ? 'active' : ''}`} onClick={() => setTheme('clean')} title="Clean" aria-label={activeLang === 'th' ? 'ธีมสว่าง' : 'Light theme'} aria-pressed={theme === 'clean'}><ToolbarIcon name="sun" /></button>
+            <button className={`theme-mode-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title="Dark" aria-label={activeLang === 'th' ? 'ธีมมืด' : 'Dark theme'} aria-pressed={theme === 'dark'}><ToolbarIcon name="moon" /></button>
             <button
               type="button"
               className="theme-toggle-mobile"
@@ -81,7 +82,7 @@ export default function HeaderNav({
                 ? (theme === 'dark' ? 'เปลี่ยนเป็นธีมสว่าง' : 'เปลี่ยนเป็นธีมมืด')
                 : (theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme')}
             >
-              <span aria-hidden="true">{theme === 'dark' ? '☀' : '🌙'}</span>
+              <ToolbarIcon name={theme === 'dark' ? 'sun' : 'moon'} />
             </button>
           </div>
 
@@ -106,16 +107,16 @@ export default function HeaderNav({
               <span>✈️</span>
               <span className="travel-btn-text">{activeLang === 'th' ? 'เที่ยวจริง' : 'Travel'}</span>
             </button>
-            <button className={`btn btn-sm ${showMap ? 'btn-primary' : 'btn-ghost'} topbar-map-btn`} onClick={() => setShowMap(!showMap)} aria-label={activeLang === 'th' ? 'แสดงแผนที่' : 'Show map'} aria-pressed={showMap}>
-              <span className="map-btn-icon">🗺️</span>
+            <button className="toolbar-button topbar-map-btn" onClick={() => setShowMap(!showMap)} aria-label={activeLang === 'th' ? 'แสดงแผนที่' : 'Show map'} aria-pressed={showMap} title={activeLang === 'th' ? 'แสดงแผนที่' : 'Show map'}>
+              <ToolbarIcon name="map" />
               <span className="map-btn-text"> {activeLang === 'th' ? 'แผนที่' : 'Map'}</span>
             </button>
             <button className="btn btn-ghost btn-sm topbar-clear-btn" onClick={clearAll}>{t('clear')}</button>
             <button className="btn btn-primary btn-sm topbar-export-btn" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
             {/* Google Maps Sync Action (Always visible & interactive) */}
-            <div className="topbar-sync-group" style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+            <div className="topbar-sync-group">
               <button 
-                className={`btn btn-sm ${gmapsSyncUrl ? 'btn-ghost' : 'btn-ghost'} topbar-sync-btn`}
+                className="toolbar-button topbar-sync-btn"
                 onClick={() => {
                   if (gmapsSyncUrl) {
                     syncGmaps();
@@ -125,19 +126,13 @@ export default function HeaderNav({
                   }
                 }}
                 disabled={gmapsSyncLoading}
+                aria-busy={gmapsSyncLoading}
+                aria-label={activeLang === 'th' ? (gmapsSyncUrl ? 'ซิงก์ Google Maps' : 'เชื่อมต่อ Google Maps') : (gmapsSyncUrl ? 'Sync Google Maps' : 'Connect Google Maps')}
                 title={gmapsSyncUrl 
                   ? (activeLang === 'th' ? `ซิงก์ข้อมูลจาก Google Maps (ซิงก์ล่าสุด: ${gmapsLastSyncTime || 'ยังไม่ได้ซิงก์'})` : `Sync from Google Maps (Last: ${gmapsLastSyncTime || 'Never'})`)
                   : (activeLang === 'th' ? 'เชื่อมต่อ Google Maps เพื่อซิงก์สถานที่อัตโนมัติ' : 'Connect Google Maps to auto-sync places')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  color: gmapsSyncUrl ? 'var(--teal)' : 'var(--muted)',
-                  border: gmapsSyncUrl ? '1px solid var(--teal-m)' : '1px dashed var(--border)',
-                  background: gmapsSyncUrl ? 'rgba(29, 158, 117, 0.08)' : 'transparent'
-                }}
               >
-                <span style={{ display: 'inline-block', animation: gmapsSyncLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+                <ToolbarIcon name="refresh" spinning={gmapsSyncLoading} />
                 <span className="sync-btn-text" style={{ fontSize: '11px', fontWeight: '600' }}>
                   {gmapsSyncLoading 
                     ? (activeLang === 'th' ? 'กำลังซิงก์...' : 'Syncing...') 
@@ -149,29 +144,26 @@ export default function HeaderNav({
               {gmapsSyncUrl && (
                 <button
                   type="button"
-                  className="btn btn-ghost btn-xs"
+                  className="toolbar-button topbar-sync-settings"
                   onClick={() => {
                     if (setAddModalOpen) setAddModalOpen(true);
                     if (setActiveAddTab) setActiveAddTab('gmaps');
                   }}
                   title={activeLang === 'th' ? 'จัดการ / เปลี่ยนลิงก์ Google Maps' : 'Manage / Change Google Maps Link'}
-                  style={{
-                    padding: '0 4px',
-                    height: '24px',
-                    color: 'var(--muted)',
-                    fontSize: '11px'
-                  }}
+                  aria-label={activeLang === 'th' ? 'จัดการลิงก์ Google Maps' : 'Manage Google Maps link'}
                 >
-                  ⚙️
+                  <ToolbarIcon name="settings" />
                 </button>
               )}
             </div>
             <button 
-              className={`btn btn-sm ${activeRoom ? 'btn-primary' : 'btn-ghost'} topbar-group-btn`} 
+              className="toolbar-button topbar-group-btn"
+              aria-pressed={Boolean(activeRoom)}
+              aria-label={t('groupPlan')}
               onClick={() => setGroupModalOpen(true)}
               title={t('groupPlan')}
             >
-              <span>👥</span>
+              <ToolbarIcon name="users" />
               <span className="group-btn-text">{activeRoom ? activeRoom.code : t('groupPlan')}</span>
             </button>
           </div>
@@ -179,16 +171,17 @@ export default function HeaderNav({
           {/* Plans Selector Dropdown (Available for ALL users) */}
           <div className="plans-menu-container" style={{ position: 'relative' }}>
             <button
-              className="btn btn-ghost btn-sm topbar-plans-btn"
+              className="toolbar-button topbar-plans-btn"
               onClick={() => setPlansDropdownOpen(!plansDropdownOpen)}
-              style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}
               title={activeLang === 'th' ? 'เลือกแผนการเดินทาง' : 'Select Plan'}
+              aria-label={activeLang === 'th' ? 'เลือกแผนการเดินทาง' : 'Select Plan'}
+              aria-expanded={plansDropdownOpen}
             >
-              <span>📂</span>
+              <ToolbarIcon name="folder" />
               <span className="plans-btn-title" style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {plansList.find(p => p.id === activePlanId)?.name || (activeLang === 'th' ? 'แผนการเดินทาง' : 'My Plan')}
               </span>
-              <span className="plans-btn-chevron" style={{ fontSize: '10px', opacity: 0.7 }}>▼</span>
+              <span className="plans-btn-chevron"><ToolbarIcon name="chevron" /></span>
             </button>
 
             {plansDropdownOpen && (
@@ -277,12 +270,12 @@ export default function HeaderNav({
               </>
             ) : (
               <button 
-                className="btn btn-ghost btn-sm topbar-signin-btn" 
+                className="toolbar-button topbar-signin-btn"
                 onClick={() => { setAuthMode('login'); setAuthModalOpen(true); }}
-                style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}
                 title={activeLang === 'th' ? 'เข้าสู่ระบบเพื่อซิงค์ข้อมูลบน Cloud' : 'Sign In to sync with Cloud'}
+                aria-label={activeLang === 'th' ? 'เข้าสู่ระบบ' : 'Sign In'}
               >
-                <span>☁️</span>
+                <ToolbarIcon name="cloud" />
                 <span className="signin-btn-text"> {activeLang === 'th' ? 'เข้าสู่ระบบ (ซิงค์ Cloud)' : 'Sign In (Cloud Sync)'}</span>
               </button>
             )}

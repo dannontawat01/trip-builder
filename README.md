@@ -25,6 +25,9 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
   Colorful preferences are automatically moved to Clean.
 - Primary buttons use an emerald green accent in both themes, with a darker
   hover state and matching navigation, focus, and PWA theme colors.
+- Header and place tools use borderless line-icon buttons. Selected header
+  tools have a soft green tint; place counts sit above the tool row so labels
+  stay readable in the narrow sidebar.
 - Places can be added to a day using the add button and day selector, without
   needing to drag. Browser zoom remains available.
 - Dialogs support keyboard navigation: Tab cycles through controls and Escape

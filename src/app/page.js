@@ -11,6 +11,7 @@ import { detectCityFromCoords, checkIsDuplicate } from '@/lib/cityDetector';
 import dynamic from 'next/dynamic';
 import OptimizedImage from './components/OptimizedImage';
 import HeaderNav from './components/HeaderNav';
+import ToolbarIcon from './components/ToolbarIcon';
 import {
   LANG_STRINGS,
   COUNTRIES,
@@ -55,7 +56,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.21.4';
+const APP_VERSION = 'v1.21.5';
 const AUTO_ENRICH_BATCH_SIZE = 4;
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
@@ -3949,33 +3950,20 @@ function TripBuilderApp() {
             })}
           </div>
 
-          <div className="places-meta-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px 2px' }}>
+          <div className="places-meta-row">
             <span className="places-count-label">
               {activeLang === 'th' ? `พบ ${filteredLandmarks.length} สถานที่` : `${filteredLandmarks.length} places`}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <div className="places-actions" role="group" aria-label={activeLang === 'th' ? 'เครื่องมือสถานที่' : 'Place tools'}>
               <button
                 type="button"
-                className="btn btn-ghost btn-xs"
+                className="toolbar-button places-tool-btn"
                 onClick={enrichRealPhotos}
                 disabled={isEnrichingPhotos}
+                aria-busy={isEnrichingPhotos}
                 title={activeLang === 'th' ? 'ดึงรูปภาพจริงของสถานที่จากเว็บและ Google Maps' : 'Auto-fetch real photos for all places'}
-                style={{
-                  fontSize: '10px',
-                  padding: '1px 6px',
-                  height: '20px',
-                  borderRadius: '4px',
-                  border: isEnrichingPhotos ? '1px solid var(--teal)' : '1px solid var(--border)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  background: isEnrichingPhotos ? 'rgba(29, 158, 117, 0.1)' : 'transparent',
-                  color: isEnrichingPhotos ? 'var(--teal)' : 'inherit'
-                }}
               >
-                <span style={{ display: 'inline-block', animation: isEnrichingPhotos ? 'spin 1s linear infinite' : 'none' }}>
-                  {isEnrichingPhotos ? '🔄' : '🖼️'}
-                </span>
+                <ToolbarIcon name={isEnrichingPhotos ? 'refresh' : 'image'} spinning={isEnrichingPhotos} />
                 <span>
                   {isEnrichingPhotos
                     ? `${activeLang === 'th' ? 'ดึงรูป' : 'Fetching'} ${enrichProgress.current}/${enrichProgress.total}`
@@ -3984,35 +3972,37 @@ function TripBuilderApp() {
               </button>
 
               {gmapsSyncUrl ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span 
-                    style={{ fontSize: '10px', color: 'var(--teal)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }} 
+                <div className="places-maps-actions">
+                  <button
+                    type="button"
+                    className="toolbar-button places-tool-btn is-linked"
                     title={gmapsSyncUrl}
                     onClick={() => { setAddModalOpen(true); setActiveAddTab('gmaps'); }}
                   >
-                    🔗 {activeLang === 'th' ? 'ผูก Maps' : 'Maps Linked'}
-                  </span>
+                    <ToolbarIcon name="link" />
+                    <span>{activeLang === 'th' ? 'ผูก Maps' : 'Maps Linked'}</span>
+                  </button>
                   <button
                     type="button"
-                    className="btn btn-ghost btn-xs"
+                    className="toolbar-button places-tool-btn"
                     onClick={() => syncGmaps()}
                     disabled={gmapsSyncLoading}
+                    aria-busy={gmapsSyncLoading}
                     title={activeLang === 'th' ? `ซิงก์ข้อมูลจาก Google Maps (ซิงก์ล่าสุด: ${gmapsLastSyncTime || 'ยังไม่ได้ซิงก์'})` : `Sync from Google Maps (Last: ${gmapsLastSyncTime || 'Never'})`}
-                    style={{ fontSize: '10px', padding: '1px 6px', height: '20px', borderRadius: '4px', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                   >
-                    <span style={{ display: 'inline-block', animation: gmapsSyncLoading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+                    <ToolbarIcon name="refresh" spinning={gmapsSyncLoading} />
                     <span>{gmapsSyncLoading ? (activeLang === 'th' ? 'ซิงก์...' : 'Syncing...') : (activeLang === 'th' ? 'ซิงก์' : 'Sync')}</span>
                   </button>
                 </div>
               ) : (
                 <button
                   type="button"
-                  className="btn btn-ghost btn-xs"
+                  className="toolbar-button places-tool-btn"
                   onClick={() => { setAddModalOpen(true); setActiveAddTab('gmaps'); }}
-                  style={{ fontSize: '10px', color: 'var(--muted)', padding: '1px 6px', height: '20px', border: '1px dashed var(--border)', borderRadius: '4px' }}
                   title={activeLang === 'th' ? 'เชื่อมต่อ Google Maps เพื่อซิงก์สถานที่อัตโนมัติ' : 'Connect Google Maps to auto-sync places'}
                 >
-                  🔗 {activeLang === 'th' ? '+ เชื่อม Maps' : '+ Link Maps'}
+                  <ToolbarIcon name="link" />
+                  <span>{activeLang === 'th' ? 'เชื่อม Maps' : 'Link Maps'}</span>
                 </button>
               )}
             </div>
