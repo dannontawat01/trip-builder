@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import {
@@ -7,6 +7,8 @@ import {
   translateCategory
 } from '@/app/constants/translations';
 import { detectCityFromCoords, checkIsDuplicate } from '@/lib/cityDetector';
+
+const hasImportedPhoto = (item) => Boolean(item.cover_image || (item.photos && item.photos[0]));
 
 export default function AddPlaceModal({
   addModalOpen,
@@ -181,9 +183,9 @@ export default function AddPlaceModal({
         const placeObj = {
           id: localId,
           name: item.name,
-          cat: item.category || 'อื่นๆ',
+          cat: item.category || 'เธญเธทเนเธเน',
           dur: 90,
-          icon: item.icon || '📍',
+          icon: item.icon || '๐“',
           desc: item.note || item.address || '',
           addr: item.address || '',
           lat: item.lat ? parseFloat(item.lat) : null,
@@ -195,6 +197,7 @@ export default function AddPlaceModal({
           names: {},
           descriptions: {},
           city_id: targetCity,
+          _needsPhoto: !hasImportedPhoto(item),
           _custom: true
         };
 
@@ -251,23 +254,23 @@ export default function AddPlaceModal({
           return [...filteredPrev, ...grouped[activeCity].map(item => ({
             ...item,
             dur: item.dur || 90,
-            icon: item.icon || '📍',
+            icon: item.icon || '๐“',
             _custom: true
           }))];
         });
       }
 
       const citySummary = Object.entries(grouped)
-        .map(([cId, list]) => `${cityInfoMap[cId] ? cityInfoMap[cId].emoji : '📍'} ${list.length}`)
+        .map(([cId, list]) => `${cityInfoMap[cId] ? cityInfoMap[cId].emoji : '๐“'} ${list.length}`)
         .join(', ');
 
       toast(activeLang === 'th'
-        ? `นำเข้าสำเร็จ ${placesToImport.length} สถานที่! (${citySummary})`
+        ? `เธเธณเน€เธเนเธฒเธชเธณเน€เธฃเนเธ ${placesToImport.length} เธชเธ–เธฒเธเธ—เธตเน! (${citySummary})`
         : `Successfully imported ${placesToImport.length} places! (${citySummary})`);
 
       setAddModalOpen(false);
     } catch (err) {
-      toast(activeLang === 'th' ? 'เกิดข้อผิดพลาด: ' + err.message : 'Error importing places: ' + err.message);
+      toast(activeLang === 'th' ? 'เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”: ' + err.message : 'Error importing places: ' + err.message);
     } finally {
       setBulkImporting(false);
     }
@@ -279,7 +282,7 @@ export default function AddPlaceModal({
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div className="modal-title">{t('addNew')}</div>
-          <button className="modal-close" onClick={() => setAddModalOpen(false)}>✕</button>
+          <button className="modal-close" onClick={() => setAddModalOpen(false)}>โ•</button>
         </div>
         
         <div className="modal-body">
@@ -309,16 +312,16 @@ export default function AddPlaceModal({
                 {osmResults.length > 0 && (
                   <div style={{ marginTop: '6px', maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px' }}>
                     {osmResults[0].loading ? (
-                      <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>{activeLang === 'th' ? 'กำลังค้นหา...' : 'Searching...'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>{activeLang === 'th' ? 'เธเธณเธฅเธฑเธเธเนเธเธซเธฒ...' : 'Searching...'}</div>
                     ) : osmResults[0].empty ? (
-                      <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>{activeLang === 'th' ? 'ไม่พบผลลัพธ์' : 'No results found'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>{activeLang === 'th' ? 'เนเธกเนเธเธเธเธฅเธฅเธฑเธเธเน' : 'No results found'}</div>
                     ) : osmResults[0].error ? (
-                      <div style={{ fontSize: '11px', color: 'var(--red)', textAlign: 'center' }}>{activeLang === 'th' ? 'เกิดข้อผิดพลาด' : 'An error occurred'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--red)', textAlign: 'center' }}>{activeLang === 'th' ? 'เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”' : 'An error occurred'}</div>
                     ) : (
                       osmResults.map((res, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '0.5px solid var(--border)' }}>
                           <div style={{ fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '280px' }}>{res.display_name}</div>
-                          <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => fillFromOSM(res)}>{activeLang === 'th' ? 'ใช้' : 'Use'}</button>
+                          <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => fillFromOSM(res)}>{activeLang === 'th' ? 'เนเธเน' : 'Use'}</button>
                         </div>
                       ))
                     )}
@@ -338,19 +341,19 @@ export default function AddPlaceModal({
                 <div className="form-group">
                   <div className="form-label">{t('fCat')}</div>
                   <select className="form-input" value={fCat} onChange={(e) => setFCat(e.target.value)}>
-                    <option value="วัด">{activeLang === 'th' ? 'วัด' : 'Temple'}</option>
-                    <option value="พระราชวัง">{activeLang === 'th' ? 'พระราชวัง' : 'Palace'}</option>
-                    <option value="ตลาด">{activeLang === 'th' ? 'ตลาด' : 'Market'}</option>
-                    <option value="ย่าน">{activeLang === 'th' ? 'ย่าน' : 'District'}</option>
-                    <option value="พิพิธภัณฑ์">{activeLang === 'th' ? 'พิพิธภัณฑ์' : 'Museum'}</option>
-                    <option value="ธรรมชาติ">{activeLang === 'th' ? 'ธรรมชาติ' : 'Nature'}</option>
-                    <option value="ช้อปปิ้ง">{activeLang === 'th' ? 'ช้อปปิ้ง' : 'Shopping'}</option>
-                    <option value="ห้างสรรพสินค้า">{activeLang === 'th' ? 'ห้างสรรพสินค้า' : 'Department Store'}</option>
-                    <option value="ร้านอาหาร">{activeLang === 'th' ? 'ร้านอาหาร' : 'Restaurant'}</option>
-                    <option value="คาเฟ่">{activeLang === 'th' ? 'คาเฟ่' : 'Café'}</option>
-                    <option value="โรงแรม / ที่พัก">{activeLang === 'th' ? 'โรงแรม / ที่พัก' : 'Hotel / Base'}</option>
-                    <option value="วิวทิวทัศน์">{activeLang === 'th' ? 'วิวทิวทัศน์' : 'Scenic View'}</option>
-                    <option value="อื่นๆ">{activeLang === 'th' ? 'อื่นๆ' : 'Others'}</option>
+                    <option value="เธงเธฑเธ”">{activeLang === 'th' ? 'เธงเธฑเธ”' : 'Temple'}</option>
+                    <option value="เธเธฃเธฐเธฃเธฒเธเธงเธฑเธ">{activeLang === 'th' ? 'เธเธฃเธฐเธฃเธฒเธเธงเธฑเธ' : 'Palace'}</option>
+                    <option value="เธ•เธฅเธฒเธ”">{activeLang === 'th' ? 'เธ•เธฅเธฒเธ”' : 'Market'}</option>
+                    <option value="เธขเนเธฒเธ">{activeLang === 'th' ? 'เธขเนเธฒเธ' : 'District'}</option>
+                    <option value="เธเธดเธเธดเธเธ เธฑเธ“เธ‘เน">{activeLang === 'th' ? 'เธเธดเธเธดเธเธ เธฑเธ“เธ‘เน' : 'Museum'}</option>
+                    <option value="เธเธฃเธฃเธกเธเธฒเธ•เธด">{activeLang === 'th' ? 'เธเธฃเธฃเธกเธเธฒเธ•เธด' : 'Nature'}</option>
+                    <option value="เธเนเธญเธเธเธดเนเธ">{activeLang === 'th' ? 'เธเนเธญเธเธเธดเนเธ' : 'Shopping'}</option>
+                    <option value="เธซเนเธฒเธเธชเธฃเธฃเธเธชเธดเธเธเนเธฒ">{activeLang === 'th' ? 'เธซเนเธฒเธเธชเธฃเธฃเธเธชเธดเธเธเนเธฒ' : 'Department Store'}</option>
+                    <option value="เธฃเนเธฒเธเธญเธฒเธซเธฒเธฃ">{activeLang === 'th' ? 'เธฃเนเธฒเธเธญเธฒเธซเธฒเธฃ' : 'Restaurant'}</option>
+                    <option value="เธเธฒเน€เธเน">{activeLang === 'th' ? 'เธเธฒเน€เธเน' : 'Cafรฉ'}</option>
+                    <option value="เนเธฃเธเนเธฃเธก / เธ—เธตเนเธเธฑเธ">{activeLang === 'th' ? 'เนเธฃเธเนเธฃเธก / เธ—เธตเนเธเธฑเธ' : 'Hotel / Base'}</option>
+                    <option value="เธงเธดเธงเธ—เธดเธงเธ—เธฑเธจเธเน">{activeLang === 'th' ? 'เธงเธดเธงเธ—เธดเธงเธ—เธฑเธจเธเน' : 'Scenic View'}</option>
+                    <option value="เธญเธทเนเธเน">{activeLang === 'th' ? 'เธญเธทเนเธเน' : 'Others'}</option>
                   </select>
                 </div>
                 <div className="form-group">
@@ -386,8 +389,8 @@ export default function AddPlaceModal({
                   <input className="form-input" value={fIcon} onChange={(e) => setFIcon(e.target.value)} maxLength={2} />
                 </div>
                 <div className="form-group">
-                  <div className="form-label">{activeLang === 'th' ? 'คะแนนรีวิว (0 - 5)' : 'Rating (0 - 5)'}</div>
-                  <input className="form-input" type="number" min="0" max="5" step="0.1" value={fRating} onChange={(e) => setFRating(e.target.value)} placeholder="เช่น 4.5" />
+                  <div className="form-label">{activeLang === 'th' ? 'เธเธฐเนเธเธเธฃเธตเธงเธดเธง (0 - 5)' : 'Rating (0 - 5)'}</div>
+                  <input className="form-input" type="number" min="0" max="5" step="0.1" value={fRating} onChange={(e) => setFRating(e.target.value)} placeholder="เน€เธเนเธ 4.5" />
                 </div>
               </div>
               <div className="form-group" style={{ marginTop: '10px' }}>
@@ -404,32 +407,32 @@ export default function AddPlaceModal({
           {/* AI TAB */}
           {activeAddTab === 'ai' && (
             <div className="ai-box">
-              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>พิมพ์หาสถานที่ท่องเที่ยวที่ต้องการให้ AI แนะนำพิกัดให้ เช่น &quot;คาเฟ่วิวแม่น้ำเจ้าพระยา&quot;</div>
+              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>เธเธดเธกเธเนเธซเธฒเธชเธ–เธฒเธเธ—เธตเนเธ—เนเธญเธเน€เธ—เธตเนเธขเธงเธ—เธตเนเธ•เนเธญเธเธเธฒเธฃเนเธซเน AI เนเธเธฐเธเธณเธเธดเธเธฑเธ”เนเธซเน เน€เธเนเธ &quot;เธเธฒเน€เธเนเธงเธดเธงเนเธกเนเธเนเธณเน€เธเนเธฒเธเธฃเธฐเธขเธฒ&quot;</div>
               <div className="input-row">
                 <input
                   className="form-input"
-                  placeholder="เช่น วัดสวยๆ ถ่ายรูปสวยในกรุงเทพ..."
+                  placeholder="เน€เธเนเธ เธงเธฑเธ”เธชเธงเธขเน เธ–เนเธฒเธขเธฃเธนเธเธชเธงเธขเนเธเธเธฃเธธเธเน€เธ—เธ..."
                   value={aiSuggestQuery}
                   onChange={(e) => setAiSuggestQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAISuggest()}
                 />
                 <button className="btn btn-primary btn-sm" disabled={aiSuggestLoading} onClick={handleAISuggest}>
-                  {aiSuggestLoading ? '...' : 'ค้นหา'}
+                  {aiSuggestLoading ? '...' : 'เธเนเธเธซเธฒ'}
                 </button>
               </div>
               
               {aiSuggestResult && (
                 <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
                   {aiSuggestResult.length === 0 ? (
-                    <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>ไม่พบผลลัพธ์</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>เนเธกเนเธเธเธเธฅเธฅเธฑเธเธเน</div>
                   ) : (
                     aiSuggestResult.map((place, idx) => (
                       <div key={idx} className="ai-place-row">
                         <div>
                           <div className="ai-place-name">{place.icon} {place.name}</div>
-                          <div className="ai-place-sub">{translateCategory(place.cat, activeLang)} · {place.dur}{activeLang === 'th' ? 'น.' : 'm'}</div>
+                          <div className="ai-place-sub">{translateCategory(place.cat, activeLang)} ยท {place.dur}{activeLang === 'th' ? 'เธ.' : 'm'}</div>
                         </div>
-                        <button className="btn btn-primary btn-sm" onClick={() => addAIPlace(place)}>+ เพิ่ม</button>
+                        <button className="btn btn-primary btn-sm" onClick={() => addAIPlace(place)}>+ เน€เธเธดเนเธก</button>
                       </div>
                     ))
                   )}
@@ -476,8 +479,8 @@ export default function AddPlaceModal({
                 }}>
                   <div style={{ overflow: 'hidden', minWidth: 0 }}>
                     <div style={{ fontSize: '11px', fontWeight: '600', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span>🔗</span>
-                      <span>{activeLang === 'th' ? 'ลิงก์ Google Maps ที่ผูกไว้กับทริปนี้' : 'Linked Google Maps URL'}</span>
+                      <span>๐”—</span>
+                      <span>{activeLang === 'th' ? 'เธฅเธดเธเธเน Google Maps เธ—เธตเนเธเธนเธเนเธงเนเธเธฑเธเธ—เธฃเธดเธเธเธตเน' : 'Linked Google Maps URL'}</span>
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={gmapsSyncUrl}>
                       {gmapsSyncUrl}
@@ -489,9 +492,9 @@ export default function AddPlaceModal({
                       className="btn btn-ghost btn-xs"
                       onClick={() => setGmapsUrl(gmapsSyncUrl)}
                       style={{ fontSize: '10px', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.3)', height: '22px' }}
-                      title={activeLang === 'th' ? 'นำลิงก์ที่ผูกไว้มาใส่ในช่อง' : 'Use this URL in textarea'}
+                      title={activeLang === 'th' ? 'เธเธณเธฅเธดเธเธเนเธ—เธตเนเธเธนเธเนเธงเนเธกเธฒเนเธชเนเนเธเธเนเธญเธ' : 'Use this URL in textarea'}
                     >
-                      📋 {activeLang === 'th' ? 'ใส่ในช่อง' : 'Insert'}
+                      ๐“ {activeLang === 'th' ? 'เนเธชเนเนเธเธเนเธญเธ' : 'Insert'}
                     </button>
                     <button
                       type="button"
@@ -499,12 +502,12 @@ export default function AddPlaceModal({
                       onClick={() => {
                         setGmapsSyncUrl('');
                         try { localStorage.removeItem('trip_builder_gmaps_sync_url'); } catch (_) {}
-                        toast(activeLang === 'th' ? 'ยกเลิกการผูกลิงก์ Google Maps แล้ว' : 'Unlinked Google Maps URL');
+                        toast(activeLang === 'th' ? 'เธขเธเน€เธฅเธดเธเธเธฒเธฃเธเธนเธเธฅเธดเธเธเน Google Maps เนเธฅเนเธง' : 'Unlinked Google Maps URL');
                       }}
                       style={{ fontSize: '10px', color: 'var(--red)', border: '1px solid rgba(239, 68, 68, 0.3)', height: '22px' }}
-                      title={activeLang === 'th' ? 'ยกเลิกการผูกลิงก์นี้กับทริป' : 'Unlink from trip'}
+                      title={activeLang === 'th' ? 'เธขเธเน€เธฅเธดเธเธเธฒเธฃเธเธนเธเธฅเธดเธเธเนเธเธตเนเธเธฑเธเธ—เธฃเธดเธ' : 'Unlink from trip'}
                     >
-                      ✕ {activeLang === 'th' ? 'ยกเลิกผูก' : 'Unlink'}
+                      โ• {activeLang === 'th' ? 'เธขเธเน€เธฅเธดเธเธเธนเธ' : 'Unlink'}
                     </button>
                   </div>
                 </div>
@@ -515,7 +518,7 @@ export default function AddPlaceModal({
                   className="form-input"
                   rows={3}
                   placeholder={activeLang === 'th' 
-                    ? 'วางลิงก์ Google Maps เช่น https://maps.app.goo.gl/... (รองรับลิงก์เดี่ยว, ลิงก์ Saved list, หรือวางหลายๆ ลิงก์แยกบรรทัด)' 
+                    ? 'เธงเธฒเธเธฅเธดเธเธเน Google Maps เน€เธเนเธ https://maps.app.goo.gl/... (เธฃเธญเธเธฃเธฑเธเธฅเธดเธเธเนเน€เธ”เธตเนเธขเธง, เธฅเธดเธเธเน Saved list, เธซเธฃเธทเธญเธงเธฒเธเธซเธฅเธฒเธขเน เธฅเธดเธเธเนเนเธขเธเธเธฃเธฃเธ—เธฑเธ”)' 
                     : 'Paste Google Maps link e.g. https://maps.app.goo.gl/... (Supports single place, Saved lists, or multiple links separated by line)'}
                   value={gmapsUrl}
                   onChange={(e) => setGmapsUrl(e.target.value)}
@@ -528,14 +531,14 @@ export default function AddPlaceModal({
                   disabled={gmapsLoading || !gmapsUrl.trim()}
                 >
                   {gmapsLoading 
-                    ? (activeLang === 'th' ? '⏳ กำลังดึงข้อมูล...' : '⏳ Extracting...') 
-                    : (activeLang === 'th' ? '🔍 ดึงข้อมูล' : '🔍 Extract')}
+                    ? (activeLang === 'th' ? 'โณ เธเธณเธฅเธฑเธเธ”เธถเธเธเนเธญเธกเธนเธฅ...' : 'โณ Extracting...') 
+                    : (activeLang === 'th' ? '๐” เธ”เธถเธเธเนเธญเธกเธนเธฅ' : '๐” Extract')}
                 </button>
               </div>
 
               {gmapsLoading && (
                 <div style={{ textAlign: 'center', padding: '16px', fontSize: '12px', color: 'var(--muted)' }}>
-                  ⏳ {activeLang === 'th' ? 'ระบบกำลังวิเคราะห์ลิงก์และดึงข้อมูลสถานที่จาก Google Maps กรุณารอสักครู่...' : 'Resolving places from Google Maps, please wait...'}
+                  โณ {activeLang === 'th' ? 'เธฃเธฐเธเธเธเธณเธฅเธฑเธเธงเธดเน€เธเธฃเธฒเธฐเธซเนเธฅเธดเธเธเนเนเธฅเธฐเธ”เธถเธเธเนเธญเธกเธนเธฅเธชเธ–เธฒเธเธ—เธตเนเธเธฒเธ Google Maps เธเธฃเธธเธ“เธฒเธฃเธญเธชเธฑเธเธเธฃเธนเน...' : 'Resolving places from Google Maps, please wait...'}
                 </div>
               )}
 
@@ -543,7 +546,7 @@ export default function AddPlaceModal({
                 <div style={{ marginTop: '12px' }}>
                   {gmapsResult.error ? (
                     <div style={{ fontSize: '11px', color: 'var(--red)', background: 'var(--red-l)', padding: '8px 10px', borderRadius: '6px' }}>
-                      ⚠️ {activeLang === 'th' ? (gmapsResult.message || 'ไม่สามารถดึงข้อมูลพิกัดจากลิงก์นี้ได้ กรุณาตรวจสอบลิงก์หรือใช้ลิงก์ที่แชร์จาก Google Maps') : 'Could not resolve places from this link. Please check the URL.'}
+                      โ ๏ธ {activeLang === 'th' ? (gmapsResult.message || 'เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธ”เธถเธเธเนเธญเธกเธนเธฅเธเธดเธเธฑเธ”เธเธฒเธเธฅเธดเธเธเนเธเธตเนเนเธ”เน เธเธฃเธธเธ“เธฒเธ•เธฃเธงเธเธชเธญเธเธฅเธดเธเธเนเธซเธฃเธทเธญเนเธเนเธฅเธดเธเธเนเธ—เธตเนเนเธเธฃเนเธเธฒเธ Google Maps') : 'Could not resolve places from this link. Please check the URL.'}
                     </div>
                   ) : gmapsResult.isList ? (
                     <div className="info-box" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -555,11 +558,11 @@ export default function AddPlaceModal({
                         </div>
                         <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                           <span style={{ fontSize: '10px', background: 'var(--primary-l)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
-                            ✨ {activeLang === 'th' ? `ใหม่ ${stats.newCount}` : `${stats.newCount} new`}
+                            โจ {activeLang === 'th' ? `เนเธซเธกเน ${stats.newCount}` : `${stats.newCount} new`}
                           </span>
                           {stats.dupCount > 0 && (
                             <span style={{ fontSize: '10px', background: 'rgba(245, 158, 11, 0.15)', color: '#d97706', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
-                              ⚠️ {activeLang === 'th' ? `มีแล้ว ${stats.dupCount}` : `${stats.dupCount} existing`}
+                              โ ๏ธ {activeLang === 'th' ? `เธกเธตเนเธฅเนเธง ${stats.dupCount}` : `${stats.dupCount} existing`}
                             </span>
                           )}
                         </div>
@@ -598,7 +601,7 @@ export default function AddPlaceModal({
                               style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
                               onClick={() => setActiveCityFilter(cId)}
                             >
-                              {cInfo?.emoji || '📍'} {cInfo ? getCityName(cInfo, activeLang) : cId} ({count})
+                              {cInfo?.emoji || '๐“'} {cInfo ? getCityName(cInfo, activeLang) : cId} ({count})
                             </button>
                           );
                         })}
@@ -667,7 +670,7 @@ export default function AddPlaceModal({
                             style={{ fontSize: '10px', padding: '2px 6px' }}
                             onClick={() => setSelectedListIndices(processedPlaces.filter(p => !p.isDuplicate).map(p => p.originalIndex))}
                           >
-                            {activeLang === 'th' ? 'เลือกเฉพาะที่ใหม่' : 'Select New Only'}
+                            {activeLang === 'th' ? 'เน€เธฅเธทเธญเธเน€เธเธเธฒเธฐเธ—เธตเนเนเธซเธกเน' : 'Select New Only'}
                           </button>
                         </div>
                       </div>
@@ -676,7 +679,7 @@ export default function AddPlaceModal({
                       <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px' }}>
                         {displayPlaces.length === 0 ? (
                           <div style={{ textAlign: 'center', padding: '12px', fontSize: '11px', color: 'var(--muted)' }}>
-                            {activeLang === 'th' ? 'ไม่พบสถานที่ในตัวกรองนี้' : 'No places in this filter'}
+                            {activeLang === 'th' ? 'เนเธกเนเธเธเธชเธ–เธฒเธเธ—เธตเนเนเธเธ•เธฑเธงเธเธฃเธญเธเธเธตเน' : 'No places in this filter'}
                           </div>
                         ) : (
                           displayPlaces.map((p) => {
@@ -712,7 +715,7 @@ export default function AddPlaceModal({
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
                                     <span style={{ fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {p.icon || '📍'} {p.name}
+                                      {p.icon || '๐“'} {p.name}
                                     </span>
                                     {p.isDuplicate ? (
                                       <span style={{ fontSize: '9px', background: 'rgba(245, 158, 11, 0.2)', color: '#b45309', padding: '1px 5px', borderRadius: '4px', whiteSpace: 'nowrap', fontWeight: '500' }}>
@@ -726,16 +729,16 @@ export default function AddPlaceModal({
                                   </div>
                                   {(p.note || p.address) && (
                                     <div style={{ fontSize: '10px', color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {p.note ? `💬 ${p.note} · ` : ''}{p.address}
+                                      {p.note ? `๐’ฌ ${p.note} ยท ` : ''}{p.address}
                                     </div>
                                   )}
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
                                   <span style={{ fontSize: '9px', background: 'var(--primary-l)', color: 'var(--primary)', padding: '1px 5px', borderRadius: '4px', whiteSpace: 'nowrap', fontWeight: '500' }}>
-                                    {p.detectedCity === 'other' ? '📍 นอกพื้นที่' : `${cInfo?.emoji || '📍'} ${cInfo ? getCityName(cInfo, activeLang) : p.detectedCity}`}
+                                    {p.detectedCity === 'other' ? '๐“ เธเธญเธเธเธทเนเธเธ—เธตเน' : `${cInfo?.emoji || '๐“'} ${cInfo ? getCityName(cInfo, activeLang) : p.detectedCity}`}
                                   </span>
                                   <span style={{ fontSize: '8px', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-                                    {translateCategory(p.category || 'อื่นๆ', activeLang)}
+                                    {translateCategory(p.category || 'เธญเธทเนเธเน', activeLang)}
                                   </span>
                                 </div>
                               </div>
@@ -762,22 +765,22 @@ export default function AddPlaceModal({
                         onClick={handleBulkImportFromMaps}
                       >
                         {bulkImporting 
-                          ? (activeLang === 'th' ? '⏳ กำลังบันทึกข้อมูล...' : '⏳ Importing...') 
-                          : `✨ ${t('gmapsImportDistributed').replace('{count}', selectedListIndices.length)}`}
+                          ? (activeLang === 'th' ? 'โณ เธเธณเธฅเธฑเธเธเธฑเธเธ—เธถเธเธเนเธญเธกเธนเธฅ...' : 'โณ Importing...') 
+                          : `โจ ${t('gmapsImportDistributed').replace('{count}', selectedListIndices.length)}`}
                       </button>
                     </div>
                   ) : (
                     /* Single Place Result */
                     <div className="info-box">
-                      <div style={{ fontSize: '12px', fontWeight: '500' }}>{gmapsResult.icon || '📍'} {gmapsResult.name || 'สถานที่ดึงจาก Maps'}</div>
+                      <div style={{ fontSize: '12px', fontWeight: '500' }}>{gmapsResult.icon || '๐“'} {gmapsResult.name || 'เธชเธ–เธฒเธเธ—เธตเนเธ”เธถเธเธเธฒเธ Maps'}</div>
                       {gmapsResult.address && <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: '2px' }}>{gmapsResult.address}</div>}
-                      <div style={{ fontSize: '10px', color: 'var(--muted)' }}>GPS: {gmapsResult.lat?.toFixed(5)}, {gmapsResult.lng?.toFixed(5)} · {translateCategory(gmapsResult.category || 'อื่นๆ', activeLang)}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--muted)' }}>GPS: {gmapsResult.lat?.toFixed(5)}, {gmapsResult.lng?.toFixed(5)} ยท {translateCategory(gmapsResult.category || 'เธญเธทเนเธเน', activeLang)}</div>
                       <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={() => fillFromMaps(gmapsResult.name, gmapsResult.lat, gmapsResult.lng, gmapsResult.address, gmapsResult.category, gmapsResult.icon, gmapsResult.gmaps_url, gmapsResult.rating, gmapsResult.photos)}
                         >
-                          กรอกในฟอร์ม →
+                          เธเธฃเธญเธเนเธเธเธญเธฃเนเธก โ’
                         </button>
                       </div>
                     </div>
@@ -792,12 +795,12 @@ export default function AddPlaceModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: '1.4' }}>
                 {activeLang === 'th' 
-                  ? 'วางข้อความ JSON ที่ได้จาก Google Maps Console Script ของคุณ เพื่อนำเข้าข้อมูลทั้งหมดทีเดียว:' 
+                  ? 'เธงเธฒเธเธเนเธญเธเธงเธฒเธก JSON เธ—เธตเนเนเธ”เนเธเธฒเธ Google Maps Console Script เธเธญเธเธเธธเธ“ เน€เธเธทเนเธญเธเธณเน€เธเนเธฒเธเนเธญเธกเธนเธฅเธ—เธฑเนเธเธซเธกเธ”เธ—เธตเน€เธ”เธตเธขเธง:' 
                   : 'Paste the JSON array extracted from Google Maps Console Script to import all places at once:'}
               </div>
               
               <div className="form-group">
-                <div className="form-label">{activeLang === 'th' ? 'เลือกเมืองที่ต้องการนำเข้าสถานที่ *:' : 'Select Target City *:'}</div>
+                <div className="form-label">{activeLang === 'th' ? 'เน€เธฅเธทเธญเธเน€เธกเธทเธญเธเธ—เธตเนเธ•เนเธญเธเธเธฒเธฃเธเธณเน€เธเนเธฒเธชเธ–เธฒเธเธ—เธตเน *:' : 'Select Target City *:'}</div>
                 <select className="form-input" id="bulk-import-city" defaultValue={activeCity}>
                   {COUNTRIES.map(country => 
                     country.cities.map(city => (
@@ -824,7 +827,7 @@ export default function AddPlaceModal({
                   try {
                     const parsed = JSON.parse(input.value.trim());
                     if (!Array.isArray(parsed)) {
-                      toast(activeLang === 'th' ? 'ข้อมูลต้องอยู่ในรูปแบบ Array [ ... ]' : 'Data must be a JSON Array');
+                      toast(activeLang === 'th' ? 'เธเนเธญเธกเธนเธฅเธ•เนเธญเธเธญเธขเธนเนเนเธเธฃเธนเธเนเธเธ Array [ ... ]' : 'Data must be a JSON Array');
                       return;
                     }
                     
@@ -844,9 +847,9 @@ export default function AddPlaceModal({
                       const placeObj = {
                         id: localId,
                         name: item.name,
-                        cat: 'อื่นๆ',
+                        cat: 'เธญเธทเนเธเน',
                         dur: 90,
-                        icon: '📍',
+                        icon: '๐“',
                         desc: item.description || item.address || '',
                         addr: item.address || '',
                         lat: item.lat ? parseFloat(item.lat) : null,
@@ -858,6 +861,7 @@ export default function AddPlaceModal({
                         names: {},
                         descriptions: {},
                         city_id: targetCity,
+                        _needsPhoto: !hasImportedPhoto(item),
                         _custom: true
                       };
                       
@@ -907,14 +911,14 @@ export default function AddPlaceModal({
                           return [...filteredPrev, ...placesObjList.map(item => ({
                             ...item,
                             dur: item.dur || 90,
-                            icon: item.icon || '📍',
+                            icon: item.icon || '๐“',
                             _custom: true
                           }))];
                         });
                       }
                     }
                     
-                    toast(activeLang === 'th' ? `นำเข้าสำเร็จ ${successCount} รายการ! กรุณารอสักครู่ขณะระบบดึงข้อมูลใหม่...` : `Imported ${successCount} places! Refreshing...`);
+                    toast(activeLang === 'th' ? `เธเธณเน€เธเนเธฒเธชเธณเน€เธฃเนเธ ${successCount} เธฃเธฒเธขเธเธฒเธฃ! เธเธฃเธธเธ“เธฒเธฃเธญเธชเธฑเธเธเธฃเธนเนเธเธ“เธฐเธฃเธฐเธเธเธ”เธถเธเธเนเธญเธกเธนเธฅเนเธซเธกเน...` : `Imported ${successCount} places! Refreshing...`);
                     setAddModalOpen(false);
                     
                     if (googleSheets && user) {
@@ -923,13 +927,13 @@ export default function AddPlaceModal({
                       }, 1500);
                     }
                   } catch (e) {
-                    toast(activeLang === 'th' ? 'JSON ไม่ถูกต้อง: ' + e.message : 'Invalid JSON: ' + e.message);
+                    toast(activeLang === 'th' ? 'JSON เนเธกเนเธ–เธนเธเธ•เนเธญเธ: ' + e.message : 'Invalid JSON: ' + e.message);
                   } finally {
                     setAuthLoading(false);
                   }
                 }}
               >
-                {activeLang === 'th' ? 'นำเข้าสถานที่ทั้งหมด' : 'Import All Places'}
+                {activeLang === 'th' ? 'เธเธณเน€เธเนเธฒเธชเธ–เธฒเธเธ—เธตเนเธ—เธฑเนเธเธซเธกเธ”' : 'Import All Places'}
               </button>
             </div>
           )}

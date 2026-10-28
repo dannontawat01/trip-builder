@@ -53,7 +53,8 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.19.0';
+const APP_VERSION = 'v1.19.1';
+const AUTO_ENRICH_BATCH_SIZE = 4;
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -2506,6 +2507,7 @@ function TripBuilderApp() {
           names: {},
           descriptions: {},
           city_id: city,
+          _needsPhoto: !(p.cover_image || (p.photos && p.photos[0])),
           _custom: true
         };
         grouped[city].push(placeObj);
@@ -2655,6 +2657,52 @@ function TripBuilderApp() {
     setIsEnrichingPhotos(false);
     toast(activeLang === 'th' ? `ดึงรูปภาพจริงสำเร็จ ${enrichedCount} แห่ง! 📸` : `Successfully fetched real photos for ${enrichedCount} places! 📸`);
   };
+
+  // Places imported without a photo are flagged `_needsPhoto` and filled here in small parallel batches
+  const autoEnrichRunningRef = useRef(false);
+  useEffect(() => {
+    if (autoEnrichRunningRef.current) return;
+    const pending = [];
+    Object.entries(customPlaces).forEach(([cId, list]) => {
+      if (!Array.isArray(list)) return;
+      list.forEach(p => {
+        if (p._needsPhoto && p.lat != null && p.lng != null) pending.push({ ...p, cityId: cId });
+      });
+    });
+    if (pending.length === 0) return;
+
+    autoEnrichRunningRef.current = true;
+    (async () => {
+      for (let start = 0; start < pending.length; start += AUTO_ENRICH_BATCH_SIZE) {
+        const batch = pending.slice(start, start + AUTO_ENRICH_BATCH_SIZE);
+        const results = await Promise.all(batch.map(async (p) => {
+          try {
+            const query = `q=${encodeURIComponent(p.name)}&city=${encodeURIComponent(p.cityId)}&cat=${encodeURIComponent(p.cat || '')}&lat=${encodeURIComponent(p.lat)}&lng=${encodeURIComponent(p.lng)}`;
+            const res = await fetch(`/api/search-photos?${query}`);
+            return res.ok ? { id: p.id, data: await res.json() } : { id: p.id, data: null };
+          } catch {
+            return { id: p.id, data: null };
+          }
+        }));
+        const byId = new Map(results.map(r => [r.id, r.data]));
+        const applyPhotos = (place) => {
+          if (!byId.has(place.id)) return place;
+          const data = byId.get(place.id);
+          const { _needsPhoto, ...rest } = place;
+          if (!data || !data.cover_image) return rest;
+          return { ...rest, cover_image: data.cover_image, photos: data.photos && data.photos.length > 0 ? data.photos : [data.cover_image] };
+        };
+        setCustomPlaces(prev => {
+          const next = {};
+          Object.entries(prev).forEach(([cId, list]) => { next[cId] = Array.isArray(list) ? list.map(applyPhotos) : list; });
+          try { localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: next })); } catch (_) {}
+          return next;
+        });
+        setLandmarks(prev => prev.map(applyPhotos));
+      }
+      autoEnrichRunningRef.current = false;
+    })();
+  }, [customPlaces]);
 
   const fillFromMaps = (name, lat, lng, address = '', category = 'อื่นๆ', icon = '📍', gmapsUrl = '', rating = null, photos = []) => {
     setActiveAddTab('manual');

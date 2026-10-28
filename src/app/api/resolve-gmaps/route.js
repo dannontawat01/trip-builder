@@ -91,32 +91,9 @@ async function resolvePlacelist(html, finalUrl) {
     if (name && lat && lng) {
       const { category, icon } = classifyCategory(`${name} ${note} ${address}`);
       
-      // Search for place photos embedded inside item
-      const foundPhotos = [];
-      function searchPhotosInItem(obj) {
-        if (!obj) return;
-        if (typeof obj === 'string') {
-          if (
-            (obj.startsWith('https://lh') || obj.startsWith('http://lh') || obj.includes('googleusercontent.com') || obj.includes('ggpht.com')) &&
-            !obj.includes('s40-c') && !obj.includes('s44-p') && !obj.includes('photo.jpg') && !obj.includes('/photo.')
-          ) {
-            let cleanUrl = obj;
-            if (cleanUrl.includes('=')) {
-              cleanUrl = cleanUrl.replace(/=[wshedcptb0-9-]+$/i, '=w800-h500-k-no');
-            } else {
-              cleanUrl = cleanUrl + '=w800-h500-k-no';
-            }
-            foundPhotos.push(cleanUrl);
-          }
-        } else if (Array.isArray(obj)) {
-          obj.forEach(searchPhotosInItem);
-        } else if (typeof obj === 'object') {
-          Object.values(obj).forEach(searchPhotosInItem);
-        }
-      }
-      searchPhotosInItem(item);
-      const photos = Array.from(new Set(foundPhotos)).slice(0, 6);
-      const cover_image = photos[0] || null;
+      // Saved-list items only embed reviewer avatars, so real photos are fetched afterwards from the client
+      const photos = [];
+      const cover_image = null;
 
       places.push({
         name,
@@ -138,29 +115,8 @@ async function resolvePlacelist(html, finalUrl) {
     listTitle,
     listIcon,
     count: places.length,
-    places: await attachGooglePhotos(places)
+    places
   };
-}
-
-const PHOTO_LOOKUP_CONCURRENCY = 6;
-const PHOTO_LOOKUP_MAX_PLACES = 60;
-
-// Looks up real Google photos for places without one; the rest are filled later by the "fetch real photos" button
-async function attachGooglePhotos(places) {
-  const pending = places.filter(p => !p.cover_image).slice(0, PHOTO_LOOKUP_MAX_PLACES);
-  let nextIndex = 0;
-  const worker = async () => {
-    while (nextIndex < pending.length) {
-      const place = pending[nextIndex++];
-      const photos = await fetchGoogleMapsPhotos(place.name, place.lat, place.lng);
-      if (photos.length > 0) {
-        place.photos = photos;
-        place.cover_image = photos[0];
-      }
-    }
-  };
-  await Promise.all(Array.from({ length: PHOTO_LOOKUP_CONCURRENCY }, worker));
-  return places;
 }
 
 async function resolveSingleUrl(targetUrl) {
