@@ -5256,3 +5256,108 @@ body .modal-title {
   box-shadow: none !important;
   border-bottom: none !important;
 }
+
+/* Buttons: no outlines. Secondary = soft tinted fill, primary = solid accent. */
+.topbar button,
+.topbar select,
+.places-meta-row button,
+.main-head button,
+.trip-bar button,
+.summary-bar button,
+.day-zone button,
+.btn,
+.btn-ghost,
+.btn-xs,
+.btn-sm {
+  border: none !important;
+}
+
+.btn-ghost,
+.topbar button:not(.btn-primary):not(.topbar-travel-btn):not(.theme-mode-btn),
+.places-meta-row button,
+.main-head button:not(.btn-primary) {
+  background: rgba(118, 118, 128, .12) !important;
+  color: var(--dark) !important;
+  box-shadow: none !important;
+}
+
+.btn-ghost:hover,
+.topbar button:not(.btn-primary):not(.topbar-travel-btn):not(.theme-mode-btn):hover,
+.places-meta-row button:hover,
+.main-head button:not(.btn-primary):hover {
+  background: rgba(118, 118, 128, .2) !important;
+}
+
+body.theme-dark .btn-ghost,
+body.theme-dark .topbar button:not(.btn-primary):not(.topbar-travel-btn):not(.theme-mode-btn),
+body.theme-dark .places-meta-row button,
+body.theme-dark .main-head button:not(.btn-primary) {
+  background: rgba(255, 255, 255, .12) !important;
+}
+
+.topbar-travel-btn {
+  background: var(--teal) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.topbar select,
+.lang-select {
+  background-color: rgba(118, 118, 128, .12) !important;
+  color: var(--dark) !important;
+  border-radius: 10px !important;
+}
+
+/* Topbar: brand + actions on one row, country tabs underneath */
+.topbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 20px;
+}
+
+.topbar-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.topbar-action-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.theme-toggle-container {
+  border: none !important;
+  background: rgba(118, 118, 128, .12) !important;
+  border-radius: 10px !important;
+}
+
+/* Main header: title on the left, actions on the right, no boxes */
+.main-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    padding: 12px;
+  }
+  .topbar-main-row {
+    gap: 8px;
+  }
+}
