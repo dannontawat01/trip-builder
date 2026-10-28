@@ -16,6 +16,19 @@ describe('googleMapsPhoto', () => {
     assert.deepEqual(extractPhotos(payload), ['https://lh3.googleusercontent.com/grass-cs/AAA=w800-h500-k-no']);
   });
 
+  test('prefers the Google Maps place-page cover over gallery photos', () => {
+    const cover = 'https://lh3.googleusercontent.com/grass-cs/COVER=w203-h270-k-no';
+    const gallery = 'https://lh3.googleusercontent.com/grass-cs/GALLERY=w140-h186-k-no';
+    const payload = [null, null, null, null, null, null, []];
+    payload[6][37] = [[[null, null, null, null, null, null, [gallery]]]];
+    payload[6][51] = [[[null, null, null, null, null, null, [cover]]]];
+
+    assert.deepEqual(extractPhotos(payload), [
+      'https://lh3.googleusercontent.com/grass-cs/COVER=w800-h500-k-no',
+      'https://lh3.googleusercontent.com/grass-cs/GALLERY=w800-h500-k-no'
+    ]);
+  });
+
   test('extractPhotos handles empty or malformed payloads', () => {
     assert.deepEqual(extractPhotos(null), []);
     assert.deepEqual(extractPhotos([]), []);

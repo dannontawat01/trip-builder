@@ -7,8 +7,9 @@ const SEARCH_RADIUS_METERS = 600;
 const MAX_PHOTOS = 6;
 const CACHE_LIMIT = 500;
 const PHOTO_SIZE_SUFFIX = '=w800-h500-k-no';
-// Photo groups inside the preview payload: [6][37] = place photos, [6][51] = more photos
-const PHOTO_GROUP_INDEXES = [37, 51];
+// [6][51] starts with the primary image shown on the Google Maps place page;
+// [6][37] contains additional gallery photos.
+const PHOTO_GROUP_INDEXES = [51, 37];
 const PLACE_ID_PATTERN = /placeid(?:=|\\u003d)(ChIJ[\w-]{20,})/;
 const PREVIEW_LINK_PATTERN = /href="(\/maps\/preview\/place\?[^"]+)"/;
 const GOOGLE_PHOTO_PATTERN = /^https:\/\/lh[0-9]\.googleusercontent\.com\/(?!a-?\/)/;
