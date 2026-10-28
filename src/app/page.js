@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { isNonPlacePhoto } from '@/lib/photoUrl';
+import { normalizeTheme } from '@/lib/theme';
 import { useSearchParams } from 'next/navigation';
 import { googleSheets } from '@/lib/googleSheets';
 import { getGmapsWalkingRouteUrl, shareGmapsRoute } from '@/lib/gmapsRoute';
@@ -54,7 +55,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.19.4';
+const APP_VERSION = 'v1.20.1';
 const AUTO_ENRICH_BATCH_SIZE = 4;
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
@@ -853,7 +854,7 @@ function TripBuilderApp() {
     const bl = (navigator.language || 'th').toLowerCase().slice(0, 2);
     const defaultLang = ['th', 'en'].includes(bl) ? bl : 'en';
     setActiveLang(localStorage.getItem('tb_lang') || defaultLang);
-    setTheme(localStorage.getItem('tb_theme') || 'clean');
+    setTheme(normalizeTheme(localStorage.getItem('tb_theme')));
     
     // Set default date to today
     setStartDate(new Date().toISOString().split('T')[0]);
@@ -3712,11 +3713,13 @@ function TripBuilderApp() {
 
   // Apply visual theme to body class
   useEffect(() => {
-    document.body.className = '';
-    if (theme === 'colorful') document.body.classList.add('theme-colorful');
-    if (theme === 'dark') document.body.classList.add('theme-dark');
+    document.body.classList.toggle('theme-dark', theme === 'dark');
     localStorage.setItem('tb_theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.lang = activeLang;
+  }, [activeLang]);
 
   // Set country helper
   const handleCountrySelect = (cId) => {
@@ -3868,6 +3871,8 @@ function TripBuilderApp() {
           className="drawer-toggle-left"
           onClick={() => { setLeftDrawerOpen(v => !v); setRightDrawerOpen(false); }}
           title={t('places')}
+          aria-label={t('places')}
+          aria-expanded={leftDrawerOpen}
         >
           {leftDrawerOpen ? '◀' : '▶'}
         </button>
@@ -3877,6 +3882,8 @@ function TripBuilderApp() {
           className="drawer-toggle-right"
           onClick={() => { setRightDrawerOpen(v => !v); setLeftDrawerOpen(false); }}
           title={t('nearby')}
+          aria-label={t('nearby')}
+          aria-expanded={rightDrawerOpen}
         >
           {rightDrawerOpen ? '▶' : '◀'}
         </button>
@@ -4192,8 +4199,9 @@ function TripBuilderApp() {
           {/* Config row */}
           <div className="trip-bar">
             <div className="cfg cfg-start-date">
-              <label>📅 {t('startDate')}</label>
+              <label htmlFor="trip-start-date">📅 {t('startDate')}</label>
               <input
+                id="trip-start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => {
@@ -4204,8 +4212,9 @@ function TripBuilderApp() {
             </div>
             <div className="trip-bar-arrow">→</div>
             <div className="cfg cfg-end-date">
-              <label>📅 {t('endDate')}</label>
+              <label htmlFor="trip-end-date">📅 {t('endDate')}</label>
               <input
+                id="trip-end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => {
@@ -4216,8 +4225,9 @@ function TripBuilderApp() {
             </div>
             <div className="trip-bar-divider" />
             <div className="cfg cfg-depart-time">
-              <label>⏰ {t('departTime')}</label>
+              <label htmlFor="trip-depart-time">⏰ {t('departTime')}</label>
               <input
+                id="trip-depart-time"
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
@@ -4225,8 +4235,9 @@ function TripBuilderApp() {
             </div>
             <div className="trip-bar-divider" />
             <div className="cfg cfg-hotel" style={{ flex: 1, minWidth: 0 }}>
-              <label>🏨 {t('hotel')}</label>
+              <label htmlFor="trip-hotel">🏨 {t('hotel')}</label>
               <input
+                id="trip-hotel"
                 type="text"
                 placeholder={t('hotelPh')}
                 value={hotel}
@@ -4236,8 +4247,9 @@ function TripBuilderApp() {
             </div>
             <div className="trip-bar-divider" />
             <div className="cfg cfg-num-days">
-              <label>🔢 {t('numDays')}</label>
+              <label htmlFor="trip-days">🔢 {t('numDays')}</label>
               <select
+                id="trip-days"
                 value={nDays}
                 onChange={(e) => {
                   const val = parseInt(e.target.value);
@@ -4550,7 +4562,7 @@ function TripBuilderApp() {
                               htmlElements.push(
                                 <div className="travel-row" key={`travel_${idx}`}>
                                   <div className="tline" />
-                                  <span 
+                                  <button type="button"
                                     className="tlabel tlabel-interactive" 
                                     onClick={() => promptEditTravelTime(day, idx, item)}
                                     title={activeLang === 'th' ? 'คลิกเพื่อแก้ไขเวลาเดินทาง' : 'Click to edit travel time'}
@@ -4558,7 +4570,7 @@ function TripBuilderApp() {
                                     <span className="travel-mode-icon">{travelIcon}</span>
                                     <span className="travel-time-text">{travelTime}m</span>
                                     <span className="travel-type-text">{activeLang === 'th' ? 'เดินทาง' : 'Travel'}{distLabel}</span>
-                                  </span>
+                                  </button>
                                   <div className="tline" />
                                 </div>
                               );
@@ -4591,11 +4603,11 @@ function TripBuilderApp() {
                                 </div>
                                 <div style={{ padding: '6px 8px' }}>
                                   <div className="it-top">
-                                    <div className="it-name" onClick={() => handleOpenDetail(actualLandmark)}>
+                                    <button type="button" className="it-name" onClick={() => handleOpenDetail(actualLandmark)}>
                                       {actualLandmark.icon && <span style={{ marginRight: '6px' }}>{actualLandmark.icon}</span>}
                                       {(actualLandmark.names && actualLandmark.names[activeLang]) || actualLandmark.name}
                                       {item.rating && <span style={{ color: '#EF9F27', fontSize: '9px', fontWeight: 'bold', marginLeft: '5px', whiteSpace: 'nowrap' }}>⭐ {item.rating}</span>}
-                                    </div>
+                                    </button>
                                     <div className="it-actions">
                                       <div className="move-day-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
                                         <button
@@ -4992,18 +5004,22 @@ function TripBuilderApp() {
       </div>
 
       {/* ─── MOBILE BOTTOM NAV ──────────────────────────────────────── */}
-      <nav className="mob-nav">
-        <button className={`mob-nav-btn ${mobileTab === 'plan' ? 'active' : ''}`} onClick={() => setMobileTab('plan')}>
+      <nav className="mob-nav" aria-label={activeLang === 'th' ? 'เมนูหลัก' : 'Main navigation'}>
+        <button className={`mob-nav-btn ${mobileTab === 'plan' ? 'active' : ''}`} onClick={() => setMobileTab('plan')} aria-current={mobileTab === 'plan' ? 'page' : undefined}>
           <span className="nav-icon">🗓</span>
           <span>{t('mobPlan')}</span>
         </button>
-        <button className={`mob-nav-btn ${mobileTab === 'places' ? 'active' : ''}`} onClick={() => setMobileTab('places')}>
+        <button className={`mob-nav-btn ${mobileTab === 'places' ? 'active' : ''}`} onClick={() => setMobileTab('places')} aria-current={mobileTab === 'places' ? 'page' : undefined}>
           <span className="nav-icon">📍</span>
           <span>{t('mobPlaces')}</span>
         </button>
         {/* Center ADD Tab */}
-        <button className="mob-nav-center-add" onClick={() => { setAddModalOpen(true); setActiveAddTab('manual'); }} title="Add Attraction">
+        <button className="mob-nav-center-add" onClick={() => { setAddModalOpen(true); setActiveAddTab('manual'); }} aria-label={activeLang === 'th' ? 'เพิ่มสถานที่' : 'Add place'} title={activeLang === 'th' ? 'เพิ่มสถานที่' : 'Add place'}>
           <span className="add-ring">➕</span>
+        </button>
+        <button className={`mob-nav-btn ${mobileTab === 'nearby' ? 'active' : ''}`} onClick={() => setMobileTab('nearby')} aria-current={mobileTab === 'nearby' ? 'page' : undefined}>
+          <span className="nav-icon">💡</span>
+          <span>{activeLang === 'th' ? 'ตัวช่วย' : 'Tools'}</span>
         </button>
         <button className="mob-nav-btn travel-mob-btn" onClick={() => setTravelModeOpen(true)} style={{ color: '#0284c7', fontWeight: 'bold' }}>
           <span className="nav-icon">✈️</span>

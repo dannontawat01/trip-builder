@@ -3,9 +3,7 @@ import "./globals.css";
 export const viewport = {
   themeColor: "#0f766e",
   width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false
+  initialScale: 1
 };
 
 export const metadata = {

@@ -7,6 +7,7 @@ import {
   translateCategory
 } from '@/app/constants/translations';
 import { detectCityFromCoords, checkIsDuplicate } from '@/lib/cityDetector';
+import useDialogFocus from './useDialogFocus';
 
 const hasImportedPhoto = (item) => Boolean(item.cover_image || (item.photos && item.photos[0]));
 
@@ -276,14 +277,15 @@ export default function AddPlaceModal({
       setBulkImporting(false);
     }
   };
+  const dialogRef = useDialogFocus(addModalOpen, () => setAddModalOpen(false));
   if (!addModalOpen) return null;
 
   return (
     <div className="overlay show" onClick={() => setAddModalOpen(false)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="add-place-title" tabIndex={-1} className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <div className="modal-title">{t('addNew')}</div>
-          <button className="modal-close" onClick={() => setAddModalOpen(false)}>✕</button>
+          <div id="add-place-title" className="modal-title">{t('addNew')}</div>
+          <button className="modal-close" aria-label={t('close')} onClick={() => setAddModalOpen(false)}>✕</button>
         </div>
         
         <div className="modal-body">
@@ -331,17 +333,17 @@ export default function AddPlaceModal({
               </div>
               
               <div className="form-group">
-                <div className="form-label">{t('fName')}</div>
-                <input className="form-input" value={fName} onChange={(e) => setFName(e.target.value)} />
+                <label className="form-label" htmlFor="place-name">{t('fName')}</label>
+                <input id="place-name" className="form-input" value={fName} onChange={(e) => setFName(e.target.value)} />
               </div>
               <div className="form-group">
-                <div className="form-label">{t('fDesc')}</div>
-                <textarea className="form-input" value={fDesc} onChange={(e) => setFDesc(e.target.value)} />
+                <label className="form-label" htmlFor="place-description">{t('fDesc')}</label>
+                <textarea id="place-description" className="form-input" value={fDesc} onChange={(e) => setFDesc(e.target.value)} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <div className="form-label">{t('fCat')}</div>
-                  <select className="form-input" value={fCat} onChange={(e) => setFCat(e.target.value)}>
+                  <label className="form-label" htmlFor="place-category">{t('fCat')}</label>
+                  <select id="place-category" className="form-input" value={fCat} onChange={(e) => setFCat(e.target.value)}>
                     <option value="วัด">{activeLang === 'th' ? 'วัด' : 'Temple'}</option>
                     <option value="พระราชวัง">{activeLang === 'th' ? 'พระราชวัง' : 'Palace'}</option>
                     <option value="ตลาด">{activeLang === 'th' ? 'ตลาด' : 'Market'}</option>
@@ -358,45 +360,45 @@ export default function AddPlaceModal({
                   </select>
                 </div>
                 <div className="form-group">
-                  <div className="form-label">{t('fDur')}</div>
-                  <input className="form-input" type="number" value={fDur} onChange={(e) => setFDur(e.target.value)} />
+                  <label className="form-label" htmlFor="place-duration">{t('fDur')}</label>
+                  <input id="place-duration" className="form-input" type="number" value={fDur} onChange={(e) => setFDur(e.target.value)} />
                 </div>
               </div>
               <div className="form-group">
-                <div className="form-label">{t('fAddr')}</div>
-                <input className="form-input" value={fAddr} onChange={(e) => setFAddr(e.target.value)} />
+                <label className="form-label" htmlFor="place-address">{t('fAddr')}</label>
+                <input id="place-address" className="form-input" value={fAddr} onChange={(e) => setFAddr(e.target.value)} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <div className="form-label">Latitude</div>
-                  <input className="form-input" type="number" step="any" value={fLat} onChange={(e) => setFLat(e.target.value)} />
+                  <label className="form-label" htmlFor="place-latitude">Latitude</label>
+                  <input id="place-latitude" className="form-input" type="number" step="any" value={fLat} onChange={(e) => setFLat(e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <div className="form-label">Longitude</div>
-                  <input className="form-input" type="number" step="any" value={fLng} onChange={(e) => setFLng(e.target.value)} />
+                  <label className="form-label" htmlFor="place-longitude">Longitude</label>
+                  <input id="place-longitude" className="form-input" type="number" step="any" value={fLng} onChange={(e) => setFLng(e.target.value)} />
                 </div>
               </div>
               <div className="form-group">
-                <div className="form-label">{t('fFee')}</div>
-                <input className="form-input" value={fFee} onChange={(e) => setFFee(e.target.value)} />
+                <label className="form-label" htmlFor="place-fee">{t('fFee')}</label>
+                <input id="place-fee" className="form-input" value={fFee} onChange={(e) => setFFee(e.target.value)} />
               </div>
               <div className="form-group">
-                <div className="form-label">{t('fTransport')}</div>
-                <input className="form-input" value={fTransport} onChange={(e) => setFTransport(e.target.value)} />
+                <label className="form-label" htmlFor="place-transport">{t('fTransport')}</label>
+                <input id="place-transport" className="form-input" value={fTransport} onChange={(e) => setFTransport(e.target.value)} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <div className="form-label">{t('fIcon')}</div>
-                  <input className="form-input" value={fIcon} onChange={(e) => setFIcon(e.target.value)} maxLength={2} />
+                  <label className="form-label" htmlFor="place-icon">{t('fIcon')}</label>
+                  <input id="place-icon" className="form-input" value={fIcon} onChange={(e) => setFIcon(e.target.value)} maxLength={2} />
                 </div>
                 <div className="form-group">
-                  <div className="form-label">{activeLang === 'th' ? 'คะแนนรีวิว (0 - 5)' : 'Rating (0 - 5)'}</div>
-                  <input className="form-input" type="number" min="0" max="5" step="0.1" value={fRating} onChange={(e) => setFRating(e.target.value)} placeholder="เช่น 4.5" />
+                  <label className="form-label" htmlFor="place-rating">{activeLang === 'th' ? 'คะแนนรีวิว (0 - 5)' : 'Rating (0 - 5)'}</label>
+                  <input id="place-rating" className="form-input" type="number" min="0" max="5" step="0.1" value={fRating} onChange={(e) => setFRating(e.target.value)} placeholder="เช่น 4.5" />
                 </div>
               </div>
               <div className="form-group" style={{ marginTop: '10px' }}>
-                <div className="form-label">{t('fCity')}</div>
-                <select className="form-input" value={fCity} onChange={(e) => setFCity(e.target.value)}>
+                <label className="form-label" htmlFor="place-city">{t('fCity')}</label>
+                <select id="place-city" className="form-input" value={fCity} onChange={(e) => setFCity(e.target.value)}>
                   {COUNTRIES.flatMap(co => co.cities).map(ci => (
                     <option key={ci.id} value={ci.id}>{ci.emoji} {getCityName(ci, activeLang)}</option>
                   ))}

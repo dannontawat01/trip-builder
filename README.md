@@ -16,6 +16,18 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Using Trip Builder
+
+- On a phone or tablet, use the bottom navigation to switch between the itinerary,
+  places, and **Tools** (nearby suggestions, checklist, and budget). The center
+  button adds a place; Travel and Export remain available in the navigation.
+- Use the sun and moon controls to switch between Clean and Dark themes. Existing
+  Colorful preferences are automatically moved to Clean.
+- Places can be added to a day using the add button and day selector, without
+  needing to drag. Browser zoom remains available.
+- Dialogs support keyboard navigation: Tab cycles through controls and Escape
+  closes the active dialog, returning focus to its opener.
+
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

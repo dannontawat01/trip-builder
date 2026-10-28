@@ -1,5 +1,7 @@
 'use client';
 
+import useDialogFocus from './useDialogFocus';
+
 export default function RouteOptimizationModal({
   isOpen,
   optData,
@@ -8,16 +10,17 @@ export default function RouteOptimizationModal({
   activeLang = 'th',
   t
 }) {
+  const dialogRef = useDialogFocus(Boolean(isOpen && optData), onClose);
   if (!isOpen || !optData) return null;
 
   return (
     <div className="overlay show" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px', width: '92%' }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="route-opt-title" tabIndex={-1} className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px', width: '92%' }}>
         <div className="modal-head">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '20px' }}>⚡</span>
             <div>
-              <div className="modal-title" style={{ fontSize: '16px', fontWeight: 'bold' }}>
+              <div id="route-opt-title" className="modal-title" style={{ fontSize: '16px', fontWeight: 'bold' }}>
                 {t('optimizeModalTitle')} — {t('dayLabel')} {optData.day}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
@@ -25,7 +28,7 @@ export default function RouteOptimizationModal({
               </div>
             </div>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" aria-label={t('close')} onClick={onClose}>✕</button>
         </div>
 
         <div className="modal-body" style={{ padding: '16px 20px', maxHeight: '70vh', overflowY: 'auto' }}>

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import useDialogFocus from './useDialogFocus';
 
 export default function AuthModal({
   authModalOpen,
@@ -16,24 +17,26 @@ export default function AuthModal({
   handleSignUp,
   activeLang
 }) {
+  const dialogRef = useDialogFocus(authModalOpen, () => setAuthModalOpen(false));
   if (!authModalOpen) return null;
 
   return (
     <div className="overlay show" onClick={() => setAuthModalOpen(false)}>
-      <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="auth-title" tabIndex={-1} className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <div className="modal-title">
+          <div id="auth-title" className="modal-title">
             {authMode === 'login' 
               ? (activeLang === 'th' ? '🔑 เข้าสู่ระบบ' : '🔑 Sign In')
               : (activeLang === 'th' ? '📝 สมัครสมาชิก' : '📝 Register')}
           </div>
-          <button className="modal-close" onClick={() => setAuthModalOpen(false)}>✕</button>
+          <button className="modal-close" onClick={() => setAuthModalOpen(false)} aria-label={activeLang === 'th' ? 'ปิด' : 'Close'}>✕</button>
         </div>
         
         <div className="modal-body" style={{ padding: '20px' }}>
           <div className="form-group">
-            <label className="form-label">{activeLang === 'th' ? 'อีเมล' : 'Email Address'}</label>
+            <label className="form-label" htmlFor="auth-email">{activeLang === 'th' ? 'อีเมล' : 'Email Address'}</label>
             <input
+              id="auth-email"
               type="email"
               className="form-input"
               placeholder="name@example.com"
@@ -43,8 +46,9 @@ export default function AuthModal({
           </div>
           
           <div className="form-group" style={{ marginTop: '12px' }}>
-            <label className="form-label">{activeLang === 'th' ? 'รหัสผ่าน' : 'Password'}</label>
+            <label className="form-label" htmlFor="auth-password">{activeLang === 'th' ? 'รหัสผ่าน' : 'Password'}</label>
             <input
+              id="auth-password"
               type="password"
               className="form-input"
               placeholder="••••••••"
@@ -63,22 +67,20 @@ export default function AuthModal({
             {authMode === 'login' ? (
               <>
                 {activeLang === 'th' ? 'ยังไม่มีบัญชีผู้ใช้?' : "Don't have an account?"}{' '}
-                <span 
-                  style={{ color: 'var(--teal)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                <button type="button" className="text-link"
                   onClick={() => setAuthMode('register')}
                 >
                   {activeLang === 'th' ? 'สมัครสมาชิกที่นี่' : 'Register here'}
-                </span>
+                </button>
               </>
             ) : (
               <>
                 {activeLang === 'th' ? 'มีบัญชีอยู่แล้ว?' : 'Already have an account?'}{' '}
-                <span 
-                  style={{ color: 'var(--teal)', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                <button type="button" className="text-link"
                   onClick={() => setAuthMode('login')}
                 >
                   {activeLang === 'th' ? 'เข้าสู่ระบบที่นี่' : 'Sign in here'}
-                </span>
+                </button>
               </>
             )}
           </div>

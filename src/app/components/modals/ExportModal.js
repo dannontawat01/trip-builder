@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { DAY_COLORS } from '@/app/constants/translations';
+import useDialogFocus from './useDialogFocus';
 
 export default function ExportModal({
   exportModalOpen,
@@ -21,35 +22,36 @@ export default function ExportModal({
   handleExportBackup,
   handleImportBackup
 }) {
+  const dialogRef = useDialogFocus(exportModalOpen, () => setExportModalOpen(false));
   if (!exportModalOpen) return null;
 
   return (
     <div className="overlay show" onClick={() => setExportModalOpen(false)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="export-title" tabIndex={-1} className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <div className="modal-title">{t('exportTitle')}</div>
-          <button className="modal-close" onClick={() => setExportModalOpen(false)}>✕</button>
+          <div id="export-title" className="modal-title">{t('exportTitle')}</div>
+          <button className="modal-close" aria-label={t('close')} onClick={() => setExportModalOpen(false)}>✕</button>
         </div>
         
         <div className="modal-body">
           <div className="form-group">
             <div className="form-label">{t('exportFmt')}</div>
             <div className="style-grid">
-              <div className={`style-card ${selectedStyle === 'A' ? 'active' : ''}`} onClick={() => setSelectedStyle('A')}>
+              <button type="button" aria-pressed={selectedStyle === 'A'} className={`style-card ${selectedStyle === 'A' ? 'active' : ''}`} onClick={() => setSelectedStyle('A')}>
                 <div className="style-icon">🎨</div>
                 <div className="style-name">Beautiful</div>
                 <div className="style-desc">{t('pdfBeautiful')}</div>
-              </div>
-              <div className={`style-card ${selectedStyle === 'B' ? 'active' : ''}`} onClick={() => setSelectedStyle('B')}>
+              </button>
+              <button type="button" aria-pressed={selectedStyle === 'B'} className={`style-card ${selectedStyle === 'B' ? 'active' : ''}`} onClick={() => setSelectedStyle('B')}>
                 <div className="style-icon">📄</div>
                 <div className="style-name">Clean</div>
                 <div className="style-desc">{t('pdfClean')}</div>
-              </div>
-              <div className={`style-card ${selectedStyle === 'C' ? 'active' : ''}`} onClick={() => setSelectedStyle('C')}>
+              </button>
+              <button type="button" aria-pressed={selectedStyle === 'C'} className={`style-card ${selectedStyle === 'C' ? 'active' : ''}`} onClick={() => setSelectedStyle('C')}>
                 <div className="style-icon">📈</div>
                 <div className="style-name">Timeline</div>
                 <div className="style-desc">{t('pdfTimeline')}</div>
-              </div>
+              </button>
             </div>
           </div>
           

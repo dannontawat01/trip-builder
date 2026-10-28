@@ -2,6 +2,7 @@
 
 import React from 'react';
 import OptimizedImage from '@/app/components/OptimizedImage';
+import useDialogFocus from './useDialogFocus';
 import {
   DAY_COLORS,
   CITY_KEYWORDS,
@@ -57,14 +58,15 @@ export default function DetailModal({
   handleSaveEdit,
   handleStartEditing
 }) {
+  const dialogRef = useDialogFocus(Boolean(selectedPlace), () => { setSelectedPlace(null); setIsEditing(false); });
   if (!selectedPlace) return null;
 
   return (
     <div className="overlay show" onClick={() => { setSelectedPlace(null); setIsEditing(false); }}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="place-detail-title" tabIndex={-1} className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>
-            <div className="modal-title">
+            <div id="place-detail-title" className="modal-title">
               {isEditing ? (activeLang === 'th' ? '✏️ แก้ไขข้อมูลสถานที่' : '✏️ Edit Place Info') : `${selectedPlace.icon} ${(selectedPlace.names && selectedPlace.names[activeLang]) || selectedPlace.name}`}
             </div>
             {!isEditing && (
@@ -75,24 +77,24 @@ export default function DetailModal({
               </div>
             )}
           </div>
-          <button className="modal-close" onClick={() => { setSelectedPlace(null); setIsEditing(false); }}>✕</button>
+          <button className="modal-close" aria-label={t('close')} onClick={() => { setSelectedPlace(null); setIsEditing(false); }}>✕</button>
         </div>
         
         <div className="modal-body">
           {isEditing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div className="form-group">
-                <label className="form-label">{t('fName')}</label>
-                <input className="form-input" value={editName} onChange={(e) => setEditName(e.target.value)} />
+                <label className="form-label" htmlFor="edit-place-name">{t('fName')}</label>
+                <input id="edit-place-name" className="form-input" value={editName} onChange={(e) => setEditName(e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">{t('fDesc')}</label>
-                <textarea className="form-input" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+                <label className="form-label" htmlFor="edit-place-description">{t('fDesc')}</label>
+                <textarea id="edit-place-description" className="form-input" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">{t('fCat')}</label>
-                  <select className="form-input" value={editCat} onChange={(e) => setEditCat(e.target.value)}>
+                  <label className="form-label" htmlFor="edit-place-category">{t('fCat')}</label>
+                  <select id="edit-place-category" className="form-input" value={editCat} onChange={(e) => setEditCat(e.target.value)}>
                     <option value="วัด">{activeLang === 'th' ? 'วัด' : 'Temple'}</option>
                     <option value="พระราชวัง">{activeLang === 'th' ? 'พระราชวัง' : 'Palace'}</option>
                     <option value="ตลาด">{activeLang === 'th' ? 'ตลาด' : 'Market'}</option>
@@ -107,40 +109,40 @@ export default function DetailModal({
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">{t('fDur')}</label>
-                  <input className="form-input" type="number" value={editDur} onChange={(e) => setEditDur(e.target.value)} />
+                  <label className="form-label" htmlFor="edit-place-duration">{t('fDur')}</label>
+                  <input id="edit-place-duration" className="form-input" type="number" value={editDur} onChange={(e) => setEditDur(e.target.value)} />
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">{t('fAddr')}</label>
-                <input className="form-input" value={editAddr} onChange={(e) => setEditAddr(e.target.value)} />
+                <label className="form-label" htmlFor="edit-place-address">{t('fAddr')}</label>
+                <input id="edit-place-address" className="form-input" value={editAddr} onChange={(e) => setEditAddr(e.target.value)} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Latitude</label>
-                  <input className="form-input" type="number" step="any" value={editLat} onChange={(e) => setEditLat(e.target.value)} />
+                  <label className="form-label" htmlFor="edit-place-latitude">Latitude</label>
+                  <input id="edit-place-latitude" className="form-input" type="number" step="any" value={editLat} onChange={(e) => setEditLat(e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Longitude</label>
-                  <input className="form-input" type="number" step="any" value={editLng} onChange={(e) => setEditLng(e.target.value)} />
+                  <label className="form-label" htmlFor="edit-place-longitude">Longitude</label>
+                  <input id="edit-place-longitude" className="form-input" type="number" step="any" value={editLng} onChange={(e) => setEditLng(e.target.value)} />
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">{t('fFee')}</label>
-                <input className="form-input" value={editFee} onChange={(e) => setEditFee(e.target.value)} />
+                <label className="form-label" htmlFor="edit-place-fee">{t('fFee')}</label>
+                <input id="edit-place-fee" className="form-input" value={editFee} onChange={(e) => setEditFee(e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">{t('fTransport')}</label>
-                <input className="form-input" value={editTransport} onChange={(e) => setEditTransport(e.target.value)} />
+                <label className="form-label" htmlFor="edit-place-transport">{t('fTransport')}</label>
+                <input id="edit-place-transport" className="form-input" value={editTransport} onChange={(e) => setEditTransport(e.target.value)} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">{t('fIcon')}</label>
-                  <input className="form-input" value={editIcon} onChange={(e) => setEditIcon(e.target.value)} maxLength={2} />
+                  <label className="form-label" htmlFor="edit-place-icon">{t('fIcon')}</label>
+                  <input id="edit-place-icon" className="form-input" value={editIcon} onChange={(e) => setEditIcon(e.target.value)} maxLength={2} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">{activeLang === 'th' ? 'คำค้นหารูปภาพ (Image Keywords)' : 'Image Keywords'}</label>
-                  <input className="form-input" value={editKeywords} onChange={(e) => setEditKeywords(e.target.value)} />
+                  <label className="form-label" htmlFor="edit-place-keywords">{activeLang === 'th' ? 'คำค้นหารูปภาพ (Image Keywords)' : 'Image Keywords'}</label>
+                  <input id="edit-place-keywords" className="form-input" value={editKeywords} onChange={(e) => setEditKeywords(e.target.value)} />
                 </div>
               </div>
 
@@ -185,10 +187,15 @@ export default function DetailModal({
                       const isSelected = editSelectedImage === url || (!editSelectedImage && (url === activeCover || idx === 0));
 
                       return (
-                        <div
+                        <button
                           key={idx}
+                          type="button"
+                          aria-label={activeLang === 'th' ? `รูปภาพ ${idx + 1}` : `Image ${idx + 1}`}
+                          aria-pressed={isSelected}
                           onClick={() => setEditSelectedImage(url)}
                           style={{
+                            padding: 0,
+                            background: 'none',
                             position: 'relative',
                             cursor: 'pointer',
                             borderRadius: '8px',
@@ -225,7 +232,7 @@ export default function DetailModal({
                               ✓
                             </div>
                           )}
-                        </div>
+                        </button>
                       );
                     });
                   })()}
@@ -233,8 +240,9 @@ export default function DetailModal({
               </div>
 
               <div className="form-group">
-                <label className="form-label">{activeLang === 'th' ? 'หรือใส่ลิงก์รูปภาพอื่นๆ (Custom Image URL)' : 'Or paste a custom image URL:'}</label>
+                <label className="form-label" htmlFor="edit-place-image-url">{activeLang === 'th' ? 'หรือใส่ลิงก์รูปภาพอื่นๆ (Custom Image URL)' : 'Or paste a custom image URL:'}</label>
                 <input
+                  id="edit-place-image-url"
                   className="form-input"
                   placeholder="https://..."
                   value={editSelectedImage}

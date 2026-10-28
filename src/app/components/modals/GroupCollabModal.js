@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import useDialogFocus from './useDialogFocus';
 
 export default function GroupCollabModal({
   groupModalOpen,
@@ -19,14 +20,15 @@ export default function GroupCollabModal({
   t,
   activeLang
 }) {
+  const dialogRef = useDialogFocus(groupModalOpen, () => setGroupModalOpen(false));
   if (!groupModalOpen) return null;
 
   return (
     <div className="overlay show" onClick={() => setGroupModalOpen(false)}>
-      <div className="modal modal-sm group-collab-modal" onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="group-title" tabIndex={-1} className="modal modal-sm group-collab-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <div className="modal-title">{t('groupModalTitle')}</div>
-          <button className="modal-close" onClick={() => setGroupModalOpen(false)}>✕</button>
+          <div id="group-title" className="modal-title">{t('groupModalTitle')}</div>
+          <button className="modal-close" aria-label={t('close')} onClick={() => setGroupModalOpen(false)}>✕</button>
         </div>
         
         {/* Modal Tabs */}
@@ -49,22 +51,24 @@ export default function GroupCollabModal({
 
         <div className="modal-body" style={{ padding: '20px' }}>
           <div className="form-group">
-            <label className="form-label">{t('nickname')} *</label>
+            <label className="form-label" htmlFor="group-nickname">{t('nickname')} *</label>
             <input 
+              id="group-nickname"
               type="text" 
               className="form-input" 
               placeholder={t('nicknamePh')} 
               value={inputNickname}
               onChange={(e) => setInputNickname(e.target.value)}
-              autoFocus
+              data-dialog-initial-focus
             />
           </div>
 
           {groupModalTab === 'create' ? (
             <>
               <div className="form-group">
-                <label className="form-label">{t('roomName')}</label>
+                <label className="form-label" htmlFor="group-room-name">{t('roomName')}</label>
                 <input 
+                  id="group-room-name"
                   type="text" 
                   className="form-input" 
                   placeholder={t('roomNamePh')} 
@@ -73,8 +77,9 @@ export default function GroupCollabModal({
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">{t('roomCode')} ({activeLang === 'th' ? 'เว้นว่างเพื่อสุ่มอัตโนมัติ' : 'Optional / Auto-generated'})</label>
+                <label className="form-label" htmlFor="group-create-code">{t('roomCode')} ({activeLang === 'th' ? 'เว้นว่างเพื่อสุ่มอัตโนมัติ' : 'Optional / Auto-generated'})</label>
                 <input 
+                  id="group-create-code"
                   type="text" 
                   className="form-input" 
                   placeholder="เช่น TRIP-9922" 
@@ -92,8 +97,9 @@ export default function GroupCollabModal({
           ) : (
             <>
               <div className="form-group">
-                <label className="form-label">{t('roomCode')} *</label>
+                <label className="form-label" htmlFor="group-join-code">{t('roomCode')} *</label>
                 <input 
+                  id="group-join-code"
                   type="text" 
                   className="form-input" 
                   placeholder={t('roomCodePh')} 

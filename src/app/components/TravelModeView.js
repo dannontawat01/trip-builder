@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { calculateDistanceKm, estimateTravelTimeMins } from '@/lib/routeOptimizer';
+import useDialogFocus from './modals/useDialogFocus';
 
 /**
  * Helper to get the best local name for the Taxi Card
@@ -155,13 +156,15 @@ export default function TravelModeView({
 
   // Hotel navigation link
   const hotelNavUrl = hotel ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hotel)}` : null;
+  const travelDialogRef = useDialogFocus(true, onClose);
+  const taxiDialogRef = useDialogFocus(Boolean(taxiModalItem), () => setTaxiModalItem(null));
 
   return (
-    <div className="travel-mode-overlay">
+    <div ref={travelDialogRef} role="dialog" aria-modal="true" aria-labelledby="travel-mode-title" tabIndex={-1} className="travel-mode-overlay">
       {/* Top Header Bar */}
       <div className="travel-mode-header">
         <div className="travel-mode-brand">
-          <span className="travel-mode-badge">✈️ TRAVEL MODE</span>
+          <span id="travel-mode-title" className="travel-mode-badge">✈️ TRAVEL MODE</span>
           <span className="travel-mode-day-title">
             {t('dayLabel')} {selectedDay} / {nDays}
           </span>
@@ -398,15 +401,16 @@ export default function TravelModeView({
       {/* ─── TAXI DRIVER CARD MODAL ────────────────────────────────── */}
       {taxiModalItem && (
         <div className="taxi-modal-overlay" onClick={() => setTaxiModalItem(null)}>
-          <div className="taxi-modal-card" onClick={(e) => e.stopPropagation()}>
+          <div ref={taxiDialogRef} role="dialog" aria-modal="true" aria-labelledby="taxi-card-title" tabIndex={-1} className="taxi-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="taxi-modal-header">
               <div>
-                <div className="taxi-modal-title">{t('taxiCardTitle')}</div>
+                <div id="taxi-card-title" className="taxi-modal-title">{t('taxiCardTitle')}</div>
                 <div className="taxi-modal-subtitle">{t('taxiCardSubtitle')}</div>
               </div>
               <button
                 type="button"
                 className="taxi-modal-close"
+                aria-label={t('close')}
                 onClick={() => setTaxiModalItem(null)}
               >
                 ✕

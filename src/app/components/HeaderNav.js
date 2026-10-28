@@ -49,7 +49,7 @@ export default function HeaderNav({
     <div className="topbar">
       <div className="topbar-main-row">
         <div className="logo">
-          <div className="logo-dot"></div>
+          <span className="logo-mark" aria-hidden="true"></span>
           <span>Trip Builder</span>
           <span className="app-version-badge">{APP_VERSION}</span>
         </div>
@@ -64,15 +64,15 @@ export default function HeaderNav({
               localStorage.setItem('tb_lang', e.target.value);
             }}
             title="Language"
+            aria-label={activeLang === 'th' ? 'ภาษา' : 'Language'}
           >
             <option value="th">🇹🇭 ไทย</option>
             <option value="en">🇬🇧 EN</option>
           </select>
           
           <div className="theme-toggle-container" style={{ display: 'flex', gap: '2px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '9px', padding: '2px' }}>
-            <button className={`theme-mode-btn ${theme === 'clean' ? 'active' : ''}`} onClick={() => setTheme('clean')} title="Clean">☀</button>
-            <button className={`theme-mode-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title="Dark">🌙</button>
-            <button className={`theme-mode-btn ${theme === 'colorful' ? 'active' : ''}`} onClick={() => setTheme('colorful')} title="Colorful">🎨</button>
+            <button className={`theme-mode-btn ${theme === 'clean' ? 'active' : ''}`} onClick={() => setTheme('clean')} title="Clean" aria-label={activeLang === 'th' ? 'ธีมสว่าง' : 'Light theme'} aria-pressed={theme === 'clean'}>☀</button>
+            <button className={`theme-mode-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title="Dark" aria-label={activeLang === 'th' ? 'ธีมมืด' : 'Dark theme'} aria-pressed={theme === 'dark'}>🌙</button>
           </div>
 
           <div className="topbar-action-group">
@@ -96,7 +96,7 @@ export default function HeaderNav({
               <span>✈️</span>
               <span className="travel-btn-text">{activeLang === 'th' ? 'เที่ยวจริง' : 'Travel'}</span>
             </button>
-            <button className={`btn btn-sm ${showMap ? 'btn-primary' : 'btn-ghost'} topbar-map-btn`} onClick={() => setShowMap(!showMap)}>
+            <button className={`btn btn-sm ${showMap ? 'btn-primary' : 'btn-ghost'} topbar-map-btn`} onClick={() => setShowMap(!showMap)} aria-label={activeLang === 'th' ? 'แสดงแผนที่' : 'Show map'} aria-pressed={showMap}>
               <span className="map-btn-icon">🗺️</span>
               <span className="map-btn-text"> {activeLang === 'th' ? 'แผนที่' : 'Map'}</span>
             </button>
@@ -236,13 +236,13 @@ export default function HeaderNav({
           <div className="user-menu-container" style={{ position: 'relative' }}>
             {user ? (
               <>
-                <div className="user-badge" onClick={() => setUserDropdownOpen(!userDropdownOpen)}>
+                <button type="button" className="user-badge" onClick={() => setUserDropdownOpen(!userDropdownOpen)} aria-expanded={userDropdownOpen} aria-label={activeLang === 'th' ? 'เมนูบัญชี' : 'Account menu'}>
                   <div className="user-avatar">
                     {user.email ? user.email.slice(0, 2).toUpperCase() : 'U'}
                   </div>
                   <span className="user-badge-name">{user.email ? user.email.split('@')[0] : 'Member'}</span>
                   <span className="user-badge-arrow"> ▼</span>
-                </div>
+                </button>
                 
                 {userDropdownOpen && (
                   <div className="user-dropdown" onClick={(e) => e.stopPropagation()}>
