@@ -73,6 +73,16 @@ export default function HeaderNav({
           <div className="theme-toggle-container" style={{ display: 'flex', gap: '2px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '9px', padding: '2px' }}>
             <button className={`theme-mode-btn ${theme === 'clean' ? 'active' : ''}`} onClick={() => setTheme('clean')} title="Clean" aria-label={activeLang === 'th' ? 'ธีมสว่าง' : 'Light theme'} aria-pressed={theme === 'clean'}>☀</button>
             <button className={`theme-mode-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title="Dark" aria-label={activeLang === 'th' ? 'ธีมมืด' : 'Dark theme'} aria-pressed={theme === 'dark'}>🌙</button>
+            <button
+              type="button"
+              className="theme-toggle-mobile"
+              onClick={() => setTheme(theme === 'dark' ? 'clean' : 'dark')}
+              aria-label={activeLang === 'th'
+                ? (theme === 'dark' ? 'เปลี่ยนเป็นธีมสว่าง' : 'เปลี่ยนเป็นธีมมืด')
+                : (theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme')}
+            >
+              <span aria-hidden="true">{theme === 'dark' ? '☀' : '🌙'}</span>
+            </button>
           </div>
 
           <div className="topbar-action-group">
@@ -232,6 +242,8 @@ export default function HeaderNav({
             )}
           </div>
 
+        </div>
+
           {/* User Profile / Cloud Sync Panel */}
           <div className="user-menu-container" style={{ position: 'relative' }}>
             {user ? (
@@ -274,7 +286,6 @@ export default function HeaderNav({
                 <span className="signin-btn-text"> {activeLang === 'th' ? 'เข้าสู่ระบบ (ซิงค์ Cloud)' : 'Sign In (Cloud Sync)'}</span>
               </button>
             )}
-          </div>
         </div>
       </div>
 

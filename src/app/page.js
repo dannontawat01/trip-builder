@@ -55,7 +55,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.21.2';
+const APP_VERSION = 'v1.21.3';
 const AUTO_ENRICH_BATCH_SIZE = 4;
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
@@ -4362,7 +4362,7 @@ function TripBuilderApp() {
                             return null;
                           }
                         })()}
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <div className="day-summary-actions">
                           <span className="day-info">
                             {items.length} · {durationLabel}
                           </span>
@@ -5015,7 +5015,7 @@ function TripBuilderApp() {
         </button>
         {/* Center ADD Tab */}
         <button className="mob-nav-center-add" onClick={() => { setAddModalOpen(true); setActiveAddTab('manual'); }} aria-label={activeLang === 'th' ? 'เพิ่มสถานที่' : 'Add place'} title={activeLang === 'th' ? 'เพิ่มสถานที่' : 'Add place'}>
-          <span className="add-ring">➕</span>
+          <span className="add-ring" aria-hidden="true">+</span>
         </button>
         <button className={`mob-nav-btn ${mobileTab === 'nearby' ? 'active' : ''}`} onClick={() => setMobileTab('nearby')} aria-current={mobileTab === 'nearby' ? 'page' : undefined}>
           <span className="nav-icon">💡</span>

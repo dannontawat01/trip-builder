@@ -27,6 +27,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
   needing to drag. Browser zoom remains available.
 - Dialogs support keyboard navigation: Tab cycles through controls and Escape
   closes the active dialog, returning focus to its opener.
+- On phones, the account menu sits beside the logo, with language, theme, map,
+  sync, group, and plan controls in a separate toolbar. The theme button toggles
+  between Clean and Dark. Itinerary titles wrap above their move/remove actions
+  so long place names do not push cards off-screen.
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
