@@ -53,7 +53,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.18.0';
+const APP_VERSION = 'v1.19.0';
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -533,7 +533,9 @@ function TripBuilderApp() {
         body: JSON.stringify({
           query: place.name,
           city: getCityName(getCityObj(place.city_id || activeCity), 'en'),
-          cat: place.cat || ''
+          cat: place.cat || '',
+          lat: place.lat,
+          lng: place.lng
         })
       });
       if (res.ok) {
@@ -2595,7 +2597,8 @@ function TripBuilderApp() {
     for (let i = 0; i < allPlaces.length; i++) {
       const p = allPlaces[i];
       try {
-        const res = await fetch(`/api/search-photos?q=${encodeURIComponent(p.name)}&city=${encodeURIComponent(p.cityId || activeCity)}&cat=${encodeURIComponent(p.cat || '')}`);
+        const coordsQuery = (p.lat != null && p.lng != null) ? `&lat=${encodeURIComponent(p.lat)}&lng=${encodeURIComponent(p.lng)}` : '';
+        const res = await fetch(`/api/search-photos?q=${encodeURIComponent(p.name)}&city=${encodeURIComponent(p.cityId || activeCity)}&cat=${encodeURIComponent(p.cat || '')}${coordsQuery}`);
         if (res.ok) {
           const data = await res.json();
           if (data.cover_image) {

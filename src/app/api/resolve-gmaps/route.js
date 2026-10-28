@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { fetchGoogleMapsPhotos } from '@/lib/googleMapsPhoto';
 
 function classifyCategory(text) {
   const t = (text || '').toLowerCase();
@@ -137,8 +138,29 @@ async function resolvePlacelist(html, finalUrl) {
     listTitle,
     listIcon,
     count: places.length,
-    places
+    places: await attachGooglePhotos(places)
   };
+}
+
+const PHOTO_LOOKUP_CONCURRENCY = 6;
+const PHOTO_LOOKUP_MAX_PLACES = 60;
+
+// Looks up real Google photos for places without one; the rest are filled later by the "fetch real photos" button
+async function attachGooglePhotos(places) {
+  const pending = places.filter(p => !p.cover_image).slice(0, PHOTO_LOOKUP_MAX_PLACES);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < pending.length) {
+      const place = pending[nextIndex++];
+      const photos = await fetchGoogleMapsPhotos(place.name, place.lat, place.lng);
+      if (photos.length > 0) {
+        place.photos = photos;
+        place.cover_image = photos[0];
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: PHOTO_LOOKUP_CONCURRENCY }, worker));
+  return places;
 }
 
 async function resolveSingleUrl(targetUrl) {
@@ -279,11 +301,13 @@ async function resolveSingleUrl(targetUrl) {
       console.warn("Failed to fetch fallback photos from DDG:", err.message);
     }
 
+    const googlePhotos = await fetchGoogleMapsPhotos(name, lat, lng);
     const cleanPhotos = [
+      ...googlePhotos,
       ...(ddgPhotos || []),
       ...(photos || []).filter(p => typeof p === 'string' && !p.includes('googleusercontent.com'))
     ];
-    photos = cleanPhotos.slice(0, 12);
+    photos = Array.from(new Set(cleanPhotos)).slice(0, 12);
 
     return {
       isList: false,

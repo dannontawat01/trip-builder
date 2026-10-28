@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { fetchGoogleMapsPhotos } from '@/lib/googleMapsPhoto';
 import { getSmartCategoryCover, getBrandPlacePhotos, BRAND_PLACE_IMAGES } from '@/app/constants/translations';
 
 const photoCache = new Map();
@@ -152,13 +153,21 @@ async function searchYahooJapan(query) {
   return [];
 }
 
-async function resolvePlacePhotos(query, city = '', cat = '') {
-  const cacheKey = `${query}_${city}_${cat}`.toLowerCase().trim();
+async function resolvePlacePhotos(query, city = '', cat = '', lat = null, lng = null) {
+  const cacheKey = `${query}_${city}_${cat}_${lat}_${lng}`.toLowerCase().trim();
   if (photoCache.has(cacheKey)) {
     return photoCache.get(cacheKey);
   }
 
   const photos = [];
+
+  // 0. Real photos of this exact place from Google Maps (needs coordinates)
+  const googlePhotos = await fetchGoogleMapsPhotos(query, lat, lng);
+  if (googlePhotos.length > 0) {
+    const googleResult = { photos: googlePhotos, cover_image: googlePhotos[0], source: 'google' };
+    photoCache.set(cacheKey, googleResult);
+    return googleResult;
+  }
 
   // 1. Check Brand & Specific Landmark Matching
   const placeMock = { name: query, cat: cat || '', city_id: city };
@@ -228,7 +237,7 @@ export async function GET(req) {
       return NextResponse.json({ error: 'q is required' }, { status: 400 });
     }
 
-    const data = await resolvePlacePhotos(q, city, cat);
+    const data = await resolvePlacePhotos(q, city, cat, searchParams.get('lat'), searchParams.get('lng'));
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -246,7 +255,7 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    const data = await resolvePlacePhotos(q, city, cat);
+    const data = await resolvePlacePhotos(q, city, cat, body.lat, body.lng);
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
