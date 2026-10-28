@@ -5181,3 +5181,78 @@ body.theme-dark::before {
     --glass-fill-strong: rgba(48, 48, 52, .99);
   }
 }
+
+/* ==========================================================================
+   Apple HIG alignment (from awesome-claude-design/design-md/glass/apple.md):
+   SF system font, material surfaces without hard borders or drop shadows,
+   14px card radius, 30px blur, one system-blue accent for primary actions.
+   ========================================================================== */
+:root {
+  --font-apple: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, 'Segoe UI', sans-serif;
+  --glass-blur: blur(30px) saturate(180%);
+  --radius-card: 14px;
+  --radius-sheet: 16px;
+}
+
+body,
+body button,
+body input,
+body select,
+body textarea,
+body .main-title,
+body .sidebar-title,
+body .modal-title {
+  font-family: var(--font-apple) !important;
+}
+
+.trip-bar,
+.summary-bar,
+.day-zone,
+.lm-card,
+.it-item,
+.stat-card,
+.budget-summary-card,
+.budget-split-card,
+.budget-item-card,
+.cfg input,
+.cfg select,
+.form-input,
+.modal {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.trip-bar,
+.summary-bar,
+.day-zone,
+.lm-card,
+.it-item,
+.stat-card,
+.budget-summary-card,
+.budget-split-card,
+.budget-item-card {
+  border-radius: var(--radius-card) !important;
+}
+
+.modal {
+  border-radius: var(--radius-sheet) !important;
+}
+
+.btn,
+.ai-plan-btn,
+.btn-primary,
+.ai-plan-btn {
+  box-shadow: none !important;
+}
+
+.btn-primary,
+.ai-plan-btn {
+  background: var(--teal) !important;
+  border-radius: 12px !important;
+}
+
+.topbar,
+.mob-nav {
+  box-shadow: none !important;
+  border-bottom: none !important;
+}
