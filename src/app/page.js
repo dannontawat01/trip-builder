@@ -55,7 +55,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.21.3';
+const APP_VERSION = 'v1.21.4';
 const AUTO_ENRICH_BATCH_SIZE = 4;
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
@@ -5021,7 +5021,7 @@ function TripBuilderApp() {
           <span className="nav-icon">💡</span>
           <span>{activeLang === 'th' ? 'ตัวช่วย' : 'Tools'}</span>
         </button>
-        <button className="mob-nav-btn travel-mob-btn" onClick={() => setTravelModeOpen(true)} style={{ color: '#0284c7', fontWeight: 'bold' }}>
+        <button className="mob-nav-btn travel-mob-btn" onClick={() => setTravelModeOpen(true)} style={{ color: 'var(--teal-d)', fontWeight: 'bold' }}>
           <span className="nav-icon">✈️</span>
           <span>{activeLang === 'th' ? 'เที่ยวจริง' : 'Travel'}</span>
         </button>

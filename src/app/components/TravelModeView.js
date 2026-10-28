@@ -590,9 +590,9 @@ export default function TravelModeView({
         }
 
         .stepper-node.current {
-          background: #0284c7;
+          background: var(--teal);
           color: #ffffff;
-          border-color: #38bdf8;
+          border-color: var(--teal-m);
           font-weight: bold;
         }
 
@@ -755,7 +755,7 @@ export default function TravelModeView({
         }
 
         .btn-navigate {
-          background: #0284c7;
+          background: var(--teal);
           color: #ffffff;
           grid-column: span 2;
           font-size: 14px;
@@ -969,7 +969,7 @@ export default function TravelModeView({
           align-items: center;
           justify-content: center;
           gap: 8px;
-          background: #0284c7;
+          background: var(--teal);
           color: #ffffff;
           padding: 12px;
           border-radius: 10px;

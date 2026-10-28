@@ -23,6 +23,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
   button adds a place; Travel and Export remain available in the navigation.
 - Use the sun and moon controls to switch between Clean and Dark themes. Existing
   Colorful preferences are automatically moved to Clean.
+- Primary buttons use an emerald green accent in both themes, with a darker
+  hover state and matching navigation, focus, and PWA theme colors.
 - Places can be added to a day using the add button and day selector, without
   needing to drag. Browser zoom remains available.
 - Dialogs support keyboard navigation: Tab cycles through controls and Escape

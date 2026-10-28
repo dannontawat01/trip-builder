@@ -91,7 +91,7 @@ export default function HeaderNav({
               onClick={() => setTravelModeOpen(true)}
               title={t('travelMode')}
               style={{
-                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                background: 'var(--teal)',
                 color: '#ffffff',
                 border: 'none',
                 fontWeight: '700',

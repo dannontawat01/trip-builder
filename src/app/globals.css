@@ -4904,12 +4904,13 @@ button.it-name {
    Light = default, Dark = body.theme-dark.
    ========================================================================== */
 :root {
-  --teal: #0A84FF;
-  --teal-l: #E5F1FF;
-  --teal-d: #0062CC;
-  --teal-m: #5AC8FA;
+  --teal: #087F5B;
+  --teal-l: #E1F5EE;
+  --teal-d: #066449;
+  --teal-m: #5DCAA5;
   --accent: var(--teal);
-  --accent-soft: rgba(10, 132, 255, .14);
+  --accent-hover: #066449;
+  --accent-soft: rgba(8, 127, 91, .14);
 
   --bg: #EEF2F8;
   --card: rgba(255, 255, 255, .72);
@@ -4940,10 +4941,10 @@ body.theme-dark {
   --dark: #F5F5F7;
   --muted: #98989D;
   --border: rgba(235, 235, 245, .12);
-  --teal: #0A84FF;
-  --teal-l: rgba(10, 132, 255, .18);
-  --teal-d: #64B5FF;
-  --teal-m: #5AC8FA;
+  --teal: #087F5B;
+  --teal-l: rgba(8, 127, 91, .18);
+  --teal-d: #79DDB2;
+  --teal-m: #5DCAA5;
 
   --glass-fill: rgba(44, 44, 48, .58);
   --glass-fill-strong: rgba(58, 58, 62, .78);
@@ -5027,7 +5028,7 @@ body.theme-dark::before {
   border-radius: 16px;
 }
 
-/* Controls: solid Apple Blue accent, glass secondary */
+/* Controls: solid emerald accent, glass secondary */
 .btn,
 .ai-plan-btn {
   border-radius: 12px;
@@ -5040,12 +5041,12 @@ body.theme-dark::before {
 .ai-plan-btn {
   background: var(--teal) !important;
   color: #fff !important;
-  box-shadow: 0 6px 18px rgba(10, 132, 255, .30);
+  box-shadow: 0 6px 18px rgba(8, 127, 91, .30);
 }
 
 .btn-primary:hover,
 .ai-plan-btn:hover {
-  background: var(--teal-d) !important;
+  background: var(--accent-hover) !important;
 }
 
 .btn:active,
@@ -5190,7 +5191,7 @@ body.theme-dark::before {
 /* ==========================================================================
    Apple HIG alignment (from awesome-claude-design/design-md/glass/apple.md):
    SF system font, material surfaces without hard borders or drop shadows,
-   14px card radius, 30px blur, one system-blue accent for primary actions.
+   14px card radius, 30px blur, one accent for primary actions.
    ========================================================================== */
 :root {
   --font-apple: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, 'Segoe UI', sans-serif;

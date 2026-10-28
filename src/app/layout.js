@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const viewport = {
-  themeColor: "#0A84FF",
+  themeColor: "#087F5B",
   width: "device-width",
   initialScale: 1
 };
@@ -26,7 +26,7 @@ export default function RootLayout({ children }) {
     <html lang="th">
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#0A84FF" />
+        <meta name="theme-color" content="#087F5B" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
