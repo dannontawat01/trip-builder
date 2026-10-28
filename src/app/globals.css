@@ -4893,3 +4893,291 @@ button.it-name {
     transition-duration: .01ms !important;
   }
 }
+
+/* ==========================================================================
+   Liquid Glass layer (Apple-style, subtle). Overrides earlier visual layers.
+   Light = default, Dark = body.theme-dark.
+   ========================================================================== */
+:root {
+  --teal: #0A84FF;
+  --teal-l: #E5F1FF;
+  --teal-d: #0062CC;
+  --teal-m: #5AC8FA;
+  --accent: var(--teal);
+  --accent-soft: rgba(10, 132, 255, .14);
+
+  --bg: #EEF2F8;
+  --card: rgba(255, 255, 255, .72);
+  --dark: #1D1D1F;
+  --muted: #6E6E73;
+  --border: rgba(60, 60, 67, .14);
+
+  --glass-fill: rgba(255, 255, 255, .58);
+  --glass-fill-strong: rgba(255, 255, 255, .76);
+  --glass-edge: rgba(255, 255, 255, .75);
+  --glass-line: rgba(255, 255, 255, .55);
+  --glass-blur: blur(24px) saturate(180%);
+  --glass-shadow: 0 10px 34px rgba(30, 48, 96, .10), inset 0 1px 0 var(--glass-edge);
+  --glass-radius: 20px;
+
+  --card-glass: var(--glass-fill);
+  --border-glass: var(--glass-line);
+  --shadow-premium: var(--glass-shadow);
+  --shadow-glass-inset: inset 0 1px 0 var(--glass-edge);
+  --border-muted: var(--border);
+  --r: 12px;
+  --r-lg: 20px;
+}
+
+body.theme-dark {
+  --bg: #0B0B0E;
+  --card: rgba(44, 44, 48, .62);
+  --dark: #F5F5F7;
+  --muted: #98989D;
+  --border: rgba(235, 235, 245, .12);
+  --teal: #0A84FF;
+  --teal-l: rgba(10, 132, 255, .18);
+  --teal-d: #64B5FF;
+  --teal-m: #5AC8FA;
+
+  --glass-fill: rgba(44, 44, 48, .58);
+  --glass-fill-strong: rgba(58, 58, 62, .78);
+  --glass-edge: rgba(255, 255, 255, .14);
+  --glass-line: rgba(255, 255, 255, .10);
+  --glass-shadow: 0 12px 40px rgba(0, 0, 0, .45), inset 0 1px 0 var(--glass-edge);
+  --border-muted: var(--border);
+  color-scheme: dark;
+}
+
+/* Ambient color light behind the glass so blur has something to refract */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -10%;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(40vmax 40vmax at 12% 18%, rgba(10, 132, 255, .22), transparent 70%),
+    radial-gradient(38vmax 38vmax at 88% 12%, rgba(90, 200, 250, .20), transparent 70%),
+    radial-gradient(44vmax 44vmax at 70% 92%, rgba(175, 130, 255, .16), transparent 70%),
+    radial-gradient(34vmax 34vmax at 6% 90%, rgba(52, 199, 89, .10), transparent 70%);
+}
+body.theme-dark::before {
+  background:
+    radial-gradient(40vmax 40vmax at 12% 18%, rgba(10, 132, 255, .20), transparent 70%),
+    radial-gradient(38vmax 38vmax at 88% 12%, rgba(94, 92, 230, .18), transparent 70%),
+    radial-gradient(44vmax 44vmax at 70% 92%, rgba(255, 55, 95, .10), transparent 70%);
+}
+
+/* Shared glass surface */
+.glass-panel,
+.topbar,
+.trip-bar,
+.summary-bar,
+.sidebar,
+.day-zone,
+.mob-nav,
+.stat-card,
+.lm-card,
+.it-item,
+.budget-summary-card,
+.budget-split-card,
+.budget-item-card {
+  background: var(--glass-fill) !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-line) !important;
+  box-shadow: var(--glass-shadow) !important;
+}
+
+.topbar,
+.trip-bar,
+.summary-bar,
+.mob-nav {
+  background: var(--glass-fill-strong) !important;
+}
+
+.topbar {
+  border-radius: 0 0 var(--glass-radius) var(--glass-radius);
+}
+
+.trip-bar,
+.summary-bar,
+.day-zone {
+  border-radius: var(--glass-radius);
+}
+
+.modal {
+  background: var(--glass-fill-strong) !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-line) !important;
+  border-radius: 24px;
+  box-shadow: 0 24px 70px rgba(20, 30, 60, .22), inset 0 1px 0 var(--glass-edge) !important;
+}
+
+.lm-card,
+.it-item,
+.stat-card {
+  border-radius: 16px;
+}
+
+/* Controls: solid Apple Blue accent, glass secondary */
+.btn,
+.ai-plan-btn {
+  border-radius: 12px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  transition: background-color .2s ease, transform .15s ease, box-shadow .2s ease;
+}
+
+.btn-primary,
+.ai-plan-btn {
+  background: var(--teal) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 18px rgba(10, 132, 255, .30);
+}
+
+.btn-primary:hover,
+.ai-plan-btn:hover {
+  background: var(--teal-d) !important;
+}
+
+.btn:active,
+.ai-plan-btn:active {
+  transform: scale(.97);
+}
+
+.btn-ghost {
+  background: var(--glass-fill);
+  color: var(--teal-d);
+  border-color: var(--glass-line);
+}
+
+.cfg input,
+.cfg select,
+.form-input {
+  background: var(--glass-fill-strong);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+:is(button, input, select, textarea, a):focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.mob-nav-btn.active,
+.sidebar-tab-btn.active {
+  color: var(--teal);
+}
+
+/* Responsive: one place for breakpoints in this layer */
+@media (min-width: 1025px) {
+  .main {
+    padding: 28px 32px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .modal {
+    border-radius: 22px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Lighter blur on phones keeps scrolling smooth */
+  :root {
+    --glass-blur: blur(18px) saturate(170%);
+  }
+
+  .topbar,
+  .trip-bar,
+  .summary-bar {
+    border-radius: 0 0 16px 16px;
+  }
+
+  .trip-bar,
+  .summary-bar,
+  .day-zone {
+    border-radius: 16px;
+  }
+
+  .mob-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-radius: 22px 22px 0 0;
+  }
+
+  .mob-nav-btn,
+  .mob-nav-center-add {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .btn,
+  .ai-plan-btn {
+    min-height: 44px;
+  }
+
+  /* Phone: no horizontal overflow in topbar, header, or trip controls */
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .topbar-actions {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .main-head {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .trip-bar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+
+  .trip-bar > *,
+  .trip-bar .cfg {
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  .cfg input,
+  .cfg select {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  .trip-bar-divider {
+    display: none;
+  }
+}
+
+/* Fallbacks: no backdrop-filter, or user asked for less transparency */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-fill: rgba(255, 255, 255, .95);
+    --glass-fill-strong: rgba(255, 255, 255, .98);
+  }
+  body.theme-dark {
+    --glass-fill: rgba(40, 40, 44, .96);
+    --glass-fill-strong: rgba(48, 48, 52, .98);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-fill: rgba(255, 255, 255, .97);
+    --glass-fill-strong: rgba(255, 255, 255, .99);
+    --glass-blur: none;
+  }
+  body.theme-dark {
+    --glass-fill: rgba(40, 40, 44, .97);
+    --glass-fill-strong: rgba(48, 48, 52, .99);
+  }
+}
