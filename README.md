@@ -20,7 +20,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 - On a phone or tablet, use the bottom navigation to switch between the itinerary,
   places, and **Tools** (nearby suggestions, checklist, and budget). The center
-  button adds a place; Travel and Export remain available in the navigation.
+  **+** button stays at the exact center of the bar and adds a place; Travel
+  and Export remain available in the navigation.
 - Use the sun and moon controls to switch between Clean and Dark themes. Existing
   Colorful preferences are automatically moved to Clean.
 - Primary buttons use an emerald green accent in both themes, with a darker

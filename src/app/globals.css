@@ -2341,7 +2341,8 @@ textarea.form-input {
   
   .mob-nav {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    /* Two left actions and three right actions get equal total space. */
+    grid-template-columns: repeat(2, minmax(0, 3fr)) 44px repeat(3, minmax(0, 2fr));
     position: fixed;
     bottom: 0;
     left: 0;
@@ -2352,7 +2353,7 @@ textarea.form-input {
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border-top: 1px solid var(--border-glass);
     height: calc(58px + env(safe-area-inset-bottom, 0px));
-    padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px));
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
   }
   .mob-nav-btn {
@@ -2588,7 +2589,7 @@ textarea.form-input {
   color: var(--teal-d);
 }
 
-/* Six equal navigation slots, including the add action. */
+/* Keep navigation labels inside their assigned grid tracks. */
 .mob-nav-btn,
 .mob-nav-center-add {
   flex: 1 1 0 !important;

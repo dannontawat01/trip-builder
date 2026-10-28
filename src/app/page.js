@@ -56,7 +56,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.21.5';
+const APP_VERSION = 'v1.21.6';
 const AUTO_ENRICH_BATCH_SIZE = 4;
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
