@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { isNonPlacePhoto } from '@/lib/photoUrl';
 import { useSearchParams } from 'next/navigation';
 import { googleSheets } from '@/lib/googleSheets';
 import { getGmapsWalkingRouteUrl, shareGmapsRoute } from '@/lib/gmapsRoute';
@@ -53,7 +54,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.19.1';
+const APP_VERSION = 'v1.19.2';
 const AUTO_ENRICH_BATCH_SIZE = 4;
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
@@ -425,6 +426,12 @@ function TripBuilderApp() {
 
   const getCoverImage = (place) => {
     const brandPhotos = getBrandPlacePhotos(place);
+    if (place && isNonPlacePhoto(localCoverOverrides[place.id])) {
+      return brandPhotos && brandPhotos.length > 0 ? brandPhotos[0] : getSmartCategoryCover(place, place?.city_id || activeCity);
+    }
+    if (place && isNonPlacePhoto(place.cover_image) && !localCoverOverrides[place.id]) {
+      return brandPhotos && brandPhotos.length > 0 ? brandPhotos[0] : getSmartCategoryCover(place, place?.city_id || activeCity);
+    }
     if (place && localCoverOverrides[place.id]) {
       const ov = localCoverOverrides[place.id];
       const isKnownGeneric = typeof ov === 'string' && (
@@ -2666,7 +2673,7 @@ function TripBuilderApp() {
     Object.entries(customPlaces).forEach(([cId, list]) => {
       if (!Array.isArray(list)) return;
       list.forEach(p => {
-        if (p._needsPhoto && p.lat != null && p.lng != null) pending.push({ ...p, cityId: cId });
+        if ((p._needsPhoto || isNonPlacePhoto(p.cover_image)) && p.lat != null && p.lng != null) pending.push({ ...p, cityId: cId });
       });
     });
     if (pending.length === 0) return;
@@ -2689,7 +2696,7 @@ function TripBuilderApp() {
           if (!byId.has(place.id)) return place;
           const data = byId.get(place.id);
           const { _needsPhoto, ...rest } = place;
-          if (!data || !data.cover_image) return rest;
+          if (!data || !data.cover_image) return isNonPlacePhoto(rest.cover_image) ? { ...rest, cover_image: null, photos: [] } : rest;
           return { ...rest, cover_image: data.cover_image, photos: data.photos && data.photos.length > 0 ? data.photos : [data.cover_image] };
         };
         setCustomPlaces(prev => {
