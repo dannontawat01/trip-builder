@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchGoogleMapsPhotos } from '@/lib/googleMapsPhoto';
+import { placeIdFromFeatureParts } from '@/lib/googleMapsIdentity';
 
 function classifyCategory(text) {
   const t = (text || '').toLowerCase();
@@ -104,6 +105,7 @@ async function resolvePlacelist(html, finalUrl) {
         category,
         icon,
         rating: null,
+        google_place_id: placeIdFromFeatureParts(item[1]?.[6]),
         photos,
         cover_image
       });

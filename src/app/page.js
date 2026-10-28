@@ -54,7 +54,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.19.3';
+const APP_VERSION = 'v1.19.4';
 const AUTO_ENRICH_BATCH_SIZE = 4;
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
@@ -1730,7 +1730,8 @@ function TripBuilderApp() {
             lng: item.lng ? parseFloat(item.lng) : null,
             fee: item.fee || '',
             transport: item.transport || [],
-            cover_image: item.cover_image || (localItem ? localItem.cover_image : null),
+            cover_image: localItem?.cover_image || item.cover_image || null,
+            google_place_id: localItem?.google_place_id || null,
             names: item.names || {},
             descriptions: item.descriptions || {},
             city_id: item.city_id,
@@ -1746,8 +1747,11 @@ function TripBuilderApp() {
           if (allData.length > 0) {
             setCustomPlaces(prev => {
               if (!prev[activeCity] || prev[activeCity].length === 0) return prev;
+              const retained = prev[activeCity].filter(place => place.google_place_id || place._needsPhoto);
+              if (retained.length === prev[activeCity].length) return prev;
               const cleaned = { ...prev };
-              delete cleaned[activeCity];
+              if (retained.length) cleaned[activeCity] = retained;
+              else delete cleaned[activeCity];
               try {
                 localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: cleaned }));
               } catch (_) {}
@@ -2514,6 +2518,7 @@ function TripBuilderApp() {
           names: {},
           descriptions: {},
           city_id: city,
+          google_place_id: p.google_place_id || null,
           _needsPhoto: !(p.cover_image || (p.photos && p.photos[0])),
           _custom: true
         };
@@ -2580,6 +2585,10 @@ function TripBuilderApp() {
 
   const enrichRealPhotos = async () => {
     if (isEnrichingPhotos) return;
+    if (autoEnrichRunningRef.current) {
+      toast(activeLang === 'th' ? 'กำลังดึงรูปสถานที่ที่นำเข้า กรุณารอสักครู่' : 'Fetching imported place photos; please wait');
+      return;
+    }
 
     // Collect all custom places
     const allPlaces = [];
@@ -2587,6 +2596,11 @@ function TripBuilderApp() {
       if (Array.isArray(customPlaces[cId])) {
         customPlaces[cId].forEach(p => {
           allPlaces.push({ ...p, cityId: cId });
+        });
+        landmarks.forEach(place => {
+          if (place._custom && !allPlaces.some(existing => String(existing.id) === String(place.id))) {
+            allPlaces.push({ ...place, cityId: place.city_id || activeCity });
+          }
         });
       }
     });
@@ -2602,33 +2616,38 @@ function TripBuilderApp() {
     let updatedCustom = { ...customPlaces };
     const newOverrides = { ...localCoverOverrides };
     let enrichedCount = 0;
+    let failedCount = 0;
 
     for (let i = 0; i < allPlaces.length; i++) {
       const p = allPlaces[i];
       try {
         const coordsQuery = (p.lat != null && p.lng != null) ? `&lat=${encodeURIComponent(p.lat)}&lng=${encodeURIComponent(p.lng)}` : '';
-        const res = await fetch(`/api/search-photos?q=${encodeURIComponent(p.name)}&city=${encodeURIComponent(p.cityId || activeCity)}&cat=${encodeURIComponent(p.cat || '')}${coordsQuery}`);
+        const placeIdQuery = p.google_place_id ? `&placeId=${encodeURIComponent(p.google_place_id)}` : '';
+        const res = await fetch(`/api/search-photos?q=${encodeURIComponent(p.name)}&city=${encodeURIComponent(p.cityId || activeCity)}&cat=${encodeURIComponent(p.cat || '')}${coordsQuery}${placeIdQuery}&googleOnly=true`);
         if (res.ok) {
           const data = await res.json();
-          if (data.cover_image) {
+          if (data.source === 'google' && data.cover_image) {
             newOverrides[p.id] = data.cover_image;
             const cId = p.cityId;
-            if (Array.isArray(updatedCustom[cId])) {
-              updatedCustom[cId] = updatedCustom[cId].map(item => {
-                if (item.id === p.id) {
-                  return {
-                    ...item,
-                    cover_image: data.cover_image,
-                    photos: data.photos && data.photos.length > 0 ? data.photos : [data.cover_image]
-                  };
-                }
-                return item;
-              });
-            }
+            const cityPlaces = updatedCustom[cId] || [];
+            const updatedPlace = {
+              ...p,
+              cover_image: data.cover_image,
+              photos: data.photos && data.photos.length > 0 ? data.photos : [data.cover_image]
+            };
+            updatedCustom[cId] = cityPlaces.some(item => String(item.id) === String(p.id))
+              ? cityPlaces.map(item => String(item.id) === String(p.id) ? { ...item, ...updatedPlace } : item)
+              : [...cityPlaces, updatedPlace];
             enrichedCount++;
+          } else {
+            failedCount++;
           }
+        } else {
+          failedCount++;
+          console.warn('Google Maps photo request failed:', res.status);
         }
       } catch (e) {
+        failedCount++;
         console.warn('Failed to fetch photo for', p.name, e);
       }
 
@@ -2662,13 +2681,15 @@ function TripBuilderApp() {
     }
 
     setIsEnrichingPhotos(false);
-    toast(activeLang === 'th' ? `ดึงรูปภาพจริงสำเร็จ ${enrichedCount} แห่ง! 📸` : `Successfully fetched real photos for ${enrichedCount} places! 📸`);
+    toast(activeLang === 'th'
+      ? `ดึงรูปจาก Google Maps ได้ ${enrichedCount} แห่ง ไม่พบ ${failedCount} แห่ง`
+      : `Fetched Google Maps photos for ${enrichedCount} places; ${failedCount} unavailable`);
   };
 
   // Places imported without a photo are flagged `_needsPhoto` and filled here in small parallel batches
   const autoEnrichRunningRef = useRef(false);
   useEffect(() => {
-    if (autoEnrichRunningRef.current) return;
+    if (autoEnrichRunningRef.current || isEnrichingPhotos) return;
     const pending = [];
     Object.entries(customPlaces).forEach(([cId, list]) => {
       if (!Array.isArray(list)) return;
@@ -2680,14 +2701,18 @@ function TripBuilderApp() {
 
     autoEnrichRunningRef.current = true;
     (async () => {
+      let failedCount = 0;
       for (let start = 0; start < pending.length; start += AUTO_ENRICH_BATCH_SIZE) {
         const batch = pending.slice(start, start + AUTO_ENRICH_BATCH_SIZE);
         const results = await Promise.all(batch.map(async (p) => {
           try {
-            const query = `q=${encodeURIComponent(p.name)}&city=${encodeURIComponent(p.cityId)}&cat=${encodeURIComponent(p.cat || '')}&lat=${encodeURIComponent(p.lat)}&lng=${encodeURIComponent(p.lng)}`;
+            const placeIdQuery = p.google_place_id ? `&placeId=${encodeURIComponent(p.google_place_id)}` : '';
+            const query = `q=${encodeURIComponent(p.name)}&city=${encodeURIComponent(p.cityId)}&cat=${encodeURIComponent(p.cat || '')}&lat=${encodeURIComponent(p.lat)}&lng=${encodeURIComponent(p.lng)}${placeIdQuery}&googleOnly=true`;
             const res = await fetch(`/api/search-photos?${query}`);
+            if (!res.ok) console.warn('Google Maps photo request failed:', res.status);
             return res.ok ? { id: p.id, data: await res.json() } : { id: p.id, data: null };
-          } catch {
+          } catch (error) {
+            console.warn('Google Maps photo request failed:', error);
             return { id: p.id, data: null };
           }
         }));
@@ -2696,9 +2721,21 @@ function TripBuilderApp() {
           if (!byId.has(place.id)) return place;
           const data = byId.get(place.id);
           const { _needsPhoto, ...rest } = place;
-          if (!data || !data.cover_image) return isNonPlacePhoto(rest.cover_image) ? { ...rest, cover_image: null, photos: [] } : rest;
+          if (data?.source !== 'google' || !data.cover_image) return isNonPlacePhoto(rest.cover_image) ? { ...rest, cover_image: null, photos: [] } : rest;
           return { ...rest, cover_image: data.cover_image, photos: data.photos && data.photos.length > 0 ? data.photos : [data.cover_image] };
         };
+        const successful = results.filter(result => result.data?.source === 'google' && result.data.cover_image);
+        failedCount += results.length - successful.length;
+        if (successful.length) {
+          setLocalCoverOverrides(prev => {
+            const next = { ...prev };
+            successful.forEach(result => { next[result.id] = result.data.cover_image; });
+            try { localStorage.setItem('trip_builder_local_covers_v1', JSON.stringify(next)); }
+            catch (error) { console.warn('Failed to save photo overrides:', error); }
+            return next;
+          });
+        }
+        if (start + AUTO_ENRICH_BATCH_SIZE >= pending.length) autoEnrichRunningRef.current = false;
         setCustomPlaces(prev => {
           const next = {};
           Object.entries(prev).forEach(([cId, list]) => { next[cId] = Array.isArray(list) ? list.map(applyPhotos) : list; });
@@ -2707,9 +2744,13 @@ function TripBuilderApp() {
         });
         setLandmarks(prev => prev.map(applyPhotos));
       }
-      autoEnrichRunningRef.current = false;
+      if (failedCount) {
+        toast(activeLang === 'th'
+          ? `ไม่พบรูป Google Maps สำหรับ ${failedCount} สถานที่ ลองกดดึงรูปจริงอีกครั้ง`
+          : `Google Maps photos unavailable for ${failedCount} places; try Fetch Photos again`);
+      }
     })();
-  }, [customPlaces]);
+  }, [customPlaces, isEnrichingPhotos, activeLang]);
 
   const fillFromMaps = (name, lat, lng, address = '', category = 'อื่นๆ', icon = '📍', gmapsUrl = '', rating = null, photos = []) => {
     setActiveAddTab('manual');

@@ -1,10 +1,14 @@
 // Scrapes the real cover photos of a place from Google Maps (no API key).
 // Fragile by nature: every step returns null/[] on failure so callers can fall back.
 
+import { isGooglePlaceId } from './googleMapsIdentity.js';
+
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const REQUEST_TIMEOUT_MS = 8000;
 const SEARCH_RADIUS_METERS = 600;
 const MAX_PHOTOS = 6;
+const MAX_SEARCH_DISTANCE_METERS = 50;
+const EARTH_RADIUS_METERS = 6371000;
 const CACHE_LIMIT = 500;
 const PHOTO_SIZE_SUFFIX = '=w800-h500-k-no';
 // [6][51] starts with the primary image shown on the Google Maps place page;
@@ -68,27 +72,51 @@ function extractPhotos(payload) {
 /**
  * Returns up to 6 real Google Maps photos for the place, or [] when unavailable.
  */
-export async function fetchGoogleMapsPhotos(name, lat, lng) {
+export async function fetchGoogleMapsPhotos(name, lat, lng, googlePlaceId = null) {
   if (!name || lat == null || lng == null || lat === '' || lng === '') return [];
   const latitude = Number(lat);
   const longitude = Number(lng);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return [];
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+      Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return [];
+  if (googlePlaceId && !isGooglePlaceId(googlePlaceId)) return [];
 
-  const cacheKey = `${name}|${latitude.toFixed(4)}|${longitude.toFixed(4)}`.toLowerCase();
+  const cacheKey = `${googlePlaceId || name}|${latitude}|${longitude}`.toLowerCase();
   if (photoCache.has(cacheKey)) return photoCache.get(cacheKey);
 
   let photos = [];
   try {
-    const placeId = await findPlaceId(name, latitude, longitude);
-    if (placeId) photos = extractPhotos(await fetchPreviewPayload(placeId));
+    const placeId = googlePlaceId || await findPlaceId(name, latitude, longitude);
+    if (placeId) {
+      const payload = await fetchPreviewPayload(placeId);
+      if (googlePlaceId || isNearbyPlace(payload, latitude, longitude)) {
+        photos = extractPhotos(payload);
+      } else {
+        console.warn('Google Maps photo lookup: search result did not match coordinates');
+      }
+    }
   } catch (error) {
     console.warn('Google Maps photo lookup failed:', error.message);
     return [];
   }
 
-  if (photoCache.size >= CACHE_LIMIT) photoCache.delete(photoCache.keys().next().value);
-  photoCache.set(cacheKey, photos);
+  if (photos.length) {
+    if (photoCache.size >= CACHE_LIMIT) photoCache.delete(photoCache.keys().next().value);
+    photoCache.set(cacheKey, photos);
+  }
   return photos;
 }
 
-export { extractPhotos, normalizePhotoUrl };
+function isNearbyPlace(payload, latitude, longitude) {
+  const coordinates = payload?.[6]?.[9];
+  const targetLat = coordinates?.[2];
+  const targetLng = coordinates?.[3];
+  if (!Number.isFinite(targetLat) || !Number.isFinite(targetLng)) return false;
+  const radians = Math.PI / 180;
+  const latDelta = (targetLat - latitude) * radians;
+  const lngDelta = (targetLng - longitude) * radians;
+  const haversine = Math.sin(latDelta / 2) ** 2 +
+    Math.cos(latitude * radians) * Math.cos(targetLat * radians) * Math.sin(lngDelta / 2) ** 2;
+  return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1, Math.sqrt(haversine))) <= MAX_SEARCH_DISTANCE_METERS;
+}
+
+export { extractPhotos, normalizePhotoUrl, isNearbyPlace };

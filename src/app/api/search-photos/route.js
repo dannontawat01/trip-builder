@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchGoogleMapsPhotos } from '@/lib/googleMapsPhoto';
+import { isGooglePlaceId } from '@/lib/googleMapsIdentity';
 import { getSmartCategoryCover, getBrandPlacePhotos, BRAND_PLACE_IMAGES } from '@/app/constants/translations';
 
 const photoCache = new Map();
@@ -153,8 +154,8 @@ async function searchYahooJapan(query) {
   return [];
 }
 
-async function resolvePlacePhotos(query, city = '', cat = '', lat = null, lng = null) {
-  const cacheKey = `${query}_${city}_${cat}_${lat}_${lng}`.toLowerCase().trim();
+async function resolvePlacePhotos(query, city = '', cat = '', lat = null, lng = null, placeId = null, googleOnly = false) {
+  const cacheKey = `${query}_${city}_${cat}_${lat}_${lng}_${placeId}_${googleOnly}`.toLowerCase().trim();
   if (photoCache.has(cacheKey)) {
     return photoCache.get(cacheKey);
   }
@@ -162,12 +163,13 @@ async function resolvePlacePhotos(query, city = '', cat = '', lat = null, lng = 
   const photos = [];
 
   // 0. Real photos of this exact place from Google Maps (needs coordinates)
-  const googlePhotos = await fetchGoogleMapsPhotos(query, lat, lng);
+  const googlePhotos = await fetchGoogleMapsPhotos(query, lat, lng, placeId);
   if (googlePhotos.length > 0) {
     const googleResult = { photos: googlePhotos, cover_image: googlePhotos[0], source: 'google' };
     photoCache.set(cacheKey, googleResult);
     return googleResult;
   }
+  if (googleOnly) return { photos: [], cover_image: null, source: null };
 
   // 1. Check Brand & Specific Landmark Matching
   const placeMock = { name: query, cat: cat || '', city_id: city };
@@ -232,12 +234,16 @@ export async function GET(req) {
     const q = searchParams.get('q') || '';
     const city = searchParams.get('city') || '';
     const cat = searchParams.get('cat') || '';
+    const placeId = searchParams.get('placeId');
 
     if (!q) {
       return NextResponse.json({ error: 'q is required' }, { status: 400 });
     }
+    if (placeId && !isGooglePlaceId(placeId)) {
+      return NextResponse.json({ error: 'Invalid placeId' }, { status: 400 });
+    }
 
-    const data = await resolvePlacePhotos(q, city, cat, searchParams.get('lat'), searchParams.get('lng'));
+    const data = await resolvePlacePhotos(q, city, cat, searchParams.get('lat'), searchParams.get('lng'), placeId, searchParams.get('googleOnly') === 'true');
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -250,12 +256,16 @@ export async function POST(req) {
     const q = body.query || body.q || '';
     const city = body.city || '';
     const cat = body.cat || '';
+    const placeId = body.placeId || null;
 
     if (!q) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
+    if (placeId && !isGooglePlaceId(placeId)) {
+      return NextResponse.json({ error: 'Invalid placeId' }, { status: 400 });
+    }
 
-    const data = await resolvePlacePhotos(q, city, cat, body.lat, body.lng);
+    const data = await resolvePlacePhotos(q, city, cat, body.lat, body.lng, placeId, body.googleOnly === true);
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

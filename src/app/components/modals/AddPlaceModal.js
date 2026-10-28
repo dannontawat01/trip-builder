@@ -197,6 +197,7 @@ export default function AddPlaceModal({
           names: {},
           descriptions: {},
           city_id: targetCity,
+          google_place_id: item.google_place_id || null,
           _needsPhoto: !hasImportedPhoto(item),
           _custom: true
         };
