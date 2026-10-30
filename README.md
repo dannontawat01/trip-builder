@@ -31,9 +31,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
   stay readable in the narrow sidebar.
 - Places can be added to a day using the add button and day selector, without
   needing to drag. Browser zoom remains available.
-- Place-list and itinerary cards use matching 16:10 photo covers with 600px
-  thumbnails, rounded corners, and consistent content spacing. Cover space is
-  reserved while photos load to avoid layout jumps.
+- Place-list and itinerary cards use compact horizontal media cards with 64×64px
+  rounded square thumbnails, subtle 1px borders, and streamlined metadata rows.
 - Dialogs support keyboard navigation: Tab cycles through controls and Escape
   closes the active dialog, returning focus to its opener.
 - On phones, the account menu sits beside the logo, with language, theme, map,

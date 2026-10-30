@@ -64,7 +64,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.25.3';
+const APP_VERSION = 'v1.25.4';
 const AUTO_ENRICH_BATCH_SIZE = 4;
 const roomStore = createRoomStore({ client: supabase });
 
@@ -4028,31 +4028,6 @@ function TripBuilderApp() {
                     onTouchCancel={handleTouchCancel}
                     onClick={() => handleOpenDetail(l)}
                   >
-                    <div className="lm-card-actions">
-                      <button
-                        type="button"
-                        className="lm-quick-add-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAddPlacePopover(prev => prev?.landmarkId === l.id ? null : { landmarkId: l.id, place: l });
-                        }}
-                        title={activeLang === 'th' ? 'เพิ่มลงแผน' : 'Add to Plan'}
-                      >
-                        + {activeLang === 'th' ? 'เพิ่มลงวัน' : 'Add'}
-                      </button>
-                      <button
-                        type="button"
-                        className="info-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenDetail(l);
-                        }}
-                        title={activeLang === 'th' ? 'ดูรายละเอียด' : 'View Details'}
-                      >
-                        ℹ
-                      </button>
-                    </div>
-
                     {addPlacePopover?.landmarkId === l.id && (
                       <div className="lm-day-picker-popover" onClick={(e) => e.stopPropagation()}>
                         <div className="popover-title">
@@ -4089,7 +4064,7 @@ function TripBuilderApp() {
                       <OptimizedImage
                         src={getCoverImage(l)}
                         alt={(l.names && l.names[activeLang]) || l.name || ''}
-                        width={600}
+                        width={320}
                         fallbackSrc={getCityFallbackImage(l)}
                       />
                       {matchedDays.length > 0 ? (
@@ -4110,13 +4085,13 @@ function TripBuilderApp() {
                         </div>
                       ) : count > 0 ? (
                         <span className="lm-count-badge">
-                          {activeLang === 'th' ? `เลือกแล้ว ${count} ครั้ง` : `${count}x selected`}
+                          {activeLang === 'th' ? `×${count}` : `${count}x`}
                         </span>
                       ) : null}
                     </div>
                     <div className="place-card-content">
                       <div className="lm-name">
-                        {l.icon && <span style={{ marginRight: '6px' }}>{l.icon}</span>}
+                        {l.icon && <span style={{ marginRight: '5px' }}>{l.icon}</span>}
                         {(l.names && l.names[activeLang]) || l.name}
                       </div>
                       <div className="lm-sub">
@@ -4124,6 +4099,30 @@ function TripBuilderApp() {
                           {translateCategory(l.cat, activeLang)}
                         </span>
                         <span className="lm-dur">⏱ {l.dur}m</span>
+                      </div>
+                      <div className="lm-card-actions">
+                        <button
+                          type="button"
+                          className="lm-quick-add-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddPlacePopover(prev => prev?.landmarkId === l.id ? null : { landmarkId: l.id, place: l });
+                          }}
+                          title={activeLang === 'th' ? 'เพิ่มลงแผน' : 'Add to Plan'}
+                        >
+                          + {activeLang === 'th' ? 'เพิ่มลงวัน' : 'Add'}
+                        </button>
+                        <button
+                          type="button"
+                          className="info-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDetail(l);
+                          }}
+                          title={activeLang === 'th' ? 'ดูรายละเอียด' : 'View Details'}
+                        >
+                          ℹ
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -4574,99 +4573,19 @@ function TripBuilderApp() {
                                   <OptimizedImage
                                     src={item.photoUrl || getCoverImage(actualLandmark)}
                                     alt={(actualLandmark.names && actualLandmark.names[activeLang]) || actualLandmark.name || ''}
-                                    width={600}
+                                    width={320}
                                     fallbackSrc={getCityFallbackImage(actualLandmark)}
                                   />
                                 </div>
                                 <div className="place-card-content">
                                   <div className="it-top">
                                     <button type="button" className="it-name" onClick={() => handleOpenDetail(actualLandmark)}>
-                                      {actualLandmark.icon && <span style={{ marginRight: '6px' }}>{actualLandmark.icon}</span>}
+                                      {actualLandmark.icon && <span style={{ marginRight: '5px' }}>{actualLandmark.icon}</span>}
                                       {(actualLandmark.names && actualLandmark.names[activeLang]) || actualLandmark.name}
                                       {item.rating && <span style={{ color: '#EF9F27', fontSize: '9px', fontWeight: 'bold', marginLeft: '5px', whiteSpace: 'nowrap' }}>⭐ {item.rating}</span>}
                                     </button>
-                                    <div className="it-actions">
-                                      <div className="move-day-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
-                                        <button
-                                          type="button"
-                                          className="mvbtn move-day-btn"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const itemKey = item.itinId || `${item.id}_${day}_${idx}`;
-                                            setMoveDayPopover(prev => (prev?.itinId === itemKey ? null : {
-                                              itinId: itemKey,
-                                              fromDay: day,
-                                              idx,
-                                              item
-                                            }));
-                                          }}
-                                          title={activeLang === 'th' ? 'ย้ายวัน' : 'Move to Day'}
-                                        >
-                                          📅
-                                        </button>
-                                        {moveDayPopover?.itinId === (item.itinId || `${item.id}_${day}_${idx}`) && (
-                                          <div className="move-day-popover" onClick={(e) => e.stopPropagation()}>
-                                            <div className="popover-title">{activeLang === 'th' ? 'ย้ายไปยังวันไหน?' : 'Move to Day:'}</div>
-                                            <div className="popover-days-grid">
-                                              {Array.from({ length: nDays }, (_, i) => i + 1).map((d) => {
-                                                const count = (itin[d] || []).length;
-                                                const isCurrent = d === day;
-                                                const isFull = count >= 5 && !isCurrent;
-                                                const dayColor = DAY_COLORS[(d - 1) % DAY_COLORS.length];
-                                                return (
-                                                  <button
-                                                    key={d}
-                                                    disabled={isCurrent || isFull}
-                                                    className={`popover-day-btn ${isCurrent ? 'current' : ''} ${isFull ? 'full' : ''}`}
-                                                    style={!isFull && !isCurrent ? { borderColor: dayColor.b, background: dayColor.bg, color: dayColor.t } : {}}
-                                                    onClick={() => {
-                                                      moveItinItemToDay(day, idx, d);
-                                                      setMoveDayPopover(null);
-                                                    }}
-                                                  >
-                                                    <b>{t('dayLabel')} {d}</b>
-                                                    <span className="popover-day-sub">
-                                                      {isCurrent ? (activeLang === 'th' ? '(วันนี้)' : '(here)') : isFull ? (activeLang === 'th' ? '(เต็ม)' : '(full)') : `(${count}/5)`}
-                                                    </span>
-                                                  </button>
-                                                );
-                                              })}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                      {idx > 0 && (
-                                        <button
-                                          type="button"
-                                          className="mvbtn reorder-btn up"
-                                          onClick={() => moveItinItem(day, idx, -1)}
-                                          title={activeLang === 'th' ? 'เลื่อนขึ้น' : 'Move up'}
-                                        >
-                                          ▲
-                                        </button>
-                                      )}
-                                      {idx < items.length - 1 && (
-                                        <button
-                                          type="button"
-                                          className="mvbtn reorder-btn down"
-                                          onClick={() => moveItinItem(day, idx, 1)}
-                                          title={activeLang === 'th' ? 'เลื่อนลง' : 'Move down'}
-                                        >
-                                          ▼
-                                        </button>
-                                      )}
-                                      <button
-                                        type="button"
-                                        className="xbtn"
-                                        onClick={() => removeItinItem(day, idx)}
-                                        title={t('removePlace')}
-                                        aria-label={`${t('removePlace')}: ${item.names?.[activeLang] || item.name}`}
-                                      >
-                                        ✕
-                                      </button>
-                                    </div>
                                   </div>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0' }}>
+                                  <div className="it-meta-row">
                                     <div className="it-time">{startT} – {endT}</div>
                                     <button
                                       className="it-dur-badge"
@@ -4678,8 +4597,22 @@ function TripBuilderApp() {
                                     >
                                       ⏱ {item.dur}m
                                     </button>
+                                    <span className="it-chip" style={{ background: cityObj.light, color: cityObj.dark }}>
+                                      {cityObj.emoji} {getCityName(cityObj, activeLang)}
+                                    </span>
+                                    <a
+                                      className="it-maps-link"
+                                      href={item.gmaps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((item.names && item.names[activeLang]) || item.name)}+${item.lat},${item.lng}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={activeLang === 'th' ? 'เปิดใน Google Maps' : 'Open in Google Maps'}
+                                    >
+                                      🗺️ Maps
+                                    </a>
                                   </div>
-                                  <details>
+                                </div>
+                                <div className="it-card-footer">
+                                  <details className="it-details">
                                     <summary>{t('stopDetails')}</summary>
                                     <form onSubmit={(event) => {
                                       event.preventDefault();
@@ -4697,19 +4630,85 @@ function TripBuilderApp() {
                                       <button type="submit" className="btn btn-ghost btn-sm">{t('saveDetails')}</button>
                                     </form>
                                   </details>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                                    <span className="it-chip" style={{ background: cityObj.light, color: cityObj.dark }}>
-                                      {cityObj.emoji} {getCityName(cityObj, activeLang)}
-                                    </span>
-                                    <a
-                                      href={item.gmaps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((item.names && item.names[activeLang]) || item.name)}+${item.lat},${item.lng}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      title={activeLang === 'th' ? 'เปิดใน Google Maps' : 'Open in Google Maps'}
-                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '9px', color: 'var(--teal)', fontWeight: '600', textDecoration: 'underline' }}
+                                  <div className="it-actions">
+                                    <div className="move-day-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
+                                      <button
+                                        type="button"
+                                        className="mvbtn move-day-btn"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const itemKey = item.itinId || `${item.id}_${day}_${idx}`;
+                                          setMoveDayPopover(prev => (prev?.itinId === itemKey ? null : {
+                                            itinId: itemKey,
+                                            fromDay: day,
+                                            idx,
+                                            item
+                                          }));
+                                        }}
+                                        title={activeLang === 'th' ? 'ย้ายวัน' : 'Move to Day'}
+                                      >
+                                        📅
+                                      </button>
+                                      {moveDayPopover?.itinId === (item.itinId || `${item.id}_${day}_${idx}`) && (
+                                        <div className="move-day-popover" onClick={(e) => e.stopPropagation()}>
+                                          <div className="popover-title">{activeLang === 'th' ? 'ย้ายไปยังวันไหน?' : 'Move to Day:'}</div>
+                                          <div className="popover-days-grid">
+                                            {Array.from({ length: nDays }, (_, i) => i + 1).map((d) => {
+                                              const count = (itin[d] || []).length;
+                                              const isCurrent = d === day;
+                                              const isFull = count >= 5 && !isCurrent;
+                                              const dayColor = DAY_COLORS[(d - 1) % DAY_COLORS.length];
+                                              return (
+                                                <button
+                                                  key={d}
+                                                  disabled={isCurrent || isFull}
+                                                  className={`popover-day-btn ${isCurrent ? 'current' : ''} ${isFull ? 'full' : ''}`}
+                                                  style={!isFull && !isCurrent ? { borderColor: dayColor.b, background: dayColor.bg, color: dayColor.t } : {}}
+                                                  onClick={() => {
+                                                    moveItinItemToDay(day, idx, d);
+                                                    setMoveDayPopover(null);
+                                                  }}
+                                                >
+                                                  <b>{t('dayLabel')} {d}</b>
+                                                  <span className="popover-day-sub">
+                                                    {isCurrent ? (activeLang === 'th' ? '(วันนี้)' : '(here)') : isFull ? (activeLang === 'th' ? '(เต็ม)' : '(full)') : `(${count}/5)`}
+                                                  </span>
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {idx > 0 && (
+                                      <button
+                                        type="button"
+                                        className="mvbtn reorder-btn up"
+                                        onClick={() => moveItinItem(day, idx, -1)}
+                                        title={activeLang === 'th' ? 'เลื่อนขึ้น' : 'Move up'}
+                                      >
+                                        ▲
+                                      </button>
+                                    )}
+                                    {idx < items.length - 1 && (
+                                      <button
+                                        type="button"
+                                        className="mvbtn reorder-btn down"
+                                        onClick={() => moveItinItem(day, idx, 1)}
+                                        title={activeLang === 'th' ? 'เลื่อนลง' : 'Move down'}
+                                      >
+                                        ▼
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className="xbtn"
+                                      onClick={() => removeItinItem(day, idx)}
+                                      title={t('removePlace')}
+                                      aria-label={`${t('removePlace')}: ${item.names?.[activeLang] || item.name}`}
                                     >
-                                      🗺️ Maps
-                                    </a>
+                                      ✕
+                                    </button>
                                   </div>
                                 </div>
                               </div>
