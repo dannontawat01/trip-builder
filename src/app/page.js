@@ -64,7 +64,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.25.4';
+const APP_VERSION = 'v1.25.5';
 const AUTO_ENRICH_BATCH_SIZE = 4;
 const roomStore = createRoomStore({ client: supabase });
 
@@ -4064,42 +4064,9 @@ function TripBuilderApp() {
                       <OptimizedImage
                         src={getCoverImage(l)}
                         alt={(l.names && l.names[activeLang]) || l.name || ''}
-                        width={320}
+                        width={500}
                         fallbackSrc={getCityFallbackImage(l)}
                       />
-                      {matchedDays.length > 0 ? (
-                        <div className="lm-days-badge-wrap">
-                          {matchedDays.map(d => {
-                            const dc = DAY_COLORS[(d - 1) % DAY_COLORS.length];
-                            return (
-                              <span
-                                key={d}
-                                className="lm-day-tag"
-                                style={{ background: dc.bg, color: dc.t, borderColor: dc.b }}
-                                title={`${t('dayLabel')} ${d}`}
-                              >
-                                D{d}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      ) : count > 0 ? (
-                        <span className="lm-count-badge">
-                          {activeLang === 'th' ? `×${count}` : `${count}x`}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="place-card-content">
-                      <div className="lm-name">
-                        {l.icon && <span style={{ marginRight: '5px' }}>{l.icon}</span>}
-                        {(l.names && l.names[activeLang]) || l.name}
-                      </div>
-                      <div className="lm-sub">
-                        <span className="badge" style={{ background: getCityObj(activeCity)?.light || '#E1F5EE', color: getCityObj(activeCity)?.dark || '#0F6E56' }}>
-                          {translateCategory(l.cat, activeLang)}
-                        </span>
-                        <span className="lm-dur">⏱ {l.dur}m</span>
-                      </div>
                       <div className="lm-card-actions">
                         <button
                           type="button"
@@ -4123,6 +4090,39 @@ function TripBuilderApp() {
                         >
                           ℹ
                         </button>
+                      </div>
+                      {matchedDays.length > 0 ? (
+                        <div className="lm-days-badge-wrap">
+                          {matchedDays.map(d => {
+                            const dc = DAY_COLORS[(d - 1) % DAY_COLORS.length];
+                            return (
+                              <span
+                                key={d}
+                                className="lm-day-tag"
+                                style={{ background: dc.bg, color: dc.t, borderColor: dc.b }}
+                                title={`${t('dayLabel')} ${d}`}
+                              >
+                                D{d}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : count > 0 ? (
+                        <span className="lm-count-badge">
+                          {activeLang === 'th' ? `เลือกแล้ว ${count} ครั้ง` : `${count}x selected`}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="place-card-content">
+                      <div className="lm-name">
+                        {l.icon && <span style={{ marginRight: '5px' }}>{l.icon}</span>}
+                        {(l.names && l.names[activeLang]) || l.name}
+                      </div>
+                      <div className="lm-sub">
+                        <span className="badge" style={{ background: getCityObj(activeCity)?.light || '#E1F5EE', color: getCityObj(activeCity)?.dark || '#0F6E56' }}>
+                          {translateCategory(l.cat, activeLang)}
+                        </span>
+                        <span className="lm-dur">⏱ {l.dur}m</span>
                       </div>
                     </div>
                   </div>
@@ -4573,7 +4573,7 @@ function TripBuilderApp() {
                                   <OptimizedImage
                                     src={item.photoUrl || getCoverImage(actualLandmark)}
                                     alt={(actualLandmark.names && actualLandmark.names[activeLang]) || actualLandmark.name || ''}
-                                    width={320}
+                                    width={500}
                                     fallbackSrc={getCityFallbackImage(actualLandmark)}
                                   />
                                 </div>
@@ -4610,105 +4610,105 @@ function TripBuilderApp() {
                                       🗺️ Maps
                                     </a>
                                   </div>
-                                </div>
-                                <div className="it-card-footer">
-                                  <details className="it-details">
-                                    <summary>{t('stopDetails')}</summary>
-                                    <form onSubmit={(event) => {
-                                      event.preventDefault();
-                                      const fields = new FormData(event.currentTarget);
-                                      try {
-                                        const details = validateStopDetails(fields.get('note'), fields.get('photoUrl'));
-                                        const next = structuredClone(itin);
-                                        next[day][idx] = { ...next[day][idx], ...details };
-                                        commitItin(next);
-                                        toast(t('detailsSaved'));
-                                      } catch (error) { toast(t(error.message === 'NOTE_TOO_LONG' ? 'noteTooLong' : 'photoHttps')); }
-                                    }} key={`${item.itinId || idx}-${item.note || ''}-${item.photoUrl || ''}`}>
-                                      <label>{t('stopNote')}<textarea className="form-input" name="note" maxLength={1000} defaultValue={item.note || ''} /></label>
-                                      <label>{t('stopPhoto')}<input className="form-input" name="photoUrl" type="url" maxLength={2048} defaultValue={item.photoUrl || ''} /></label>
-                                      <button type="submit" className="btn btn-ghost btn-sm">{t('saveDetails')}</button>
-                                    </form>
-                                  </details>
-                                  <div className="it-actions">
-                                    <div className="move-day-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
-                                      <button
-                                        type="button"
-                                        className="mvbtn move-day-btn"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          const itemKey = item.itinId || `${item.id}_${day}_${idx}`;
-                                          setMoveDayPopover(prev => (prev?.itinId === itemKey ? null : {
-                                            itinId: itemKey,
-                                            fromDay: day,
-                                            idx,
-                                            item
-                                          }));
-                                        }}
-                                        title={activeLang === 'th' ? 'ย้ายวัน' : 'Move to Day'}
-                                      >
-                                        📅
-                                      </button>
-                                      {moveDayPopover?.itinId === (item.itinId || `${item.id}_${day}_${idx}`) && (
-                                        <div className="move-day-popover" onClick={(e) => e.stopPropagation()}>
-                                          <div className="popover-title">{activeLang === 'th' ? 'ย้ายไปยังวันไหน?' : 'Move to Day:'}</div>
-                                          <div className="popover-days-grid">
-                                            {Array.from({ length: nDays }, (_, i) => i + 1).map((d) => {
-                                              const count = (itin[d] || []).length;
-                                              const isCurrent = d === day;
-                                              const isFull = count >= 5 && !isCurrent;
-                                              const dayColor = DAY_COLORS[(d - 1) % DAY_COLORS.length];
-                                              return (
-                                                <button
-                                                  key={d}
-                                                  disabled={isCurrent || isFull}
-                                                  className={`popover-day-btn ${isCurrent ? 'current' : ''} ${isFull ? 'full' : ''}`}
-                                                  style={!isFull && !isCurrent ? { borderColor: dayColor.b, background: dayColor.bg, color: dayColor.t } : {}}
-                                                  onClick={() => {
-                                                    moveItinItemToDay(day, idx, d);
-                                                    setMoveDayPopover(null);
-                                                  }}
-                                                >
-                                                  <b>{t('dayLabel')} {d}</b>
-                                                  <span className="popover-day-sub">
-                                                    {isCurrent ? (activeLang === 'th' ? '(วันนี้)' : '(here)') : isFull ? (activeLang === 'th' ? '(เต็ม)' : '(full)') : `(${count}/5)`}
-                                                  </span>
-                                                </button>
-                                              );
-                                            })}
+                                  <div className="it-card-footer">
+                                    <details className="it-details">
+                                      <summary>{t('stopDetails')}</summary>
+                                      <form onSubmit={(event) => {
+                                        event.preventDefault();
+                                        const fields = new FormData(event.currentTarget);
+                                        try {
+                                          const details = validateStopDetails(fields.get('note'), fields.get('photoUrl'));
+                                          const next = structuredClone(itin);
+                                          next[day][idx] = { ...next[day][idx], ...details };
+                                          commitItin(next);
+                                          toast(t('detailsSaved'));
+                                        } catch (error) { toast(t(error.message === 'NOTE_TOO_LONG' ? 'noteTooLong' : 'photoHttps')); }
+                                      }} key={`${item.itinId || idx}-${item.note || ''}-${item.photoUrl || ''}`}>
+                                        <label>{t('stopNote')}<textarea className="form-input" name="note" maxLength={1000} defaultValue={item.note || ''} /></label>
+                                        <label>{t('stopPhoto')}<input className="form-input" name="photoUrl" type="url" maxLength={2048} defaultValue={item.photoUrl || ''} /></label>
+                                        <button type="submit" className="btn btn-ghost btn-sm">{t('saveDetails')}</button>
+                                      </form>
+                                    </details>
+                                    <div className="it-actions">
+                                      <div className="move-day-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
+                                        <button
+                                          type="button"
+                                          className="mvbtn move-day-btn"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const itemKey = item.itinId || `${item.id}_${day}_${idx}`;
+                                            setMoveDayPopover(prev => (prev?.itinId === itemKey ? null : {
+                                              itinId: itemKey,
+                                              fromDay: day,
+                                              idx,
+                                              item
+                                            }));
+                                          }}
+                                          title={activeLang === 'th' ? 'ย้ายวัน' : 'Move to Day'}
+                                        >
+                                          📅
+                                        </button>
+                                        {moveDayPopover?.itinId === (item.itinId || `${item.id}_${day}_${idx}`) && (
+                                          <div className="move-day-popover" onClick={(e) => e.stopPropagation()}>
+                                            <div className="popover-title">{activeLang === 'th' ? 'ย้ายไปยังวันไหน?' : 'Move to Day:'}</div>
+                                            <div className="popover-days-grid">
+                                              {Array.from({ length: nDays }, (_, i) => i + 1).map((d) => {
+                                                const count = (itin[d] || []).length;
+                                                const isCurrent = d === day;
+                                                const isFull = count >= 5 && !isCurrent;
+                                                const dayColor = DAY_COLORS[(d - 1) % DAY_COLORS.length];
+                                                return (
+                                                  <button
+                                                    key={d}
+                                                    disabled={isCurrent || isFull}
+                                                    className={`popover-day-btn ${isCurrent ? 'current' : ''} ${isFull ? 'full' : ''}`}
+                                                    style={!isFull && !isCurrent ? { borderColor: dayColor.b, background: dayColor.bg, color: dayColor.t } : {}}
+                                                    onClick={() => {
+                                                      moveItinItemToDay(day, idx, d);
+                                                      setMoveDayPopover(null);
+                                                    }}
+                                                  >
+                                                    <b>{t('dayLabel')} {d}</b>
+                                                    <span className="popover-day-sub">
+                                                      {isCurrent ? (activeLang === 'th' ? '(วันนี้)' : '(here)') : isFull ? (activeLang === 'th' ? '(เต็ม)' : '(full)') : `(${count}/5)`}
+                                                    </span>
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
                                           </div>
-                                        </div>
+                                        )}
+                                      </div>
+                                      {idx > 0 && (
+                                        <button
+                                          type="button"
+                                          className="mvbtn reorder-btn up"
+                                          onClick={() => moveItinItem(day, idx, -1)}
+                                          title={activeLang === 'th' ? 'เลื่อนขึ้น' : 'Move up'}
+                                        >
+                                          ▲
+                                        </button>
                                       )}
+                                      {idx < items.length - 1 && (
+                                        <button
+                                          type="button"
+                                          className="mvbtn reorder-btn down"
+                                          onClick={() => moveItinItem(day, idx, 1)}
+                                          title={activeLang === 'th' ? 'เลื่อนลง' : 'Move down'}
+                                        >
+                                          ▼
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        className="xbtn"
+                                        onClick={() => removeItinItem(day, idx)}
+                                        title={t('removePlace')}
+                                        aria-label={`${t('removePlace')}: ${item.names?.[activeLang] || item.name}`}
+                                      >
+                                        ✕
+                                      </button>
                                     </div>
-                                    {idx > 0 && (
-                                      <button
-                                        type="button"
-                                        className="mvbtn reorder-btn up"
-                                        onClick={() => moveItinItem(day, idx, -1)}
-                                        title={activeLang === 'th' ? 'เลื่อนขึ้น' : 'Move up'}
-                                      >
-                                        ▲
-                                      </button>
-                                    )}
-                                    {idx < items.length - 1 && (
-                                      <button
-                                        type="button"
-                                        className="mvbtn reorder-btn down"
-                                        onClick={() => moveItinItem(day, idx, 1)}
-                                        title={activeLang === 'th' ? 'เลื่อนลง' : 'Move down'}
-                                      >
-                                        ▼
-                                      </button>
-                                    )}
-                                    <button
-                                      type="button"
-                                      className="xbtn"
-                                      onClick={() => removeItinItem(day, idx)}
-                                      title={t('removePlace')}
-                                      aria-label={`${t('removePlace')}: ${item.names?.[activeLang] || item.name}`}
-                                    >
-                                      ✕
-                                    </button>
                                   </div>
                                 </div>
                               </div>
