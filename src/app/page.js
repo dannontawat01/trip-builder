@@ -64,7 +64,7 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.25.2';
+const APP_VERSION = 'v1.25.3';
 const AUTO_ENRICH_BATCH_SIZE = 4;
 const roomStore = createRoomStore({ client: supabase });
 
@@ -4089,7 +4089,7 @@ function TripBuilderApp() {
                       <OptimizedImage
                         src={getCoverImage(l)}
                         alt={(l.names && l.names[activeLang]) || l.name || ''}
-                        width={400}
+                        width={600}
                         fallbackSrc={getCityFallbackImage(l)}
                       />
                       {matchedDays.length > 0 ? (
@@ -4114,7 +4114,7 @@ function TripBuilderApp() {
                         </span>
                       ) : null}
                     </div>
-                    <div style={{ padding: '8px 10px' }}>
+                    <div className="place-card-content">
                       <div className="lm-name">
                         {l.icon && <span style={{ marginRight: '6px' }}>{l.icon}</span>}
                         {(l.names && l.names[activeLang]) || l.name}
@@ -4574,11 +4574,11 @@ function TripBuilderApp() {
                                   <OptimizedImage
                                     src={item.photoUrl || getCoverImage(actualLandmark)}
                                     alt={(actualLandmark.names && actualLandmark.names[activeLang]) || actualLandmark.name || ''}
-                                    width={300}
+                                    width={600}
                                     fallbackSrc={getCityFallbackImage(actualLandmark)}
                                   />
                                 </div>
-                                <div style={{ padding: '6px 8px' }}>
+                                <div className="place-card-content">
                                   <div className="it-top">
                                     <button type="button" className="it-name" onClick={() => handleOpenDetail(actualLandmark)}>
                                       {actualLandmark.icon && <span style={{ marginRight: '6px' }}>{actualLandmark.icon}</span>}
