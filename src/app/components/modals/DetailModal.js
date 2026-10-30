@@ -283,7 +283,7 @@ export default function DetailModal({
                   <div className="gps-box">
                     <div className="gps-text">{selectedPlace.lat.toFixed(5)}° N, {selectedPlace.lng.toFixed(5)}° E</div>
                     <div className="gps-btns">
-                      <button className="copy-btn" onClick={() => { navigator.clipboard.writeText(`${selectedPlace.lat},${selectedPlace.lng}`); toast('คัดลอก GPS แล้ว'); }}>{t('copyGPS')}</button>
+                      <button className="copy-btn" onClick={() => { navigator.clipboard.writeText(`${selectedPlace.lat},${selectedPlace.lng}`).then(() => toast(t('gpsCopied'))).catch(() => toast(t('copyFailed'))); }}>{t('copyGPS')}</button>
                       <a className="maps-link" href={`https://www.google.com/maps?q=${selectedPlace.lat},${selectedPlace.lng}`} target="_blank" rel="noreferrer">{t('openMaps')}</a>
                     </div>
                   </div>

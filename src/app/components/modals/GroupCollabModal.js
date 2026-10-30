@@ -15,6 +15,12 @@ export default function GroupCollabModal({
   inputRoomCode,
   setInputRoomCode,
   isRoomSyncing,
+  inputRoomInvite,
+  setInputRoomInvite,
+  roomError,
+  roomMode,
+  includePrivateBookings,
+  setIncludePrivateBookings,
   handleCreateRoom,
   handleJoinRoom,
   t,
@@ -50,6 +56,9 @@ export default function GroupCollabModal({
         </div>
 
         <div className="modal-body" style={{ padding: '20px' }}>
+          <p role="status" style={{ fontSize: '12px', marginBottom: '12px' }}>{t(roomMode === 'setup-required' ? 'roomAuthSetup' : roomMode === 'local-mock' ? 'roomMock' : 'roomSecure')}</p>
+          <details style={{ marginBottom: '12px', fontSize: '12px' }}><summary>{t('roomSetupTitle')}</summary><p>{t('roomSetup')}</p><p>{t('roomLegacy')}</p></details>
+          {roomError && <p role="alert" style={{ marginBottom: '12px' }}>{t(roomError)}</p>}
           <div className="form-group">
             <label className="form-label" htmlFor="group-nickname">{t('nickname')} *</label>
             <input 
@@ -76,18 +85,7 @@ export default function GroupCollabModal({
                   onChange={(e) => setInputRoomName(e.target.value)}
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="group-create-code">{t('roomCode')} ({activeLang === 'th' ? 'เว้นว่างเพื่อสุ่มอัตโนมัติ' : 'Optional / Auto-generated'})</label>
-                <input 
-                  id="group-create-code"
-                  type="text" 
-                  className="form-input" 
-                  placeholder="เช่น TRIP-9922" 
-                  value={inputRoomCode}
-                  onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
-                  style={{ letterSpacing: '1px', textTransform: 'uppercase' }}
-                />
-              </div>
+              <label style={{ display: 'flex', gap: '8px' }}><input type="checkbox" checked={includePrivateBookings} onChange={event => setIncludePrivateBookings(event.target.checked)} />{t('privateBookingsOptIn')}</label>
               <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '8px', lineHeight: '1.4' }}>
                 {activeLang === 'th'
                   ? '💡 ระบบจะสร้างห้องกลุ่มจากทริปปัจจุบันของคุณ และสร้างรหัสห้องสำหรับส่งให้เพื่อนเข้าร่วมได้ทันที'
@@ -105,9 +103,11 @@ export default function GroupCollabModal({
                   placeholder={t('roomCodePh')} 
                   value={inputRoomCode}
                   onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
-                  style={{ letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600 }}
+                  maxLength={13}
+                  style={{ letterSpacing: 0, textTransform: 'uppercase', fontWeight: 600 }}
                 />
               </div>
+              <div className="form-group"><label className="form-label" htmlFor="group-invite">{t('roomInvite')}</label><input id="group-invite" type="password" autoComplete="off" className="form-input" value={inputRoomInvite} maxLength={64} onChange={event => setInputRoomInvite(event.target.value.trim())} /></div>
               <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '8px', lineHeight: '1.4' }}>
                 {activeLang === 'th'
                   ? '💡 ใส่รหัสห้องที่ได้รับจากเพื่อน เพื่อโหลดแผนทริปและจัดตารางร่วมกัน'

@@ -12,6 +12,8 @@ export default function ExportModal({
   selectedStyle,
   setSelectedStyle,
   buildShareLink,
+  includePrivateBookings,
+  setIncludePrivateBookings,
   shareGmapsRoute,
   toast,
   nDays,
@@ -24,6 +26,7 @@ export default function ExportModal({
 }) {
   const dialogRef = useDialogFocus(exportModalOpen, () => setExportModalOpen(false));
   if (!exportModalOpen) return null;
+  const link = buildShareLink();
 
   return (
     <div className="overlay show" onClick={() => setExportModalOpen(false)}>
@@ -57,17 +60,20 @@ export default function ExportModal({
           
           <div className="form-group">
             <div className="form-label">{t('exportShare')}</div>
+            <label style={{ display: 'flex', gap: '8px', marginBottom: '12px', alignItems: 'flex-start' }}><input type="checkbox" checked={includePrivateBookings} onChange={event => setIncludePrivateBookings(event.target.checked)} />{t('privateBookingsOptIn')}</label>
             <div className="share-box">
               <input
                 type="text"
                 readOnly
                 className="share-url notranslate"
                 translate="no"
-                value={buildShareLink()}
+                aria-label={t('exportShare')}
+                value={link}
                 onClick={(e) => e.target.select()}
               />
-              <button className="btn btn-primary btn-sm" onClick={() => { navigator.clipboard.writeText(buildShareLink()); toast(t('shareLinkCopied')); }}>{t('copyLink')}</button>
+              <button className="btn btn-primary btn-sm" disabled={!link} onClick={async () => { try { await navigator.clipboard.writeText(link); toast(t('shareLinkCopied')); } catch { toast(t('copyFailed')); } }}>{t('copyLink')}</button>
             </div>
+            {!link && <p role="alert">{t('shareTooLong')}</p>}
             <div className="share-note">{t('exportShareNote')}</div>
           </div>
 

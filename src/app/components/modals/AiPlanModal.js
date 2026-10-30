@@ -19,6 +19,7 @@ export default function AiPlanModal({
   aiPlanStatus,
   aiPlanLoading,
   aiPlanResult,
+  aiPlanMock,
   handleAIPlan,
   applyAIPlan
 }) {
@@ -35,6 +36,7 @@ export default function AiPlanModal({
         
         <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <div className="ai-modal-info">{t('aiInfo')}</div>
+          {aiPlanMock && <p role="status">{t('aiMock')}</p>}
           
           <div className="form-group">
             <label className="form-label" htmlFor="ai-hotel">{t('aiHotel')} <span style={{ fontWeight: 'normal', color: 'var(--muted)' }}>{t('aiHotelSub')}</span></label>

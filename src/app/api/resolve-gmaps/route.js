@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server';
-import { fetchGoogleMapsPhotos } from '@/lib/googleMapsPhoto';
 import { placeIdFromFeatureParts } from '@/lib/googleMapsIdentity';
+import { safeFetch } from '../../../lib/safeFetch.js';
+import { isGoogleMapsHost, isGoogleMapsUrl, isHttpUrl } from '../../../lib/urlSafety.js';
+import { readJsonRequest } from '../../../lib/aiValidation.js';
+
+const MAX_MAPS_BODY_BYTES = 2 * 1024 * 1024;
+const MAX_INPUT_LENGTH = 32_000;
+const MAX_INPUT_URLS = 20;
+
+async function mapsFetch(url, options = {}) {
+  return safeFetch(url, { ...options, isHostAllowed: isGoogleMapsHost, maxBytes: MAX_MAPS_BODY_BYTES, timeoutMs: 8000 });
+}
+
+async function providerFetch(url, options = {}) {
+  const { response } = await safeFetch(url, { ...options, isHostAllowed: (host) => ['duckduckgo.com', 'nominatim.openstreetmap.org'].includes(host), maxBytes: MAX_MAPS_BODY_BYTES, timeoutMs: 8000 });
+  return response;
+}
 
 function classifyCategory(text) {
   const t = (text || '').toLowerCase();
@@ -42,7 +57,7 @@ async function resolvePlacelist(html, finalUrl) {
   if (!preloadMatch) return null;
 
   const preloadUrl = `https://www.google.com${preloadMatch[1].replace(/&amp;/g, '&')}`;
-  const entityRes = await fetch(preloadUrl, {
+  const { response: entityRes } = await mapsFetch(preloadUrl, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Referer': 'https://www.google.com/maps/'
@@ -122,7 +137,7 @@ async function resolvePlacelist(html, finalUrl) {
 }
 
 async function resolveSingleUrl(targetUrl) {
-  const res = await fetch(targetUrl, {
+  const { response: res, finalUrl } = await mapsFetch(targetUrl, {
     method: 'GET',
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -130,7 +145,6 @@ async function resolveSingleUrl(targetUrl) {
   });
 
   const html = await res.text();
-  const finalUrl = res.url;
   if (!finalUrl) {
     return { error: 'Failed to resolve redirect' };
   }
@@ -186,7 +200,7 @@ async function resolveSingleUrl(targetUrl) {
       if (previewMatch) {
         const previewPath = previewMatch[1].replace(/&amp;/g, '&');
         const previewUrl = `https://www.google.com${previewPath}`;
-        const previewRes = await fetch(previewUrl, {
+        const { response: previewRes } = await mapsFetch(previewUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           }
@@ -237,7 +251,7 @@ async function resolveSingleUrl(targetUrl) {
     }
 
     try {
-      const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=th,en`, {
+      const osmRes = await providerFetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&accept-language=th,en`, {
         headers: {
           'User-Agent': 'TripBuilderMapQueryAgent/1.0'
         }
@@ -259,12 +273,10 @@ async function resolveSingleUrl(targetUrl) {
       console.warn("Failed to fetch fallback photos from DDG:", err.message);
     }
 
-    const googlePhotos = await fetchGoogleMapsPhotos(name, lat, lng);
     const cleanPhotos = [
-      ...googlePhotos,
       ...(ddgPhotos || []),
-      ...(photos || []).filter(p => typeof p === 'string' && !p.includes('googleusercontent.com'))
-    ];
+      ...(photos || [])
+    ].filter(isHttpUrl);
     photos = Array.from(new Set(cleanPhotos)).slice(0, 12);
 
     return {
@@ -286,14 +298,20 @@ async function resolveSingleUrl(targetUrl) {
 
 export async function POST(req) {
   try {
-    const body = await req.json();
+    const body = await readJsonRequest(req, 40 * 1024);
+    if (body.url !== undefined && typeof body.url !== 'string') throw new Error('Invalid request');
+    if (body.urls !== undefined && (!Array.isArray(body.urls) || body.urls.length > MAX_INPUT_URLS || body.urls.some((url) => typeof url !== 'string' || url.length > 4096))) throw new Error('Invalid request');
     const rawInput = body.url || (Array.isArray(body.urls) ? body.urls.join('\n') : '');
+    if (rawInput.length > MAX_INPUT_LENGTH) throw new Error('Invalid request');
     if (!rawInput || typeof rawInput !== 'string') {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
 
     // Extract all URLs from the input text
     const extractedUrls = rawInput.match(/https?:\/\/[^\s"'<>\(\)]+/g) || [];
+    if (extractedUrls.length > MAX_INPUT_URLS || extractedUrls.some((url) => !isGoogleMapsUrl(url))) {
+      return NextResponse.json({ error: 'Invalid Google Maps URL' }, { status: 400 });
+    }
     if (extractedUrls.length === 0) {
       return NextResponse.json({ error: 'No valid URL found in input' }, { status: 400 });
     }
@@ -308,7 +326,7 @@ export async function POST(req) {
     }
 
     // Case 2: Multiple URLs provided (Bulk import)
-    const uniqueUrls = Array.from(new Set(extractedUrls)).slice(0, 50); // Cap at 50 URLs
+    const uniqueUrls = Array.from(new Set(extractedUrls));
     const resolvedPlaces = [];
 
     for (const u of uniqueUrls) {
@@ -322,7 +340,7 @@ export async function POST(req) {
           }
         }
       } catch (err) {
-        console.warn(`Failed to resolve bulk URL ${u}:`, err.message);
+        console.warn('Failed to resolve bulk URL:', err.name);
       }
     }
 
@@ -339,14 +357,14 @@ export async function POST(req) {
       places: resolvedPlaces
     });
   } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Unable to resolve Google Maps URL' }, { status: 400 });
   }
 }
 
 async function getVqd(query) {
   const url = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
   try {
-    const res = await fetch(url, {
+    const res = await providerFetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
@@ -369,9 +387,9 @@ async function fetchFallbackPhotos(query) {
   const vqd = await getVqd(query);
   if (!vqd) return [];
   
-  const url = `https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(query)}&vqd=${vqd}&f=,,,`;
+  const url = `https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(query.slice(0, 200))}&vqd=${encodeURIComponent(vqd.slice(0, 200))}&f=,,,`;
   try {
-    const res = await fetch(url, {
+    const res = await providerFetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://duckduckgo.com/'

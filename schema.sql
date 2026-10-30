@@ -16,20 +16,23 @@ CREATE TABLE IF NOT EXISTS public.landmarks (
     cover_image text,
     names jsonb DEFAULT '{}'::jsonb,
     descriptions jsonb DEFAULT '{}'::jsonb,
-    status text DEFAULT 'approved'::text,
+    status text DEFAULT 'pending'::text,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.landmarks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.landmarks ALTER COLUMN status SET DEFAULT 'pending';
 
 -- Create Policy to allow read access for everyone
+DROP POLICY IF EXISTS "Allow public read access" ON public.landmarks;
 CREATE POLICY "Allow public read access" ON public.landmarks
     FOR SELECT USING (status = 'approved');
 
 -- Create Policy to allow anonymous insert (e.g. users proposing places)
+DROP POLICY IF EXISTS "Allow public inserts" ON public.landmarks;
 CREATE POLICY "Allow public inserts" ON public.landmarks
-    FOR INSERT WITH CHECK (true);
+    FOR INSERT WITH CHECK (status = 'pending');
 
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_landmarks_city_status ON public.landmarks(city_id, status);
@@ -85,5 +88,191 @@ CREATE POLICY "Allow individual delete access" ON public.itineraries
 
 -- Migration/Upgrade Helper (For existing installations before the Packing & Travel Checklist feature):
 -- ALTER TABLE public.itineraries ADD COLUMN IF NOT EXISTS checklist jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+-- Rooms v2 only. Personal plans and login remain in Google Sheets.
+-- Run this section separately in Supabase SQL Editor; enable Auth > Anonymous Sign-Ins.
+CREATE TABLE IF NOT EXISTS public.tb_rooms (
+    code text PRIMARY KEY CHECK (code ~ '^TRIP-[A-HJ-NP-Z2-9]{8}$'),
+    name text NOT NULL CHECK (length(name) BETWEEN 1 AND 120),
+    owner_id uuid NOT NULL REFERENCES auth.users(id),
+    payload jsonb NOT NULL,
+    version bigint NOT NULL DEFAULT 1 CHECK (version > 0),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS public.tb_room_members (
+    code text NOT NULL REFERENCES public.tb_rooms(code) ON DELETE CASCADE,
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    nickname text NOT NULL CHECK (length(trim(nickname)) BETWEEN 1 AND 60),
+    PRIMARY KEY (code, user_id)
+);
+CREATE TABLE IF NOT EXISTS public.tb_room_invites (
+    code text PRIMARY KEY REFERENCES public.tb_rooms(code) ON DELETE CASCADE,
+    invite_hash bytea NOT NULL
+);
+ALTER TABLE public.tb_rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tb_room_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tb_room_invites ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.tb_rooms, public.tb_room_members, public.tb_room_invites FROM anon, authenticated;
+GRANT SELECT ON public.tb_rooms, public.tb_room_members TO authenticated;
+DROP POLICY IF EXISTS tb_member_self ON public.tb_room_members;
+CREATE POLICY tb_member_self ON public.tb_room_members FOR SELECT TO authenticated
+    USING (user_id = (SELECT auth.uid()));
+DROP POLICY IF EXISTS tb_room_member_read ON public.tb_rooms;
+CREATE POLICY tb_room_member_read ON public.tb_rooms FOR SELECT TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.tb_room_members AS membership
+                   WHERE membership.code = tb_rooms.code AND membership.user_id = (SELECT auth.uid())));
+
+CREATE OR REPLACE FUNCTION public.tb_validate_room_payload(p_payload jsonb)
+RETURNS void LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$
+DECLARE day_entry record; stop jsonb; booking jsonb; kind text;
+BEGIN
+    IF p_payload IS NULL OR jsonb_typeof(p_payload) <> 'object' OR octet_length(p_payload::text) > 500000
+       OR jsonb_typeof(p_payload->'itin') IS DISTINCT FROM 'object'
+       OR jsonb_typeof(p_payload->'nDays') IS DISTINCT FROM 'number'
+       OR (p_payload->>'nDays') !~ '^[0-9]+$'
+       OR (p_payload->>'nDays')::integer NOT BETWEEN 1 AND 15 THEN
+        RAISE EXCEPTION 'ROOM_INPUT' USING ERRCODE = '22023';
+    END IF;
+    FOR day_entry IN SELECT * FROM jsonb_each(p_payload->'itin') LOOP
+        IF day_entry.key !~ '^([1-9]|1[0-5])$' OR jsonb_typeof(day_entry.value) <> 'array' THEN
+            RAISE EXCEPTION 'ROOM_INPUT' USING ERRCODE = '22023';
+        END IF;
+        IF jsonb_array_length(day_entry.value) > 100 THEN RAISE EXCEPTION 'ROOM_INPUT'; END IF;
+        FOR stop IN SELECT * FROM jsonb_array_elements(day_entry.value) LOOP
+            IF jsonb_typeof(stop) <> 'object' OR jsonb_typeof(stop->'name') IS DISTINCT FROM 'string'
+               OR length(stop->>'name') > 500 OR length(coalesce(stop->>'note', '')) > 1000
+               OR (coalesce(stop->>'photoUrl', '') <> '' AND
+                   (stop->>'photoUrl' !~ '^https://[^/@[:space:]]+([/:?#]|$)' OR length(stop->>'photoUrl') > 2048))
+               OR jsonb_typeof(stop->'dur') IS DISTINCT FROM 'number'
+               OR (stop->>'dur')::numeric NOT BETWEEN 1 AND 1440 THEN RAISE EXCEPTION 'ROOM_INPUT'; END IF;
+            IF (stop->>'lat' IS NOT NULL AND (stop->>'lat')::numeric NOT BETWEEN -90 AND 90)
+               OR (stop->>'lng' IS NOT NULL AND (stop->>'lng')::numeric NOT BETWEEN -180 AND 180)
+               THEN RAISE EXCEPTION 'ROOM_INPUT'; END IF;
+        END LOOP;
+    END LOOP;
+    IF p_payload ? 'bookings' THEN
+        IF jsonb_typeof(p_payload->'bookings') <> 'object' THEN RAISE EXCEPTION 'ROOM_INPUT'; END IF;
+        FOREACH kind IN ARRAY ARRAY['flights', 'hotels'] LOOP
+            IF jsonb_typeof(p_payload->'bookings'->kind) IS DISTINCT FROM 'array' THEN RAISE EXCEPTION 'ROOM_INPUT'; END IF;
+            IF jsonb_array_length(p_payload->'bookings'->kind) > 100 THEN RAISE EXCEPTION 'ROOM_INPUT'; END IF;
+            FOR booking IN SELECT * FROM jsonb_array_elements(p_payload->'bookings'->kind) LOOP
+                PERFORM public.tb_validate_booking(kind, booking);
+            END LOOP;
+        END LOOP;
+    END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.tb_validate_booking(p_kind text, p_booking jsonb)
+RETURNS void LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$
+DECLARE field_entry record; start_value text; end_value text;
+BEGIN
+    IF jsonb_typeof(p_booking) <> 'object' OR jsonb_typeof(p_booking->'name') IS DISTINCT FROM 'string'
+       OR length(trim(p_booking->>'name')) NOT BETWEEN 1 AND 200 THEN RAISE EXCEPTION 'ROOM_INPUT'; END IF;
+    FOR field_entry IN SELECT * FROM jsonb_each(p_booking) LOOP
+        IF jsonb_typeof(field_entry.value) <> 'string' OR length(field_entry.value #>> '{}') > 200 THEN
+            RAISE EXCEPTION 'ROOM_INPUT';
+        END IF;
+    END LOOP;
+    IF p_kind = 'flights' THEN
+        start_value := p_booking->>'departure'; end_value := p_booking->>'arrival';
+        IF coalesce(p_booking->>'from', '') = '' OR coalesce(p_booking->>'to', '') = ''
+           OR coalesce(start_value, '') !~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$'
+           OR coalesce(end_value, '') !~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$'
+           OR start_value::timestamp > end_value::timestamp THEN RAISE EXCEPTION 'ROOM_INPUT'; END IF;
+    ELSE
+        start_value := p_booking->>'checkIn'; end_value := p_booking->>'checkOut';
+        IF coalesce(start_value, '') !~ '^\d{4}-\d{2}-\d{2}$'
+           OR coalesce(end_value, '') !~ '^\d{4}-\d{2}-\d{2}$'
+           OR start_value::date >= end_value::date THEN RAISE EXCEPTION 'ROOM_INPUT'; END IF;
+    END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.tb_room_snapshot(p_code text)
+RETURNS jsonb LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+    SELECT jsonb_build_object('code', room.code, 'name', room.name, 'payload', room.payload,
+        'version', room.version, 'updated_at', room.updated_at,
+        'members', (SELECT coalesce(jsonb_agg(member.nickname ORDER BY member.user_id), '[]'::jsonb)
+                    FROM public.tb_room_members AS member WHERE member.code = room.code))
+    FROM public.tb_rooms AS room WHERE room.code = p_code
+      AND EXISTS (SELECT 1 FROM public.tb_room_members AS membership
+                  WHERE membership.code = room.code AND membership.user_id = auth.uid());
+$$;
+
+CREATE OR REPLACE FUNCTION public.tb_create_room(p_code text, p_name text, p_payload jsonb, p_nickname text, p_invite text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+BEGIN
+    IF auth.uid() IS NULL OR p_code IS NULL OR p_code !~ '^TRIP-[A-HJ-NP-Z2-9]{8}$'
+       OR p_name IS NULL OR length(trim(p_name)) NOT BETWEEN 1 AND 120
+       OR p_nickname IS NULL OR length(trim(p_nickname)) NOT BETWEEN 1 AND 60
+       OR p_invite IS NULL OR p_invite !~ '^[a-f0-9]{64}$' THEN RAISE EXCEPTION 'ROOM_ACCESS' USING ERRCODE = '42501'; END IF;
+    PERFORM pg_advisory_xact_lock(hashtextextended('tb_rooms:' || auth.uid()::text, 0));
+    IF (SELECT count(*) FROM public.tb_rooms WHERE owner_id = auth.uid()) >= 20 THEN RAISE EXCEPTION 'ROOM_LIMIT'; END IF;
+    PERFORM public.tb_validate_room_payload(p_payload);
+    INSERT INTO public.tb_rooms(code, name, owner_id, payload) VALUES (p_code, trim(p_name), auth.uid(), p_payload);
+    INSERT INTO public.tb_room_members(code, user_id, nickname) VALUES (p_code, auth.uid(), trim(p_nickname));
+    INSERT INTO public.tb_room_invites(code, invite_hash) VALUES (p_code, sha256(convert_to(p_invite, 'UTF8')));
+    RETURN public.tb_room_snapshot(p_code);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.tb_join_room(p_code text, p_invite text, p_nickname text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+BEGIN
+    IF auth.uid() IS NULL OR p_code IS NULL OR p_code !~ '^TRIP-[A-HJ-NP-Z2-9]{8}$'
+       OR p_invite IS NULL OR p_invite !~ '^[a-f0-9]{64}$'
+       OR p_nickname IS NULL OR length(trim(p_nickname)) NOT BETWEEN 1 AND 60 THEN
+        RAISE EXCEPTION 'ROOM_ACCESS' USING ERRCODE = '42501'; END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.tb_room_invites WHERE code = p_code
+                   AND invite_hash = sha256(convert_to(p_invite, 'UTF8'))) THEN
+        RAISE EXCEPTION 'ROOM_ACCESS' USING ERRCODE = '42501'; END IF;
+    PERFORM 1 FROM public.tb_rooms WHERE code = p_code FOR UPDATE;
+    IF (SELECT count(*) FROM public.tb_room_members WHERE code = p_code) >= 100
+       AND NOT EXISTS (SELECT 1 FROM public.tb_room_members WHERE code = p_code AND user_id = auth.uid()) THEN RAISE EXCEPTION 'ROOM_LIMIT'; END IF;
+    INSERT INTO public.tb_room_members(code, user_id, nickname) VALUES (p_code, auth.uid(), trim(p_nickname))
+        ON CONFLICT (code, user_id) DO UPDATE SET nickname = excluded.nickname;
+    RETURN public.tb_room_snapshot(p_code);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.tb_get_room(p_code text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE snapshot jsonb;
+BEGIN
+    IF auth.uid() IS NULL THEN RAISE EXCEPTION 'ROOM_ACCESS' USING ERRCODE = '42501'; END IF;
+    snapshot := public.tb_room_snapshot(p_code);
+    IF snapshot IS NULL THEN RAISE EXCEPTION 'ROOM_ACCESS' USING ERRCODE = '42501'; END IF;
+    RETURN snapshot;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.tb_update_room(p_code text, p_payload jsonb, p_expected_version bigint)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+BEGIN
+    IF auth.uid() IS NULL OR NOT EXISTS (SELECT 1 FROM public.tb_room_members
+        WHERE code = p_code AND user_id = auth.uid()) THEN RAISE EXCEPTION 'ROOM_ACCESS' USING ERRCODE = '42501'; END IF;
+    PERFORM public.tb_validate_room_payload(p_payload);
+    UPDATE public.tb_rooms SET payload = p_payload, version = version + 1, updated_at = clock_timestamp()
+        WHERE code = p_code AND version = p_expected_version;
+    IF NOT FOUND THEN RAISE EXCEPTION 'ROOM_CONFLICT' USING ERRCODE = '40001'; END IF;
+    RETURN public.tb_room_snapshot(p_code);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.tb_validate_room_payload(jsonb), public.tb_validate_booking(text,jsonb),
+    public.tb_room_snapshot(text), public.tb_create_room(text,text,jsonb,text,text),
+    public.tb_join_room(text,text,text), public.tb_get_room(text), public.tb_update_room(text,jsonb,bigint)
+    FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.tb_create_room(text,text,jsonb,text,text), public.tb_join_room(text,text,text),
+    public.tb_get_room(text), public.tb_update_room(text,jsonb,bigint) TO authenticated;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime'
+                   AND schemaname = 'public' AND tablename = 'tb_rooms') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.tb_rooms;
+    END IF;
+END $$;
+-- Legacy Sheets/mock rooms are never automatically read, migrated, or deleted.
+-- Load a legacy personal backup, review it, then explicitly create a new room.
 
 

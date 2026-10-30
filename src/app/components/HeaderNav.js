@@ -3,6 +3,7 @@
 import React from 'react';
 import { COUNTRIES, getCountryName, getCityName } from '@/app/constants/translations';
 import ToolbarIcon from './ToolbarIcon';
+import GlassSurface from './GlassSurface';
 
 export default function HeaderNav({
   APP_VERSION,
@@ -86,7 +87,7 @@ export default function HeaderNav({
             </button>
           </div>
 
-          <div className="topbar-action-group">
+          <GlassSurface variant="toolbar" className="topbar-action-group">
             <button 
               className="btn btn-sm topbar-travel-btn" 
               onClick={() => setTravelModeOpen(true)}
@@ -166,7 +167,7 @@ export default function HeaderNav({
               <ToolbarIcon name="users" />
               <span className="group-btn-text">{activeRoom ? activeRoom.code : t('groupPlan')}</span>
             </button>
-          </div>
+          </GlassSurface>
 
           {/* Plans Selector Dropdown (Available for ALL users) */}
           <div className="plans-menu-container" style={{ position: 'relative' }}>

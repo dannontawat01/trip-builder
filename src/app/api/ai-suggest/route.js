@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { readJsonRequest, validateAiInput, parseAiOutput } from '../../../lib/aiValidation.js';
+import { checkAiRateLimit, getClientIp, rateLimitResponse } from '../../../lib/rateLimit.js';
 
 const getMockPlaces = (query) => {
   const allMockPlaces = [
@@ -22,12 +24,14 @@ const getMockPlaces = (query) => {
 };
 
 export async function POST(req) {
+  const rate = checkAiRateLimit(getClientIp(req.headers));
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   let query = '';
   try {
-    const body = await req.json();
+    const body = validateAiInput(await readJsonRequest(req));
     query = body.query || '';
-  } catch (e) {
-    // ignore parse error
+  } catch {
+    return Response.json({ error: 'Invalid request' }, { status: 400 });
   }
 
   const generateMockResponse = () => {
@@ -35,6 +39,7 @@ export async function POST(req) {
     if (places.length === 0) {
       // Return custom placeholder if nothing matched
       return {
+        mock: true,
         places: [
           {
             name: query || 'สถานที่ตามใจชอบ',
@@ -51,7 +56,7 @@ export async function POST(req) {
         ]
       };
     }
-    return { places };
+    return { places, mock: true };
   };
 
   try {
@@ -93,15 +98,15 @@ Return ONLY valid JSON. No markdown wrappers.`;
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        responseMimeType: 'application/json'
+        responseMimeType: 'application/json', maxOutputTokens: 8192
       }
-    });
+    }, { timeout: 20000 });
 
     let jsonText = result.response.text().trim();
     if (jsonText.startsWith('```')) {
       jsonText = jsonText.replace(/^```(?:json)?/, '').replace(/```$/, '').trim();
     }
-    const parsedData = JSON.parse(jsonText);
+    const parsedData = parseAiOutput(jsonText, 'suggestions');
 
     return new Response(JSON.stringify(parsedData), {
       status: 200,
@@ -109,7 +114,7 @@ Return ONLY valid JSON. No markdown wrappers.`;
     });
 
   } catch (error) {
-    console.error('API Error in ai-suggest:', error);
+    console.error('API Error in ai-suggest:', error.name);
     return new Response(JSON.stringify(generateMockResponse()), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }

@@ -1,8 +1,15 @@
-export async function POST(req) {
-  try {
-    const { style, itinerary } = await req.json();
+import { escapeHtml } from '../../../lib/htmlEscape.js';
+import { readJsonRequest } from '../../../lib/aiValidation.js';
+import { checkAiRateLimit, getClientIp, rateLimitResponse } from '../../../lib/rateLimit.js';
 
-    const lines = itinerary ? itinerary.split('\n') : [];
+export async function POST(req) {
+  const rate = checkAiRateLimit(getClientIp(req.headers));
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
+  try {
+    const { style, itinerary } = await readJsonRequest(req, 256 * 1024);
+    if (typeof itinerary !== 'string' || itinerary.length > 100000) return Response.json({ error: 'Invalid request' }, { status: 400 });
+
+    const lines = itinerary.split('\n').map(escapeHtml);
     let contentHtml = '';
     let currentDayHtml = '';
     
@@ -291,9 +298,9 @@ export async function POST(req) {
     });
 
   } catch (error) {
-    console.error('API Error in ai-export:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    console.error('API Error in ai-export:', error.name);
+    return new Response(JSON.stringify({ error: 'Unable to export itinerary' }), {
+      status: 400,
       headers: { 'Content-Type': 'application/json' }
     });
   }

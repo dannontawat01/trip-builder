@@ -1,17 +1,25 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { useState, useEffect, useEffectEvent, useRef, useMemo, Suspense } from 'react';
 import { isNonPlacePhoto } from '@/lib/photoUrl';
 import { normalizeTheme } from '@/lib/theme';
+import { createHistory, pushHistory, undoHistory, redoHistory } from '@/lib/itinHistory';
+import { safeArrayJson, clampInt } from '@/lib/safeJson';
+import { MAX_TRIP_DAYS, EMPTY_BOOKINGS, normalizePlan, normalizeBookings, shareUrl, daysBetween, validateStopDetails, stablePlanJson, cloudPlanPayload, roomPlanPayload, createPrivateRoomBookingStore, restorePersonalUser } from '@/lib/planState';
 import { useSearchParams } from 'next/navigation';
 import { googleSheets } from '@/lib/googleSheets';
+import { supabase, supabaseSetupRequired } from '@/lib/supabase';
+import { createRoomStore, createRoomSaveQueue } from '@/lib/roomStore';
 import { getGmapsWalkingRouteUrl, shareGmapsRoute } from '@/lib/gmapsRoute';
 import { optimizeDayRoute, calculateDistanceKm, estimateTravelTimeMins } from '@/lib/routeOptimizer';
 import { detectCityFromCoords, checkIsDuplicate } from '@/lib/cityDetector';
 import dynamic from 'next/dynamic';
 import OptimizedImage from './components/OptimizedImage';
 import HeaderNav from './components/HeaderNav';
+import GlassSurface from './components/GlassSurface';
 import ToolbarIcon from './components/ToolbarIcon';
+import BookingsPanel from './components/BookingsPanel';
+import SharedPlanView from './components/SharedPlanView';
 import {
   LANG_STRINGS,
   COUNTRIES,
@@ -56,8 +64,9 @@ const MapComponent = dynamic(() => import('./components/MapComponent'), {
 });
 
 // ─── APP VERSION ───────────────────────────────────────────────────
-const APP_VERSION = 'v1.21.6';
+const APP_VERSION = 'v1.25.2';
 const AUTO_ENRICH_BATCH_SIZE = 4;
+const roomStore = createRoomStore({ client: supabase });
 
 // ─── DEFAULT BUDGET CONFIG ─────────────────────────────────────────
 const DEFAULT_BUDGET = {
@@ -133,28 +142,6 @@ const parseTimeSafe = (timeVal) => {
   return '09:00';
 };
 
-function generateMockWeather(dateStr, lat) {
-  const isCold = Math.abs(lat) > 30;
-  let hash = 0;
-  for (let i = 0; i < dateStr.length; i++) {
-    hash = dateStr.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const absHash = Math.abs(hash);
-  const codes = [0, 1, 2, 3, 61, 63, 80];
-  if (isCold) {
-    codes.push(71, 73);
-  }
-  const code = codes[absHash % codes.length];
-  
-  let tempBase = isCold ? 12 : 28;
-  const month = parseInt(dateStr.split('-')[1]) || 6;
-  const tempOffset = Math.sin((month - 4) * Math.PI / 6) * (isCold ? 12 : 4);
-  const tempMax = Math.round((tempBase + tempOffset + (absHash % 5)) * 10) / 10;
-  const tempMin = Math.round((tempMax - (5 + (absHash % 4))) * 10) / 10;
-  
-  return { code, tempMax, tempMin };
-}
-
 async function fetchWeatherForecast(lat, lng) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), 5000);
@@ -179,7 +166,7 @@ async function fetchWeatherForecast(lat, lng) {
     return forecast;
   } catch (error) {
     clearTimeout(id);
-    console.warn('Weather API failed, using fallback mock generator:', error);
+    console.warn('Weather forecast unavailable:', error.name);
     return null;
   }
 }
@@ -199,6 +186,10 @@ function TripBuilderApp() {
   const chkParam = searchParams.get('chk');
   const bgtParam = searchParams.get('bgt');
   const roomParam = searchParams.get('room');
+  const [copiedShare, setCopiedShare] = useState(false);
+  const readOnly = Boolean(tripParam || chkParam || bgtParam || searchParams.get('view') === '1') && !copiedShare;
+  const readOnlyRef = useRef(readOnly);
+  useEffect(() => { readOnlyRef.current = readOnly; }, [readOnly]);
   const [activeRoom, setActiveRoom] = useState(null);
   const [myNickname, setMyNickname] = useState('');
   const [activeMembersList, setActiveMembersList] = useState([]);
@@ -208,12 +199,29 @@ function TripBuilderApp() {
   const [inputRoomName, setInputRoomName] = useState('');
   const [inputNickname, setInputNickname] = useState('');
   const [isRoomSyncing, setIsRoomSyncing] = useState(false);
+  const [inputRoomInvite, setInputRoomInvite] = useState('');
+  const [roomError, setRoomError] = useState('');
+  const roomRef = useRef(null);
+  const roomJoinAttemptRef = useRef(0);
+  const planTransitionRef = useRef(false);
+  const roomVersionRef = useRef(0);
+  const roomQueueRef = useRef(null);
+  const roomConflictRef = useRef(false);
+  const roomSyncRef = useRef(false);
+  const roomSavedRef = useRef('');
+  const roomRevisionRef = useRef(0);
+  const roomTimestampRef = useRef(0);
+  const liveRoomPayloadRef = useRef(null);
+  const roomSharedBookingsRef = useRef(EMPTY_BOOKINGS);
+  const roomBookingOwnerRef = useRef('guest');
+  const personalUserRef = useRef(null);
   const [activeLang, setActiveLang] = useState('th');
   const [activeCountry, setActiveCountry] = useState('th');
   const [activeCity, setActiveCity] = useState('bkk');
   const [theme, setTheme] = useState('clean');
   
-  const [nDays, setNDays] = useState(3);
+  const [nDays, setNDaysInternal] = useState(3);
+  const setNDays = (value) => setNDaysInternal(clampInt(value, 1, MAX_TRIP_DAYS, 3));
   const [startDate, setStartDateInternal] = useState('');
   const setStartDate = (val) => {
     const d = parseDateSafe(val);
@@ -226,7 +234,35 @@ function TripBuilderApp() {
   };
   const [hotel, setHotel] = useState('');
   
-  const [itin, setItin] = useState({ 1: [], 2: [], 3: [] });
+  const [itin, setItinInternal] = useState({ 1: [], 2: [], 3: [] });
+  const [bookings, setBookings] = useState(EMPTY_BOOKINGS);
+  const [sharedRoomBookings, setSharedRoomBookings] = useState(EMPTY_BOOKINGS);
+  const [includePrivateBookings, setIncludePrivateBookings] = useState(false);
+  const [includeRoomBookings, setIncludeRoomBookings] = useState(false);
+  const historyRef = useRef(createHistory());
+  const itineraryRef = useRef({ 1: [], 2: [], 3: [] });
+  const [historyCounts, setHistoryCounts] = useState({ past: 0, future: 0 });
+  const clearHistory = () => {
+    historyRef.current = createHistory();
+    setHistoryCounts({ past: 0, future: 0 });
+  };
+  const setItin = (next, loadedBookings = EMPTY_BOOKINGS) => {
+    clearHistory();
+    setIncludePrivateBookings(false);
+    setIncludeRoomBookings(false);
+    const normalized = normalizePlan({ itin: next, nDays: MAX_TRIP_DAYS }).itin;
+    itineraryRef.current = structuredClone(normalized);
+    setItinInternal(normalized);
+    setBookings(normalizeBookings(loadedBookings));
+  };
+  const commitItin = (next) => {
+    if (readOnlyRef.current) return;
+    if (JSON.stringify(itineraryRef.current) === JSON.stringify(next)) return;
+    historyRef.current = pushHistory(historyRef.current, itineraryRef.current);
+    itineraryRef.current = structuredClone(next);
+    setHistoryCounts({ past: historyRef.current.past.length, future: 0 });
+    setItinInternal(next);
+  };
   const [checklist, setChecklist] = useState([]);
   const [budget, setBudget] = useState(DEFAULT_BUDGET);
   const [isOffline, setIsOffline] = useState(false);
@@ -292,6 +328,7 @@ function TripBuilderApp() {
   
   // Auth states
   const [user, setUser] = useState(null);
+  useEffect(() => { personalUserRef.current = user; }, [user]);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
   const [authEmail, setAuthEmail] = useState('');
@@ -305,6 +342,8 @@ function TripBuilderApp() {
   const [activePlanId, setActivePlanId] = useState(null);
   
   const [toastMessage, setToastMessage] = useState('');
+  const toastTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(toastTimerRef.current), []);
   const [mobileTab, setMobileTab] = useState('plan');
   
   // Touch & Popover states for iPad / Mobile
@@ -393,6 +432,8 @@ function TripBuilderApp() {
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [aiPlanStatus, setAiPlanStatus] = useState('');
   const [aiPlanResult, setAiPlanResult] = useState(null);
+  const [aiPlanMock, setAiPlanMock] = useState(false);
+  const [aiSuggestMock, setAiSuggestMock] = useState(false);
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
 
   // Weather states
@@ -407,6 +448,136 @@ function TripBuilderApp() {
 
 
   const t = (key) => (LANG_STRINGS[activeLang] || LANG_STRINGS.en)[key] || key;
+  const currentRoomPayload = () => roomPlanPayload({ itin, nDays, start: startDate, time: startTime, hotel, city_id: activeCity, checklist, budget, bookings }, EMPTY_BOOKINGS, includeRoomBookings);
+  useEffect(() => {
+    liveRoomPayloadRef.current = roomPlanPayload({ itin, nDays, start: startDate, time: startTime, hotel, city_id: activeCity, checklist, budget, bookings }, roomSharedBookingsRef.current, includeRoomBookings);
+    roomRevisionRef.current++;
+  }, [itin, nDays, startDate, startTime, hotel, activeCity, checklist, budget, bookings, includeRoomBookings]);
+
+  const reportRoomError = (error) => {
+    const key = ({ ROOM_AUTH_SETUP: 'roomAuthSetup', ROOM_SCHEMA_SETUP: 'roomSchemaSetup', ROOM_CONFLICT: 'roomConflict', ROOM_INPUT: 'roomInput' })[error.message] || 'roomAccessError';
+    setRoomError(key);
+    if (error.message === 'ROOM_CONFLICT') roomConflictRef.current = true;
+    toast(t(key));
+  };
+
+  const applyRoomSnapshot = (room) => {
+    const plan = normalizePlan(room.payload);
+    roomSharedBookingsRef.current = plan.bookings;
+    setSharedRoomBookings(plan.bookings);
+    liveRoomPayloadRef.current = plan;
+    let privateBookings = EMPTY_BOOKINGS;
+    try { privateBookings = createPrivateRoomBookingStore(localStorage).read(room.code, roomBookingOwnerRef.current); }
+    catch { console.warn('Private room bookings could not be restored'); }
+    roomVersionRef.current = room.version;
+    roomTimestampRef.current = Date.parse(room.updated_at) || 0;
+    roomSavedRef.current = stablePlanJson(plan);
+    roomQueueRef.current?.reset(plan);
+    setItin(plan.itin, privateBookings);
+    setChecklist(Array.isArray(plan.checklist) ? plan.checklist : []);
+    setBudget(plan.budget || DEFAULT_BUDGET);
+    setNDays(plan.nDays);
+    setStartDate(plan.start || '');
+    setStartTime(plan.time || '09:00');
+    setHotel(plan.hotel || '');
+    if (plan.city_id) { setActiveCity(plan.city_id); setActiveCountry(getCountryOfCity(plan.city_id)); }
+    setActiveMembersList(room.members || []);
+  };
+
+  const activateRoom = (room, invite, nickname) => {
+    const active = { code: room.code, name: room.name, invite };
+    roomQueueRef.current?.dispose();
+    roomQueueRef.current = null;
+    roomBookingOwnerRef.current = personalUserRef.current?.email || user?.email || 'guest';
+    roomRef.current = active;
+    roomRevisionRef.current++;
+    roomConflictRef.current = false;
+    setRoomError('');
+    setActiveRoom(active);
+    setActivePlanId(null);
+    setMyNickname(nickname);
+    applyRoomSnapshot(room);
+    roomQueueRef.current = createRoomSaveQueue({
+      savedPayload: room.payload,
+      write: payload => roomStore.update(active.code, payload, roomVersionRef.current),
+      onSaved: (saved, fingerprint) => {
+        if (roomRef.current !== active) return;
+        roomVersionRef.current = saved.version;
+        roomTimestampRef.current = Date.parse(saved.updated_at) || roomTimestampRef.current;
+        roomSavedRef.current = fingerprint;
+        roomSharedBookingsRef.current = normalizeBookings(saved.payload.bookings);
+        setSharedRoomBookings(roomSharedBookingsRef.current);
+      },
+      onError: error => { if (roomRef.current === active) { roomConflictRef.current = true; reportRoomError(error); } }
+    });
+    localStorage.setItem('tb_active_room', JSON.stringify(active));
+    localStorage.setItem('tb_my_nickname', nickname);
+  };
+
+  const queueRoomSave = (payload) => {
+    if (!roomRef.current || roomConflictRef.current || roomSyncRef.current) return;
+    roomRevisionRef.current++;
+    roomQueueRef.current?.enqueue(payload);
+  };
+
+  const loadPersonalPlans = (restoredUser = personalUserRef.current) => {
+    if (readOnlyRef.current || roomRef.current) return;
+    if (!restoredUser) return loadGuestPlans();
+    if (googleSheets) return loadCloudPlans(restoredUser.email);
+    return loadLocalMockPlans(restoredUser.email);
+  };
+
+  const updateBookings = (nextBookings) => {
+    const normalized = normalizeBookings(nextBookings);
+    if (roomRef.current) {
+      try { createPrivateRoomBookingStore(localStorage).write(roomRef.current.code, roomBookingOwnerRef.current, normalized); }
+      catch { console.warn('Private room bookings could not be saved'); toast(t('roomAccessError')); }
+    }
+    setBookings(normalized);
+  };
+
+  const changeHistory = (direction) => {
+    if (readOnlyRef.current) return;
+    const transition = direction === 'undo' ? undoHistory(historyRef.current, itineraryRef.current) : redoHistory(historyRef.current, itineraryRef.current);
+    if (!transition.changed) return;
+    historyRef.current = transition.history;
+    itineraryRef.current = structuredClone(transition.value);
+    setItinInternal(transition.value);
+    setHistoryCounts({ past: transition.history.past.length, future: transition.history.future.length });
+  };
+
+  const onHistoryKey = useEffectEvent((event) => {
+    if (readOnly || !(event.ctrlKey || event.metaKey) || event.altKey || event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]')) return;
+    const key = event.key.toLowerCase();
+    if (key !== 'z' && key !== 'y') return;
+    event.preventDefault();
+    changeHistory(key === 'y' || event.shiftKey ? 'redo' : 'undo');
+  });
+  useEffect(() => {
+    const handleHistoryKey = (event) => {
+      onHistoryKey(event);
+    };
+    document.addEventListener('keydown', handleHistoryKey);
+    return () => document.removeEventListener('keydown', handleHistoryKey);
+  }, [readOnly]);
+
+  const copySharedPlan = () => {
+    try {
+      const existing = safeArrayJson(localStorage.getItem('tb_guest_plans')).filter(plan => typeof plan.id === 'string');
+      const plan = normalizePlan({ id: `guest_plan_${crypto.randomUUID()}`, name: t('sharedCopyName'), itin, nDays, start: startDate, time: startTime, hotel, city_id: activeCity, checklist, budget, bookings });
+      const merged = [plan, ...existing];
+      localStorage.setItem('tb_guest_plans', JSON.stringify(merged));
+      localStorage.setItem('tb_guest_active_plan', plan.id);
+      setPlansList(merged);
+      setUser(null);
+      setActivePlanId(plan.id);
+      readOnlyRef.current = false;
+      setCopiedShare(true);
+      clearHistory();
+      window.history.replaceState({}, '', window.location.pathname);
+      toast(t('shareCopied'));
+    } catch { toast(t('copyFailed')); }
+  };
   const getCityObj = (cid) => COUNTRIES.flatMap(c => c.cities).find(c => c.id === cid) || null;
   const usedIds = () => Object.values(itin).flat().map(x => x.id);
   const getSelectedCount = (placeId) => {
@@ -627,10 +798,10 @@ function TripBuilderApp() {
         });
       }
     });
-    setItin(updatedItin);
+    commitItin(updatedItin);
     saveItinData(updatedItin, nDays);
     
-    toast('💾 บันทึกการแก้ไขเรียบร้อย');
+    toast(t('detailsSaved'));
   };
 
   const handleSaveEdit = () => {
@@ -724,6 +895,7 @@ function TripBuilderApp() {
   };
 
   const handleSaveDurationQuick = () => {
+    if (readOnlyRef.current) return;
     if (!editDurationTarget) return;
     const { day, idx, item, value } = editDurationTarget;
     const num = parseInt(value);
@@ -731,7 +903,7 @@ function TripBuilderApp() {
       const updatedItin = { ...itin };
       updatedItin[day] = [...updatedItin[day]];
       updatedItin[day][idx] = { ...updatedItin[day][idx], dur: num };
-      setItin(updatedItin);
+      commitItin(updatedItin);
       saveItinData(updatedItin, nDays);
       setEditDurationModalOpen(false);
       setEditDurationTarget(null);
@@ -771,6 +943,7 @@ function TripBuilderApp() {
   };
 
   const handleSaveTravelTimeQuick = () => {
+    if (readOnlyRef.current) return;
     if (!editTravelTarget) return;
     const { day, idx, item, value } = editTravelTarget;
     const num = parseInt(value);
@@ -778,7 +951,7 @@ function TripBuilderApp() {
       const updatedItin = { ...itin };
       updatedItin[day] = [...updatedItin[day]];
       updatedItin[day][idx] = { ...updatedItin[day][idx], travelTime: num };
-      setItin(updatedItin);
+      commitItin(updatedItin);
       saveItinData(updatedItin, nDays);
       setEditTravelModalOpen(false);
       setEditTravelTarget(null);
@@ -790,8 +963,9 @@ function TripBuilderApp() {
 
   // Helper function for Toast
   const toast = (msg) => {
+    clearTimeout(toastTimerRef.current);
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 2000);
+    toastTimerRef.current = setTimeout(() => setToastMessage(''), 2000);
   };
 
   // ─── ROUTE OPTIMIZATION HANDLERS ────────────────────────────────────
@@ -832,13 +1006,14 @@ function TripBuilderApp() {
   };
 
   const handleApplyOptimizedRoute = () => {
+    if (readOnlyRef.current) return;
     if (!optData || !optData.day || !optData.optimizedItems) return;
     const { day, optimizedItems } = optData;
 
     const updatedItin = { ...itin };
     updatedItin[day] = optimizedItems;
 
-    setItin(updatedItin);
+    commitItin(updatedItin);
     saveItinData(updatedItin, nDays);
     setOptModalOpen(false);
     setOptData(null);
@@ -856,6 +1031,10 @@ function TripBuilderApp() {
     const defaultLang = ['th', 'en'].includes(bl) ? bl : 'en';
     setActiveLang(localStorage.getItem('tb_lang') || defaultLang);
     setTheme(normalizeTheme(localStorage.getItem('tb_theme')));
+    const restoredUser = restorePersonalUser(localStorage, Boolean(googleSheets));
+    personalUserRef.current = restoredUser;
+    setUser(restoredUser);
+    if (readOnlyRef.current || roomParam || localStorage.getItem('tb_active_room')) return;
     
     // Set default date to today
     setStartDate(new Date().toISOString().split('T')[0]);
@@ -889,54 +1068,17 @@ function TripBuilderApp() {
       }
     } catch (_) {}
 
-    // Check initial user session & load plans
-    const checkSession = async () => {
-      // Debug: log Google Sheets connection status
-      console.log('[TripBuilder] Google Sheets client:', googleSheets ? 'CONNECTED ✅' : 'NOT CONFIGURED ❌ (using Mock Mode)');
-      console.log('[TripBuilder] GOOGLE_SCRIPT_URL:', process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_URL || '(empty)');
-
-      if (!googleSheets) {
-        // Fallback to local mock session if no Google Sheets configured
-        console.warn('[TripBuilder] Running in LOCAL MOCK MODE - data will not sync across browsers!');
-        try {
-          const storedUser = localStorage.getItem('tb_mock_user');
-          if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
-            loadLocalMockPlans(parsedUser.email);
-          } else {
-            loadGuestPlans();
-          }
-        } catch (_) {
-          loadGuestPlans();
-        }
-        return;
-      }
-      
-      try {
-        const storedUser = localStorage.getItem('tb_sheet_user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          loadCloudPlans(parsedUser.email);
-        } else {
-          loadGuestPlans();
-        }
-      } catch (err) {
-        console.error('[TripBuilder] checkSession failed:', err);
-        loadGuestPlans();
-      }
-    };
-
-    checkSession();
+    loadPersonalPlans(restoredUser);
 
     return () => {};
   }, []);
 
   const loadGuestPlans = () => {
+    if (readOnlyRef.current || roomRef.current) return;
     try {
       let rawPlans = localStorage.getItem('tb_guest_plans');
-      let plans = rawPlans ? JSON.parse(rawPlans) : [];
+      let plans = safeArrayJson(rawPlans).filter(plan => typeof plan.id === 'string').map(normalizePlan);
+      if (rawPlans && !plans.length) localStorage.setItem('tb_guest_plans_recovery', rawPlans);
 
       // Auto-migrate from legacy trip_builder_itin_v1 if tb_guest_plans is empty
       if (!plans || plans.length === 0) {
@@ -959,7 +1101,9 @@ function TripBuilderApp() {
               time: parsedLegacy.time || '09:00',
               hotel: parsedLegacy.hotel || '',
               itin: parsedLegacy.itin || { 1: [], 2: [], 3: [] },
-              checklist: parsedLegacy.checklist || legacyChecklist
+              checklist: parsedLegacy.checklist || legacyChecklist,
+              budget: parsedLegacy.budget || DEFAULT_BUDGET,
+              bookings: normalizeBookings(parsedLegacy.bookings)
             };
             plans = [migratedPlan];
             localStorage.setItem('tb_guest_plans', JSON.stringify(plans));
@@ -992,7 +1136,7 @@ function TripBuilderApp() {
       const currentPlan = plans.find(p => p.id === activeId) || plans[0];
 
       setActivePlanId(currentPlan.id);
-      setItin(currentPlan.itin || { 1: [], 2: [], 3: [] });
+      setItin(currentPlan.itin || { 1: [], 2: [], 3: [] }, currentPlan.bookings);
       setChecklist(currentPlan.checklist || []);
       let loadedBudget = currentPlan.budget || DEFAULT_BUDGET;
       try {
@@ -1009,15 +1153,17 @@ function TripBuilderApp() {
         setActiveCity(currentPlan.city_id);
         setActiveCountry(getCountryOfCity(currentPlan.city_id));
       }
+      planTransitionRef.current = false;
     } catch (err) {
       console.error('[TripBuilder] loadGuestPlans error:', err);
     }
   };
 
   const loadLocalMockPlans = (email) => {
+    if (readOnlyRef.current || roomRef.current) return;
     try {
       const raw = localStorage.getItem(`tb_mock_plans_${email}`);
-      const plans = raw ? JSON.parse(raw) : [];
+      const plans = safeArrayJson(raw).map(normalizePlan);
       setPlansList(plans);
       
       const lastActiveId = localStorage.getItem(`tb_mock_active_plan_${email}`);
@@ -1025,7 +1171,7 @@ function TripBuilderApp() {
       
       if (activePlan) {
         setActivePlanId(activePlan.id);
-        setItin(activePlan.itin || { 1: [], 2: [], 3: [] });
+        setItin(activePlan.itin || { 1: [], 2: [], 3: [] }, activePlan.bookings);
         
         let loadedChecklist = activePlan.checklist || [];
         try {
@@ -1085,12 +1231,12 @@ function TripBuilderApp() {
         setStartTime(newPlan.time);
         setHotel(newPlan.hotel);
       }
-    } catch (_) {}
+      planTransitionRef.current = false;
+    } catch (_) { planTransitionRef.current = false; }
   };
 
   const loadCloudPlans = async (email) => {
-    if (!googleSheets) return;
-    console.log('[TripBuilder] loadCloudPlans for email:', email);
+    if (!googleSheets || readOnlyRef.current || roomRef.current) return;
     
     let cachedPlans = null;
     let hasCache = false;
@@ -1109,7 +1255,8 @@ function TripBuilderApp() {
           
           if (activePlan) {
             setActivePlanId(activePlan.id);
-            setItin(activePlan.itin);
+            setItin(activePlan.itin, activePlan.bookings);
+            setBudget(activePlan.budget || DEFAULT_BUDGET);
             
             let loadedChecklist = activePlan.checklist;
             try {
@@ -1137,7 +1284,7 @@ function TripBuilderApp() {
 
     try {
       const data = await googleSheets.getItineraries(email);
-      console.log('[TripBuilder] Loaded', data?.length, 'cloud plans');
+      if (readOnlyRef.current || roomRef.current) return;
       
       const freshPlans = data.map(item => ({
         id: item.id,
@@ -1145,7 +1292,9 @@ function TripBuilderApp() {
         city_id: item.city_id,
         itin: item.itin,
         checklist: item.checklist || [],
-        nDays: item.n_days,
+        bookings: normalizeBookings(item.bookings ?? cachedPlans?.find(plan => plan.id === item.id)?.bookings),
+        budget: item.budget || cachedPlans?.find(plan => plan.id === item.id)?.budget || DEFAULT_BUDGET,
+        nDays: clampInt(item.n_days, 1, MAX_TRIP_DAYS, 3),
         start: item.start_date,
         time: item.start_time,
         hotel: item.hotel
@@ -1167,7 +1316,8 @@ function TripBuilderApp() {
           const freshActivePlan = freshPlans.find(p => p.id === currentActiveId);
           if (freshActivePlan) {
             setActivePlanId(freshActivePlan.id);
-            setItin(freshActivePlan.itin);
+            setItin(freshActivePlan.itin, freshActivePlan.bookings);
+            setBudget(freshActivePlan.budget || DEFAULT_BUDGET);
             
             let loadedChecklist = freshActivePlan.checklist;
             try {
@@ -1194,7 +1344,8 @@ function TripBuilderApp() {
               try {
                 localStorage.setItem(`tb_active_plan_${email}`, fallbackPlan.id);
               } catch (_) {}
-              setItin(fallbackPlan.itin);
+              setItin(fallbackPlan.itin, fallbackPlan.bookings);
+              setBudget(fallbackPlan.budget || DEFAULT_BUDGET);
               
               let loadedChecklist = fallbackPlan.checklist;
               try {
@@ -1231,7 +1382,8 @@ function TripBuilderApp() {
         
         if (activePlan) {
           setActivePlanId(activePlan.id);
-          setItin(activePlan.itin);
+          setItin(activePlan.itin, activePlan.bookings);
+          setBudget(activePlan.budget || DEFAULT_BUDGET);
           
           let loadedChecklist = activePlan.checklist;
           try {
@@ -1256,11 +1408,13 @@ function TripBuilderApp() {
       }
     } catch (err) {
       console.warn('Failed to load cloud plans:', err.message);
+    } finally {
+      planTransitionRef.current = false;
     }
   };
 
   const handleCreatePlanCloud = async (name, email) => {
-    if (!googleSheets) return;
+    if (!googleSheets || readOnlyRef.current || roomRef.current) return;
     const defaultPlan = {
       name: name,
       city_id: activeCity,
@@ -1309,6 +1463,7 @@ function TripBuilderApp() {
   };
 
   const createNewPlan = async () => {
+    if (readOnlyRef.current || roomRef.current) return;
     const planName = prompt(activeLang === 'th' ? 'กรุณากรอกชื่อแผนเดินทางใหม่:' : 'Enter name for the new plan:', `Trip Plan ${plansList.length + 1}`);
     if (!planName?.trim()) return;
     
@@ -1378,6 +1533,7 @@ function TripBuilderApp() {
   };
 
   const deletePlan = async (planId, e) => {
+    if (readOnlyRef.current || roomRef.current) return;
     if (e) e.stopPropagation();
     if (plansList.length <= 1) {
       toast(activeLang === 'th' ? 'ไม่สามารถลบแผนสุดท้ายได้' : 'Cannot delete the last plan');
@@ -1435,6 +1591,7 @@ function TripBuilderApp() {
   };
 
   const renamePlan = async (planId, e) => {
+    if (readOnlyRef.current || roomRef.current) return;
     if (e) e.stopPropagation();
     const plan = plansList.find(p => p.id === planId);
     if (!plan) return;
@@ -1458,7 +1615,9 @@ function TripBuilderApp() {
             hotel: plan.hotel,
             n_days: plan.nDays,
             itin: plan.itin,
-            checklist: plan.checklist || []
+            checklist: plan.checklist || [],
+            bookings: plan.bookings || EMPTY_BOOKINGS,
+            budget: plan.budget || DEFAULT_BUDGET
           });
           
           setPlansList(prev => prev.map(p => p.id === planId ? { ...p, name: newName } : p));
@@ -1478,12 +1637,13 @@ function TripBuilderApp() {
   };
 
   const loadActivePlan = (planId, customList = null) => {
+    if (readOnlyRef.current || roomRef.current) return;
     const list = customList || plansList;
     const plan = list.find(p => p.id === planId);
     if (!plan) return;
     
     setActivePlanId(planId);
-    setItin(plan.itin || { 1: [], 2: [], 3: [] });
+    setItin(plan.itin || { 1: [], 2: [], 3: [] }, plan.bookings);
     
     let loadedChecklist = plan.checklist || [];
     try {
@@ -1527,7 +1687,7 @@ function TripBuilderApp() {
 
   const handleSignUp = async () => {
     if (!authEmail.trim() || !authPassword.trim()) {
-      toast(activeLang === 'th' ? 'กรุณากรอกอีเมลและรหัสผ่าน' : 'Please enter email and password');
+      toast(t('authRequired'));
       return;
     }
     setAuthLoading(true);
@@ -1553,7 +1713,7 @@ function TripBuilderApp() {
         loadLocalMockPlans(authEmail);
         toast(activeLang === 'th' ? 'สมัครสมาชิกและเข้าสู่ระบบสำเร็จ (Mock)' : 'Registered successfully (Mock)');
       } catch (_) {
-        toast(activeLang === 'th' ? 'สมัครสมาชิกล้มเหลว' : 'Registration failed');
+        toast(t('authSignUpFailed'));
       } finally {
         setAuthLoading(false);
       }
@@ -1568,8 +1728,8 @@ function TripBuilderApp() {
         setAuthEmail('');
         setAuthPassword('');
       }
-    } catch (err) {
-      toast(activeLang === 'th' ? `สมัครสมาชิกล้มเหลว: ${err.message}` : `Registration failed: ${err.message}`);
+    } catch {
+      toast(t('authSignUpFailed'));
     } finally {
       setAuthLoading(false);
     }
@@ -1577,7 +1737,7 @@ function TripBuilderApp() {
 
   const handleSignIn = async () => {
     if (!authEmail.trim() || !authPassword.trim()) {
-      toast('กรุณากรอกอีเมลและรหัสผ่าน');
+      toast(t('authRequired'));
       return;
     }
     setAuthLoading(true);
@@ -1588,7 +1748,7 @@ function TripBuilderApp() {
         const users = JSON.parse(rawUsers);
         const match = users.find(u => u.email === authEmail && u.password === authPassword);
         if (!match) {
-          toast('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+          toast(t('authInvalid'));
           setAuthLoading(false);
           return;
         }
@@ -1599,9 +1759,9 @@ function TripBuilderApp() {
         setAuthEmail('');
         setAuthPassword('');
         loadLocalMockPlans(authEmail);
-        toast('เข้าสู่ระบบสำเร็จ (Mock)');
+        toast(t('authSignInMock'));
       } catch (_) {
-        toast('เข้าสู่ระบบล้มเหลว');
+        toast(t('authSignInFailed'));
       } finally {
         setAuthLoading(false);
       }
@@ -1617,10 +1777,10 @@ function TripBuilderApp() {
         setAuthEmail('');
         setAuthPassword('');
         loadCloudPlans(res.user.email);
-        toast('เข้าสู่ระบบสำเร็จ!');
+        toast(t('authSignInSuccess'));
       }
-    } catch (err) {
-      toast(`เข้าสู่ระบบล้มเหลว: ${err.message}`);
+    } catch {
+      toast(t('authSignInFailed'));
     } finally {
       setAuthLoading(false);
     }
@@ -1634,7 +1794,7 @@ function TripBuilderApp() {
       setActivePlanId(null);
       loadGuestPlans();
       setUserDropdownOpen(false);
-      toast('ออกจากระบบแล้ว (Mock)');
+      toast(t('authSignOutMock'));
       return;
     }
     
@@ -1645,9 +1805,9 @@ function TripBuilderApp() {
       setActivePlanId(null);
       loadGuestPlans();
       setUserDropdownOpen(false);
-      toast('ออกจากระบบแล้ว');
-    } catch (err) {
-      toast(`ออกจากระบบล้มเหลว: ${err.message}`);
+      toast(t('authSignOutSuccess'));
+    } catch {
+      toast(t('authSignOutFailed'));
     }
   };
 
@@ -1684,6 +1844,8 @@ function TripBuilderApp() {
 
   // Load landmarks when activeCity or customPlaces changes
   useEffect(() => {
+    if (readOnly) return;
+    const controller = new AbortController();
     const customList = customPlaces[activeCity] || [];
     setLandmarks(customList);
 
@@ -1715,7 +1877,13 @@ function TripBuilderApp() {
       }
 
       try {
-        const allData = await googleSheets.getLandmarks(activeCity, email);
+        const requestUrl = `${googleSheets.url}?action=get_landmarks&city_id=${encodeURIComponent(activeCity)}&email=${encodeURIComponent(email)}`;
+        const response = await fetch(requestUrl, { signal: controller.signal });
+        if (!response.ok) throw new Error('LANDMARKS_UNAVAILABLE');
+        const payload = await response.json();
+        if (controller.signal.aborted) return;
+        if (payload.error || !Array.isArray(payload.data)) throw new Error('LANDMARKS_UNAVAILABLE');
+        const allData = payload.data;
 
         const mapItem = item => {
           const localList = customPlaces[activeCity] || [];
@@ -1776,15 +1944,15 @@ function TripBuilderApp() {
           } catch (_) {}
         }
       } catch (err) {
-        console.warn('Failed to load from Google Sheets:', err.message);
+        if (err.name !== 'AbortError') console.warn('Landmarks unavailable:', err.name);
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
     
     fetchLandmarks();
-
-  }, [activeCity, customPlaces, user]);
+    return () => controller.abort();
+  }, [activeCity, customPlaces, user, readOnly]);
 
   // Load weather when activeCity or dates change
   useEffect(() => {
@@ -1819,7 +1987,7 @@ function TripBuilderApp() {
         if (data && data[dateStr] !== undefined && data[dateStr] !== null) {
           newWeatherData[dateStr] = data[dateStr];
         } else {
-          newWeatherData[dateStr] = generateMockWeather(dateStr, coords.lat);
+          newWeatherData[dateStr] = { unavailable: true };
         }
       });
       
@@ -1835,6 +2003,10 @@ function TripBuilderApp() {
 
   // Save itinerary to LocalStorage or Cloud
   const saveItinData = async (newItin, newNDays, currentChecklist = checklist, currentBudget = budget) => {
+    if (readOnlyRef.current || planTransitionRef.current) return;
+    if (roomRef.current) {
+      return;
+    }
     try {
       const data = {
         itin: newItin,
@@ -1843,50 +2015,11 @@ function TripBuilderApp() {
         time: startTime,
         hotel: hotel,
         checklist: currentChecklist,
-        budget: currentBudget
+        budget: currentBudget,
+        bookings
       };
       localStorage.setItem('trip_builder_itin_v1', JSON.stringify(data));
     } catch (_) {}
-
-    // Group Room mode: sync directly to shared room
-    if (activeRoom) {
-      const roomCodeUpper = activeRoom.code.toUpperCase();
-      const roomPlanData = {
-        id: activeRoom.id || `plan_${roomCodeUpper}`,
-        name: activeRoom.name || `ทริปกลุ่ม ${roomCodeUpper}`,
-        city_id: activeCity,
-        itin: newItin,
-        n_days: newNDays,
-        start_date: startDate,
-        start_time: startTime,
-        hotel: hotel,
-        checklist: currentChecklist,
-        budget: currentBudget,
-        members: activeMembersList.length > 0 ? activeMembersList : [myNickname || 'Member'],
-        last_updated: Date.now(),
-        last_updated_by: myNickname || 'Member'
-      };
-
-      try {
-        localStorage.setItem(`tb_cache_room_${roomCodeUpper}`, JSON.stringify(roomPlanData));
-      } catch (_) {}
-
-      if (googleSheets) {
-        try {
-          await googleSheets.updateItinerary(roomPlanData);
-        } catch (err) {
-          console.warn('Failed to update group room itinerary in Google Sheets:', err.message);
-        }
-      } else {
-        try {
-          const rawRooms = localStorage.getItem('tb_mock_rooms') || '{}';
-          const mockRooms = JSON.parse(rawRooms);
-          mockRooms[roomCodeUpper] = roomPlanData;
-          localStorage.setItem('tb_mock_rooms', JSON.stringify(mockRooms));
-        } catch (_) {}
-      }
-      return;
-    }
 
     if (user && activePlanId && activePlanId !== 'guest') {
       if (!googleSheets) {
@@ -1900,7 +2033,8 @@ function TripBuilderApp() {
               time: startTime,
               hotel: hotel,
               checklist: currentChecklist,
-              budget: currentBudget
+              budget: currentBudget,
+              bookings
             };
           }
           return p;
@@ -1916,7 +2050,9 @@ function TripBuilderApp() {
             start_date: startDate,
             start_time: startTime,
             hotel: hotel,
-            checklist: currentChecklist
+            checklist: currentChecklist,
+            budget: currentBudget,
+            bookings
           });
           
           setPlansList(prev => {
@@ -1930,7 +2066,8 @@ function TripBuilderApp() {
                   time: startTime,
                   hotel: hotel,
                   checklist: currentChecklist,
-                  budget: currentBudget
+                  budget: currentBudget,
+                  bookings
                 };
               }
               return p;
@@ -1958,7 +2095,8 @@ function TripBuilderApp() {
               time: startTime,
               hotel: hotel,
               checklist: currentChecklist,
-              budget: currentBudget
+              budget: currentBudget,
+              bookings
             };
           }
           return p;
@@ -1971,20 +2109,26 @@ function TripBuilderApp() {
   };
 
   const hasMounted = useRef(false);
+  const persistCurrentPlan = useEffectEvent(() => saveItinData(itin, nDays, checklist, budget));
   useEffect(() => {
+    if (readOnly) return;
     if (!hasMounted.current) {
       hasMounted.current = true;
       return;
     }
     const timer = setTimeout(() => {
-      saveItinData(itin, nDays, checklist, budget);
+      persistCurrentPlan();
     }, 500);
     return () => clearTimeout(timer);
-  }, [itin, nDays, startDate, startTime, hotel, checklist, budget]);
+  }, [itin, nDays, startDate, startTime, hotel, checklist, budget, bookings, readOnly, includeRoomBookings]);
+
+  useEffect(() => {
+    if (!readOnly && roomRef.current) queueRoomSave(liveRoomPayloadRef.current);
+  }, [itin, nDays, startDate, startTime, hotel, activeCity, checklist, budget, bookings, includeRoomBookings, readOnly]);
 
   // Sync checklist state to localStorage based on active plan ID
   useEffect(() => {
-    if (activePlanId) {
+    if (activePlanId && !readOnly && !activeRoom) {
       if (lastActivePlanIdRef.current !== activePlanId) {
         lastActivePlanIdRef.current = activePlanId;
         return;
@@ -1994,17 +2138,17 @@ function TripBuilderApp() {
         localStorage.setItem(`trip_builder_checklist_${activePlanId}`, JSON.stringify(checklist));
       } catch (_) {}
     }
-  }, [activePlanId, checklist]);
+  }, [activePlanId, checklist, readOnly, activeRoom]);
 
   // Sync budget state to localStorage based on active plan ID
   useEffect(() => {
-    if (activePlanId) {
+    if (activePlanId && !readOnly && !activeRoom) {
       try {
         localStorage.setItem(`budget_${activePlanId}`, JSON.stringify(budget));
         localStorage.setItem(`trip_builder_budget_${activePlanId}`, JSON.stringify(budget));
       } catch (_) {}
     }
-  }, [activePlanId, budget]);
+  }, [activePlanId, budget, readOnly, activeRoom]);
 
   // Sync dates from start/end input
   const handleDateSync = (startVal, endVal) => {
@@ -2014,8 +2158,11 @@ function TripBuilderApp() {
         const de = parseDateSafe(endVal);
         if (ds && de && de >= ds) {
           const diffDays = Math.round((de - ds) / 864e5) + 1;
-          const days = Math.min(diffDays, 7);
+          const days = Math.min(diffDays, MAX_TRIP_DAYS);
           setNDays(days);
+          const cappedEnd = new Date(ds);
+          cappedEnd.setUTCDate(cappedEnd.getUTCDate() + days - 1);
+          setEndDate(cappedEnd.toISOString().split('T')[0]);
           adjustDays(days);
         }
       } catch (_) {}
@@ -2023,7 +2170,9 @@ function TripBuilderApp() {
   };
 
   const adjustDays = (days) => {
-    const newItin = { ...itin };
+    if (readOnlyRef.current) return;
+    days = clampInt(days, 1, MAX_TRIP_DAYS, 3);
+    const newItin = structuredClone(itin);
     // Add missing days
     for (let d = 1; d <= days; d++) {
       if (!newItin[d]) newItin[d] = [];
@@ -2032,18 +2181,19 @@ function TripBuilderApp() {
     Object.keys(newItin).forEach(d => {
       if (parseInt(d) > days) delete newItin[d];
     });
-    setItin(newItin);
-    saveItinData(newItin, days);
+    setItin(newItin, bookings);
   };
 
   // Add attraction to a specific day
   const addToDay = (place, day) => {
-    const currentItin = { ...itin };
+    if (readOnlyRef.current) return;
+    const currentItin = structuredClone(itin);
     if (!currentItin[day]) currentItin[day] = [];
     
-    const uniqueItinId = `${place.id}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const uniqueItinId = crypto.randomUUID();
     
     currentItin[day].push({
+      ...place,
       id: place.id,
       itinId: uniqueItinId,
       name: place.name,
@@ -2058,7 +2208,7 @@ function TripBuilderApp() {
       lng: place.lng
     });
     
-    setItin(currentItin);
+    commitItin(currentItin);
     setLastId(place.id);
     setLastDay(day);
     saveItinData(currentItin, nDays);
@@ -2067,7 +2217,8 @@ function TripBuilderApp() {
   };
 
   const removeItinItem = (day, idx) => {
-    const currentItin = { ...itin };
+    if (readOnlyRef.current) return;
+    const currentItin = structuredClone(itin);
     const removedItem = currentItin[day][idx];
     currentItin[day].splice(idx, 1);
     
@@ -2077,12 +2228,13 @@ function TripBuilderApp() {
       if (!allItems.length) setLastDay(null);
     }
     
-    setItin(currentItin);
+    commitItin(currentItin);
     saveItinData(currentItin, nDays);
   };
 
   const moveItinItem = (day, idx, direction) => {
-    const currentItin = { ...itin };
+    if (readOnlyRef.current) return;
+    const currentItin = structuredClone(itin);
     const arr = currentItin[day];
     const newIdx = idx + direction;
     if (newIdx < 0 || newIdx >= arr.length) return;
@@ -2092,13 +2244,14 @@ function TripBuilderApp() {
     arr[idx] = arr[newIdx];
     arr[newIdx] = temp;
     
-    setItin(currentItin);
+    commitItin(currentItin);
     saveItinData(currentItin, nDays);
   };
 
   const moveItinItemToDay = (fromDay, fromIdx, toDay) => {
+    if (readOnlyRef.current) return;
     if (parseInt(fromDay) === parseInt(toDay)) return;
-    const currentItin = { ...itin };
+    const currentItin = structuredClone(itin);
     if (!currentItin[fromDay] || !currentItin[fromDay][fromIdx]) return;
     if (!currentItin[toDay]) currentItin[toDay] = [];
 
@@ -2110,7 +2263,7 @@ function TripBuilderApp() {
     const [itemToMove] = currentItin[fromDay].splice(fromIdx, 1);
     currentItin[toDay].push(itemToMove);
 
-    setItin(currentItin);
+    commitItin(currentItin);
     setLastId(itemToMove.id);
     setLastDay(toDay);
     saveItinData(currentItin, nDays);
@@ -2120,10 +2273,10 @@ function TripBuilderApp() {
   };
 
   const clearAll = () => {
-    if (!confirm('ล้างแผนทั้งหมด?')) return;
+    if (readOnlyRef.current || !confirm(t('confirmClear'))) return;
     const cleared = {};
     for (let d = 1; d <= nDays; d++) cleared[d] = [];
-    setItin(cleared);
+    commitItin(cleared);
     setLastId(null);
     setLastDay(null);
     saveItinData(cleared, nDays);
@@ -2144,14 +2297,16 @@ function TripBuilderApp() {
 
   const handleDrop = (e, day) => {
     e.preventDefault();
+    if (readOnlyRef.current) return;
     const item = dragItem.current;
     if (!item) return;
 
-    const currentItin = { ...itin };
+    const currentItin = structuredClone(itin);
     
     if (dragFromDay.current === 'sidebar') {
-      const uniqueItinId = `${item.id}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const uniqueItinId = crypto.randomUUID();
       currentItin[day].push({
+        ...item,
         id: item.id,
         itinId: uniqueItinId,
         name: item.name,
@@ -2169,7 +2324,7 @@ function TripBuilderApp() {
       currentItin[day].push(item);
     }
 
-    setItin(currentItin);
+    commitItin(currentItin);
     setLastId(item.id);
     setLastDay(day);
     saveItinData(currentItin, nDays);
@@ -2351,7 +2506,7 @@ function TripBuilderApp() {
     setFAddr(addr);
     setFLat(lat);
     setFLng(lng);
-    toast('ดึง GPS จาก OpenStreetMap สำเร็จ!');
+    toast(t('osmGpsLoaded'));
   };
 
   // ─── GOOGLE MAPS LINK PARSER ────────────────────────────────────────
@@ -2796,13 +2951,13 @@ function TripBuilderApp() {
       setFCity(closestCity);
     }
 
-    toast('ดึงข้อมูลจาก Google Maps สำเร็จ!');
+    toast(t('gmapsLoaded'));
   };
 
   // ─── SAVE NEW CUSTOM PLACE ──────────────────────────────────────────
   const saveNewPlace = async () => {
     if (!fName.trim()) {
-      toast('กรุณากรอกชื่อสถานที่');
+      toast(t('placeNameRequired'));
       return;
     }
 
@@ -2877,7 +3032,7 @@ function TripBuilderApp() {
     setFPhotos([]);
     setAddModalOpen(false);
 
-    toast(`✅ เพิ่ม "${fName}" แล้ว`);
+    toast(t('placeAdded').replace('{name}', fName));
   };
 
   // ─── AI PLAN & SUGGEST ──────────────────────────────────────────────
@@ -2885,6 +3040,7 @@ function TripBuilderApp() {
     if (!aiSuggestQuery.trim()) return;
     setAiSuggestLoading(true);
     setAiSuggestResult(null);
+    setAiSuggestMock(false);
     try {
       const res = await fetch('/api/ai-suggest', {
         method: 'POST',
@@ -2894,11 +3050,13 @@ function TripBuilderApp() {
       const data = await res.json();
       if (res.ok) {
         setAiSuggestResult(data.places || []);
+        setAiSuggestMock(Boolean(data.mock));
+        if (data.mock) toast(t('aiMock'));
       } else {
-        toast('AI Suggestion Failed');
+        toast(t('aiFailed'));
       }
     } catch (_) {
-      toast('Network Error');
+      toast(t('networkError'));
     } finally {
       setAiSuggestLoading(false);
     }
@@ -2956,21 +3114,23 @@ function TripBuilderApp() {
     setCustomPlaces(updatedCustom);
     localStorage.setItem('trip_builder_custom_places_v1', JSON.stringify({ custom: updatedCustom }));
 
-    toast(`✅ เพิ่ม "${p.name}" แล้ว`);
+    toast(t('placeAdded').replace('{name}', p.name));
   };
 
   const handleAIPlan = async () => {
+    if (readOnlyRef.current) return;
     if (!aiHotel.trim()) {
-      toast('กรุณากรอกที่พัก/โรงแรม');
+      toast(t('hotelRequired'));
       return;
     }
     if (!aiStart) {
-      toast('กรุณาเลือกวันเดินทาง');
+      toast(t('dateRequired'));
       return;
     }
     
     setAiPlanLoading(true);
     setAiPlanResult(null);
+    setAiPlanMock(false);
     setAiPlanStatus('generating');
 
     // Sync input dates
@@ -2979,7 +3139,8 @@ function TripBuilderApp() {
       setEndDate(aiEnd);
       handleDateSync(aiStart, aiEnd);
     }
-    const daysCount = nDays;
+    const daysCount = daysBetween(aiStart, aiEnd, nDays);
+    setNDays(daysCount);
 
     try {
       const res = await fetch('/api/ai-plan', {
@@ -2996,6 +3157,8 @@ function TripBuilderApp() {
       });
       const data = await res.json();
       if (res.ok && data.itin) {
+        if (data.mock) toast(t('aiMock'));
+        setAiPlanMock(Boolean(data.mock));
         setAiPlanResult(data.itin);
         setAiPlanStatus('done');
       } else {
@@ -3009,20 +3172,20 @@ function TripBuilderApp() {
   };
 
   const applyAIPlan = () => {
-    if (!aiPlanResult) return;
+    if (!aiPlanResult || readOnlyRef.current) return;
     
     const newItin = {};
     for (let d = 1; d <= nDays; d++) {
       newItin[d] = aiPlanResult[d] || [];
     }
     
-    setItin(newItin);
+    commitItin(newItin);
     setHotel(aiHotel);
     saveItinData(newItin, nDays);
     setAiPlanModalOpen(false);
     setAiPlanResult(null);
     setAiPlanStatus('');
-    toast('ใส่แผน AI ในตารางแล้ว!');
+    toast(t('aiApplied'));
   };
 
   // ─── EXPORT & SHARE ─────────────────────────────────────────────────
@@ -3088,46 +3251,14 @@ function TripBuilderApp() {
   };
 
   const buildShareLink = () => {
-    const data = {
-      v: 1,
-      itin: {},
-      days: nDays,
-      start: startDate,
-      time: startTime,
-      hotel: hotel
-    };
-    for (let d = 1; d <= nDays; d++) {
-      const items = itin[d] || [];
-      data.itin[d] = items.map(p => ({
-        id: p.id,
-        name: p.name,
-        cat: p.cat,
-        dur: p.dur,
-        icon: p.icon,
-        city_id: p.city_id
-      }));
-    }
-    try {
-      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-      let url = window.location.href.split('?')[0] + '?trip=' + encoded;
-      if (checklist && checklist.length > 0) {
-        const chkEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(checklist))));
-        url += '&chk=' + chkEncoded;
-      }
-      if (budget && (budget.totalBudget > 0 || (budget.expenses && budget.expenses.length > 0))) {
-        const bgtEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(budget))));
-        url += '&bgt=' + bgtEncoded;
-      }
-      return url;
-    } catch (_) {
-      return window.location.href;
-    }
+    try { return shareUrl(window.location.href, { itin, nDays, start: startDate, time: startTime, hotel, city_id: activeCity, bookings }, includePrivateBookings); }
+    catch { return ''; }
   };
 
   const handleDownloadPDF = async () => {
     const textData = getFormattedItinerary();
     if (textData === 'ยังไม่มีสถานที่ในแผน') {
-      toast('ยังไม่มีสถานที่ในแผน');
+      toast(t('exportEmpty'));
       return;
     }
     try {
@@ -3145,9 +3276,9 @@ function TripBuilderApp() {
         a.download = `trip-itinerary-style${selectedStyle}.html`;
         a.click();
         URL.revokeObjectURL(url);
-        toast('ดาวน์โหลดสำเร็จ! เปิดในเบราว์เซอร์แล้ว Print เป็น PDF');
+        toast(t('exportDownloaded'));
       } else {
-        toast('ดาวน์โหลดไม่สำเร็จ');
+        toast(t('exportFailed'));
       }
     } catch (_) {
       // Fallback plain text download
@@ -3158,7 +3289,7 @@ function TripBuilderApp() {
       a.download = 'trip-itinerary.txt';
       a.click();
       URL.revokeObjectURL(url);
-      toast('ดาวน์โหลดเป็นไฟล์ข้อความเรียบร้อย');
+      toast(t('textDownloaded'));
     }
   };
 
@@ -3168,7 +3299,7 @@ function TripBuilderApp() {
         app: 'trip-builder',
         version: 1,
         exportedAt: new Date().toISOString(),
-        plans: plansList,
+        plans: activeRoom ? [{ id: `room_backup_${activeRoom.code}`, name: activeRoom.name, ...currentRoomPayload(), bookings }] : plansList.map(plan => plan.id === activePlanId ? { ...plan, itin, nDays, start: startDate, time: startTime, hotel, checklist, budget, bookings } : plan),
         customPlaces: customPlaces
       };
       const jsonString = JSON.stringify(backupData, null, 2);
@@ -3187,11 +3318,12 @@ function TripBuilderApp() {
   };
 
   const handleImportBackup = (event) => {
+    if (readOnlyRef.current || roomRef.current) return;
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const content = e.target.result;
         const data = JSON.parse(content);
@@ -3228,10 +3360,18 @@ function TripBuilderApp() {
           const existingIds = new Set(plansList.map(p => p.id));
           const newPlans = data.plans.map(p => {
             if (existingIds.has(p.id)) {
-              return { ...p, id: `plan_imported_${Date.now()}_${Math.random().toString(36).substr(2, 4)}` };
+              return normalizePlan({ ...p, id: `plan_imported_${crypto.randomUUID()}` });
             }
-            return p;
+            return normalizePlan(p);
           });
+          if (user && googleSheets) {
+            for (const importedPlan of newPlans) {
+              const response = await googleSheets.insertItinerary(user.email, cloudPlanPayload(importedPlan, getCountryOfCity(importedPlan.city_id) || activeCountry));
+              if (!response.success || !response.id) throw new Error('CLOUD_IMPORT_FAILED');
+              importedPlan.id = response.id;
+            }
+            if (readOnlyRef.current || roomRef.current) return;
+          }
           const mergedPlans = [...newPlans, ...plansList];
           setPlansList(mergedPlans);
           importedPlansCount = newPlans.length;
@@ -3239,8 +3379,9 @@ function TripBuilderApp() {
           // Switch to first imported plan
           const firstPlan = newPlans[0];
           setActivePlanId(firstPlan.id);
-          setItin(firstPlan.itin || { 1: [], 2: [], 3: [] });
+          setItin(firstPlan.itin || { 1: [], 2: [], 3: [] }, firstPlan.bookings);
           setChecklist(firstPlan.checklist || []);
+          setBudget(firstPlan.budget || DEFAULT_BUDGET);
           setNDays(firstPlan.nDays || 3);
           setStartDate(firstPlan.start || new Date().toISOString().split('T')[0]);
           setStartTime(firstPlan.time || '09:00');
@@ -3285,30 +3426,32 @@ function TripBuilderApp() {
 
   // Load from Share Link on startup
   useEffect(() => {
-    if (!tripParam) return;
+    if (!tripParam || !readOnly) return;
     try {
       // Replace any space characters (converted from '+' by URL parsers) back to '+'
       const cleanParam = tripParam.replace(/ /g, '+');
-      const data = JSON.parse(decodeURIComponent(escape(atob(cleanParam))));
-      if (data.days) setNDays(data.days);
+      const data = normalizePlan(JSON.parse(decodeURIComponent(escape(atob(cleanParam)))));
+      setNDays(data.nDays);
       if (data.start) setStartDate(data.start);
       if (data.time) setStartTime(data.time);
       if (data.hotel) setHotel(data.hotel);
       
       const loadedItin = {};
-      for (let d = 1; d <= (data.days || 3); d++) {
+      for (let d = 1; d <= data.nDays; d++) {
         loadedItin[d] = (data.itin && data.itin[d]) || [];
       }
-      setItin(loadedItin);
-      toast('โหลดแผนเดินทางจากลิงก์แบ่งปันสำเร็จ!');
+      setItin(loadedItin, data.bookings);
+      if (data.city_id) setActiveCity(data.city_id);
+      setActivePlanId(null);
+      toast(t('shareLoaded'));
     } catch (e) {
       console.warn('Share link decoding failed:', e);
     }
-  }, [tripParam]);
+  }, [tripParam, readOnly]);
 
   // Load checklist from Share Link on startup
   useEffect(() => {
-    if (!chkParam) return;
+    if (!chkParam || !readOnly) return;
     try {
       const cleanParam = chkParam.replace(/ /g, '+');
       const loadedChecklist = JSON.parse(decodeURIComponent(escape(atob(cleanParam))));
@@ -3318,11 +3461,11 @@ function TripBuilderApp() {
     } catch (e) {
       console.warn('Checklist share link decoding failed:', e);
     }
-  }, [chkParam]);
+  }, [chkParam, readOnly]);
 
   // Load budget from Share Link on startup
   useEffect(() => {
-    if (!bgtParam) return;
+    if (!bgtParam || !readOnly) return;
     try {
       const cleanParam = bgtParam.replace(/ /g, '+');
       const loadedBudget = JSON.parse(decodeURIComponent(escape(atob(cleanParam))));
@@ -3332,185 +3475,72 @@ function TripBuilderApp() {
     } catch (e) {
       console.warn('Budget share link decoding failed:', e);
     }
-  }, [bgtParam]);
+  }, [bgtParam, readOnly]);
 
   // ─── GROUP ROOM LOGIC & HANDLERS ──────────────────────────────────
-  const generateRoomCode = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 4; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+  const handleGroupModalOpen = (open) => {
+    setGroupModalOpen(open);
+    if (open || roomRef.current) return;
+    roomJoinAttemptRef.current++;
+    setIsRoomSyncing(false);
+    setIncludeRoomBookings(false);
+    if (typeof window !== 'undefined' && window.location.search.includes('room=')) {
+      window.history.replaceState({}, '', window.location.pathname);
     }
-    return `TRIP-${code}`;
+    loadPersonalPlans();
   };
 
   const handleCreateRoom = async () => {
-    if (!inputNickname.trim()) {
-      toast(activeLang === 'th' ? 'กรุณากรอกชื่อเล่นของคุณ' : 'Please enter your nickname');
-      return;
-    }
-    const code = (inputRoomCode.trim() || generateRoomCode()).toUpperCase();
-    const roomName = inputRoomName.trim() || (activeLang === 'th' ? `ทริปกลุ่ม ${code}` : `Group Trip ${code}`);
-    const nick = inputNickname.trim();
-
+    if (readOnlyRef.current || isRoomSyncing) return;
     setIsRoomSyncing(true);
-    const roomKey = `room:${code}`;
-    const planId = `plan_${code}_${Date.now()}`;
-
-    const roomPlanData = {
-      id: planId,
-      name: roomName,
-      city_id: activeCity,
-      itin: itin,
-      n_days: nDays,
-      start_date: startDate || new Date().toISOString().split('T')[0],
-      start_time: startTime || '09:00',
-      hotel: hotel || '',
-      checklist: checklist || [],
-      members: [nick],
-      host: nick,
-      last_updated: Date.now(),
-      last_updated_by: nick
-    };
-
     try {
-      if (googleSheets) {
-        await googleSheets.insertItinerary(roomKey, roomPlanData);
-      } else {
-        const rawRooms = localStorage.getItem('tb_mock_rooms') || '{}';
-        const mockRooms = JSON.parse(rawRooms);
-        mockRooms[code] = roomPlanData;
-        localStorage.setItem('tb_mock_rooms', JSON.stringify(mockRooms));
-      }
-
-      const roomObj = { code, name: roomName, id: planId, host: nick };
-      setActiveRoom(roomObj);
-      setMyNickname(nick);
-      setActiveMembersList([nick]);
-      localStorage.setItem('tb_active_room', JSON.stringify(roomObj));
-      localStorage.setItem('tb_my_nickname', nick);
-      localStorage.setItem(`tb_cache_room_${code}`, JSON.stringify(roomPlanData));
-
+      if (supabaseSetupRequired) throw new Error('ROOM_AUTH_SETUP');
+      const room = await roomStore.create(inputRoomName.trim() || t('itinerary'), currentRoomPayload(), inputNickname.trim());
+      try { createPrivateRoomBookingStore(localStorage).write(room.code, personalUserRef.current?.email || user?.email || 'guest', bookings); }
+      catch { console.warn('Private room bookings could not be saved'); toast(t('roomAccessError')); }
+      activateRoom(room, room.invite, inputNickname.trim());
       setGroupModalOpen(false);
-      toast(activeLang === 'th' ? `🎉 สร้างห้องกลุ่ม ${code} สำเร็จ!` : `🎉 Group room ${code} created!`);
+      toast(t('roomCreated'));
     } catch (err) {
-      console.error('Create room error:', err);
-      toast(activeLang === 'th' ? `สร้างห้องไม่สำเร็จ: ${err.message}` : `Failed to create room: ${err.message}`);
+      reportRoomError(err);
     } finally {
       setIsRoomSyncing(false);
     }
   };
 
-  const handleJoinRoom = async (codeToJoin, nicknameToUse) => {
+  const handleJoinRoom = async (codeToJoin, nicknameToUse, inviteToUse = inputRoomInvite) => {
+    if (readOnlyRef.current) return;
+    const attempt = ++roomJoinAttemptRef.current;
     const code = (codeToJoin || inputRoomCode).trim().toUpperCase();
     const nick = (nicknameToUse || inputNickname).trim();
-
-    if (!code) {
-      toast(activeLang === 'th' ? 'กรุณากรอกรหัสห้อง' : 'Please enter room code');
-      return;
-    }
-    if (!nick) {
-      toast(activeLang === 'th' ? 'กรุณากรอกชื่อเล่นของคุณ' : 'Please enter your nickname');
-      return;
-    }
-
     setIsRoomSyncing(true);
-    const roomKey = `room:${code}`;
-
     try {
-      let roomPlan = null;
-      if (googleSheets) {
-        const cloudPlans = await googleSheets.getItineraries(roomKey);
-        if (cloudPlans && cloudPlans.length > 0) {
-          roomPlan = cloudPlans[0];
-        }
-      } else {
-        const rawRooms = localStorage.getItem('tb_mock_rooms') || '{}';
-        const mockRooms = JSON.parse(rawRooms);
-        if (mockRooms[code]) {
-          roomPlan = mockRooms[code];
-        }
-      }
-
-      if (!roomPlan) {
-        toast(t('roomNotFound'));
-        setIsRoomSyncing(false);
-        return;
-      }
-
-      const existingMembers = Array.isArray(roomPlan.members) ? roomPlan.members : [];
-      const updatedMembers = existingMembers.includes(nick) ? existingMembers : [...existingMembers, nick];
-
-      let parsedItin = roomPlan.itin;
-      if (typeof parsedItin === 'string') {
-        try { parsedItin = JSON.parse(parsedItin); } catch (_) { parsedItin = {}; }
-      }
-      if (!parsedItin || typeof parsedItin !== 'object') parsedItin = { 1: [], 2: [], 3: [] };
-
-      let parsedChecklist = roomPlan.checklist;
-      if (typeof parsedChecklist === 'string') {
-        try { parsedChecklist = JSON.parse(parsedChecklist); } catch (_) { parsedChecklist = []; }
-      }
-      if (!Array.isArray(parsedChecklist)) parsedChecklist = [];
-
-      setItin(parsedItin);
-      setChecklist(parsedChecklist);
-      setNDays(roomPlan.n_days || roomPlan.nDays || 3);
-      setStartDate(roomPlan.start_date || roomPlan.start || '');
-      setStartTime(roomPlan.start_time || roomPlan.time || '09:00');
-      setHotel(roomPlan.hotel || '');
-      if (roomPlan.city_id) {
-        setActiveCity(roomPlan.city_id);
-        setActiveCountry(getCountryOfCity(roomPlan.city_id));
-      }
-
-      const roomObj = {
-        code,
-        name: roomPlan.name || `ทริปกลุ่ม ${code}`,
-        id: roomPlan.id || `plan_${code}`,
-        host: roomPlan.host || updatedMembers[0]
-      };
-      setActiveRoom(roomObj);
-      setMyNickname(nick);
-      setActiveMembersList(updatedMembers);
-
-      localStorage.setItem('tb_active_room', JSON.stringify(roomObj));
-      localStorage.setItem('tb_my_nickname', nick);
-
-      const updatedPlanData = {
-        ...roomPlan,
-        id: roomPlan.id || `plan_${code}`,
-        name: roomPlan.name || `ทริปกลุ่ม ${code}`,
-        city_id: roomPlan.city_id || activeCity,
-        itin: parsedItin,
-        checklist: parsedChecklist,
-        members: updatedMembers,
-        last_updated: Date.now(),
-        last_updated_by: nick
-      };
-      localStorage.setItem(`tb_cache_room_${code}`, JSON.stringify(updatedPlanData));
-
-      if (googleSheets) {
-        googleSheets.updateItinerary(updatedPlanData).catch(() => {});
-      } else {
-        const rawRooms = localStorage.getItem('tb_mock_rooms') || '{}';
-        const mockRooms = JSON.parse(rawRooms);
-        mockRooms[code] = updatedPlanData;
-        localStorage.setItem('tb_mock_rooms', JSON.stringify(mockRooms));
-      }
-
+      if (supabaseSetupRequired) throw new Error('ROOM_AUTH_SETUP');
+      const room = await roomStore.join(code, inviteToUse, nick);
+      if (attempt !== roomJoinAttemptRef.current) return;
+      activateRoom(room, inviteToUse, nick);
       setGroupModalOpen(false);
-      toast(activeLang === 'th' ? `🎉 เข้าร่วมห้อง ${code} เรียบร้อย!` : `🎉 Joined room ${code}!`);
+      toast(t('roomJoined'));
     } catch (err) {
-      console.error('Join room error:', err);
-      toast(activeLang === 'th' ? `ไม่สามารถเข้าร่วมห้องได้: ${err.message}` : `Failed to join room: ${err.message}`);
+      if (attempt !== roomJoinAttemptRef.current) return;
+      reportRoomError(err);
+      if (!roomRef.current) loadPersonalPlans();
     } finally {
-      setIsRoomSyncing(false);
+      if (attempt === roomJoinAttemptRef.current) setIsRoomSyncing(false);
     }
   };
 
   const handleLeaveRoom = () => {
     if (!confirm(t('confirmLeaveRoom'))) return;
+    planTransitionRef.current = true;
+    roomJoinAttemptRef.current++;
+    roomQueueRef.current?.dispose();
+    roomQueueRef.current = null;
+    roomSharedBookingsRef.current = EMPTY_BOOKINGS;
+    setSharedRoomBookings(EMPTY_BOOKINGS);
+    setIncludeRoomBookings(false);
+    roomRef.current = null;
+    roomRevisionRef.current++;
     setActiveRoom(null);
     setActiveMembersList([]);
     localStorage.removeItem('tb_active_room');
@@ -3520,103 +3550,65 @@ function TripBuilderApp() {
       window.history.replaceState({}, '', window.location.pathname);
     }
 
-    if (user) {
-      if (googleSheets) loadCloudPlans(user.email);
-      else loadLocalMockPlans(user.email);
-    } else {
-      loadGuestPlans();
-    }
+    loadPersonalPlans();
   };
 
   const syncRoomData = async (isManual = false) => {
-    if (!activeRoom) return;
+    const room = roomRef.current;
+    const queue = roomQueueRef.current;
+    if (!room || readOnlyRef.current || roomSyncRef.current || (!isManual && queue?.pending)) return;
+    if (roomConflictRef.current && !isManual) return;
+    if (isManual && (roomConflictRef.current || queue?.pending || stablePlanJson(liveRoomPayloadRef.current) !== roomSavedRef.current) && !confirm(t('roomReloadConflict'))) return;
+    roomSyncRef.current = true;
+    const revision = roomRevisionRef.current;
     if (isManual) setIsRoomSyncing(true);
-    const roomKey = `room:${activeRoom.code.toUpperCase()}`;
-
     try {
-      let freshPlan = null;
-      if (googleSheets) {
-        const cloudPlans = await googleSheets.getItineraries(roomKey);
-        if (cloudPlans && cloudPlans.length > 0) freshPlan = cloudPlans[0];
-      } else {
-        const rawRooms = localStorage.getItem('tb_mock_rooms') || '{}';
-        const mockRooms = JSON.parse(rawRooms);
-        if (mockRooms[activeRoom.code.toUpperCase()]) freshPlan = mockRooms[activeRoom.code.toUpperCase()];
+      if (isManual) await queue?.suspend();
+      if (roomRef.current !== room) return;
+      const fresh = await roomStore.get(room.code);
+      if (roomRef.current !== room || revision !== roomRevisionRef.current || queue?.pending) return;
+      if (!isManual && stablePlanJson(liveRoomPayloadRef.current) !== roomSavedRef.current) return;
+      if (isManual || (fresh.version > roomVersionRef.current && Date.parse(fresh.updated_at) >= roomTimestampRef.current)) {
+        applyRoomSnapshot(fresh);
+        roomConflictRef.current = false;
+        setRoomError('');
       }
-
-      if (freshPlan) {
-        let parsedItin = freshPlan.itin;
-        if (typeof parsedItin === 'string') {
-          try { parsedItin = JSON.parse(parsedItin); } catch (_) { parsedItin = {}; }
-        }
-        let parsedChecklist = freshPlan.checklist;
-        if (typeof parsedChecklist === 'string') {
-          try { parsedChecklist = JSON.parse(parsedChecklist); } catch (_) { parsedChecklist = []; }
-        }
-
-        const freshDays = freshPlan.n_days || freshPlan.nDays || nDays;
-        const freshHotel = freshPlan.hotel || '';
-        const currentCache = localStorage.getItem(`tb_cache_room_${activeRoom.code.toUpperCase()}`);
-        const freshStr = JSON.stringify({ itin: parsedItin, checklist: parsedChecklist, nDays: freshDays, hotel: freshHotel });
-
-        let isDifferent = true;
-        if (currentCache) {
-          try {
-            const c = JSON.parse(currentCache);
-            const cachedStr = JSON.stringify({ itin: c.itin, checklist: c.checklist, nDays: c.n_days || c.nDays, hotel: c.hotel });
-            if (cachedStr === freshStr) isDifferent = false;
-          } catch (_) {}
-        }
-
-        if (isDifferent) {
-          if (parsedItin) setItin(parsedItin);
-          if (Array.isArray(parsedChecklist)) setChecklist(parsedChecklist);
-          if (freshPlan.n_days || freshPlan.nDays) setNDays(freshDays);
-          if (freshPlan.start_date || freshPlan.start) setStartDate(freshPlan.start_date || freshPlan.start);
-          if (freshPlan.start_time || freshPlan.time) setStartTime(freshPlan.start_time || freshPlan.time);
-          if (freshPlan.hotel !== undefined) setHotel(freshHotel);
-          if (freshPlan.city_id && freshPlan.city_id !== activeCity) {
-            setActiveCity(freshPlan.city_id);
-            setActiveCountry(getCountryOfCity(freshPlan.city_id));
-          }
-          localStorage.setItem(`tb_cache_room_${activeRoom.code.toUpperCase()}`, JSON.stringify(freshPlan));
-        }
-
-        if (Array.isArray(freshPlan.members)) {
-          setActiveMembersList(freshPlan.members);
-        }
-
-        if (isManual) {
-          toast(t('syncSuccess'));
-        }
-      }
+      if (isManual) toast(t('syncSuccess'));
     } catch (err) {
-      if (isManual) toast(activeLang === 'th' ? `ซิงก์ไม่สำเร็จ: ${err.message}` : `Sync failed: ${err.message}`);
+      if (roomRef.current === room) reportRoomError(err);
+      else console.warn('Room refresh failed after leaving the room');
     } finally {
+      roomSyncRef.current = false;
+      if (roomRef.current === room && roomQueueRef.current === queue && !roomConflictRef.current) {
+        if (isManual) queue?.reset(JSON.parse(roomSavedRef.current));
+        queue?.enqueue(liveRoomPayloadRef.current);
+      }
       if (isManual) setIsRoomSyncing(false);
     }
   };
 
   const copyRoomInviteLink = () => {
     if (!activeRoom) return;
-    const url = window.location.origin + window.location.pathname + `?room=${encodeURIComponent(activeRoom.code)}`;
-    navigator.clipboard.writeText(url);
-    toast(t('roomCopiedLink'));
+    const url = window.location.origin + window.location.pathname + `?room=${encodeURIComponent(activeRoom.code)}#invite=${activeRoom.invite}`;
+    navigator.clipboard.writeText(url).then(() => toast(t('roomCopiedLink'))).catch(() => toast(t('copyFailed')));
   };
 
+  const refreshRoomFromEffect = useEffectEvent(() => syncRoomData(false));
   // Group Room background auto-sync (every 25 seconds)
   useEffect(() => {
-    if (!activeRoom) return;
+    if (!activeRoom || readOnly) return;
+    const unsubscribe = roomStore.subscribe(activeRoom.code, () => refreshRoomFromEffect());
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        syncRoomData(false);
+        refreshRoomFromEffect();
       }
     }, 25000);
-    return () => clearInterval(interval);
-  }, [activeRoom]);
+    return () => { clearInterval(interval); unsubscribe(); };
+  }, [activeRoom, readOnly]);
 
   // Handle ?room=CODE param or restore activeRoom
   useEffect(() => {
+    if (readOnly || copiedShare) return;
     try {
       const savedNick = localStorage.getItem('tb_my_nickname');
       if (savedNick) {
@@ -3626,36 +3618,30 @@ function TripBuilderApp() {
 
       if (roomParam) {
         const code = roomParam.trim().toUpperCase();
+        const invite = new URLSearchParams(window.location.hash.slice(1)).get('invite') || '';
+        setInputRoomInvite(invite);
         setInputRoomCode(code);
         setGroupModalTab('join');
-        if (savedNick) {
-          handleJoinRoom(code, savedNick);
-        } else {
-          setGroupModalOpen(true);
-        }
+        setGroupModalOpen(true);
         return;
       }
 
       const savedRoom = localStorage.getItem('tb_active_room');
       if (savedRoom) {
         const parsedRoom = JSON.parse(savedRoom);
-        setActiveRoom(parsedRoom);
-        const cached = localStorage.getItem(`tb_cache_room_${parsedRoom.code}`);
-        if (cached) {
-          try {
-            const d = JSON.parse(cached);
-            if (d.itin) setItin(d.itin);
-            if (d.checklist) setChecklist(d.checklist);
-            if (d.n_days || d.nDays) setNDays(d.n_days || d.nDays);
-            if (d.start_date || d.start) setStartDate(d.start_date || d.start);
-            if (d.start_time || d.time) setStartTime(d.start_time || d.time);
-            if (d.hotel) setHotel(d.hotel);
-            if (d.members) setActiveMembersList(d.members);
-          } catch (_) {}
+        if (parsedRoom.invite) {
+          handleJoinRoom(parsedRoom.code, savedNick || 'Member', parsedRoom.invite);
+        } else {
+          setRoomError('roomLegacy');
+          setGroupModalOpen(true);
+          loadPersonalPlans();
         }
       }
-    } catch (_) {}
-  }, [roomParam]);
+    } catch {
+      console.warn('Saved room could not be restored');
+      loadPersonalPlans();
+    }
+  }, [roomParam, readOnly, copiedShare]);
 
   const handleSetChecklistAssignee = (itemId, assigneeName) => {
     const updatedChecklist = checklist.map(item => {
@@ -3753,6 +3739,8 @@ function TripBuilderApp() {
 
   const cityColor = getCityObj(activeCity)?.color || '#1D9E75';
 
+  if (readOnly) return <SharedPlanView itin={itin} nDays={nDays} startDate={startDate} startTime={startTime} hotel={hotel} activeCity={activeCity} activeLang={activeLang} setActiveLang={setActiveLang} bookings={bookings} onCopy={copySharedPlan} t={t} version={APP_VERSION} toastMessage={toastMessage} />;
+
   return (
     <>
       {isOffline && (
@@ -3818,6 +3806,8 @@ function TripBuilderApp() {
               <strong>{activeRoom.code}</strong>
             </div>
             <span className="room-title-text">{activeRoom.name}</span>
+            <span>{t(roomStore.mode === 'local-mock' ? 'roomMock' : 'roomSecure')}</span>
+            {roomError && <span role="alert">{t(roomError)}</span>}
             <div className="room-members-avatars">
               {activeMembersList.map((m, idx) => (
                 <span key={idx} className={`room-member-tag ${m === myNickname ? 'is-me' : ''}`} title={m}>
@@ -4181,6 +4171,8 @@ function TripBuilderApp() {
           <div className="main-head">
             <div className="main-title">{t('itinerary')}</div>
             <div style={{ display: 'flex', gap: '6px' }}>
+              <button type="button" className="btn btn-ghost btn-sm" title={t('undo')} aria-label={t('undo')} disabled={!historyCounts.past} onClick={() => changeHistory('undo')}>↶</button>
+              <button type="button" className="btn btn-ghost btn-sm" title={t('redo')} aria-label={t('redo')} disabled={!historyCounts.future} onClick={() => changeHistory('redo')}>↷</button>
               <button className="btn btn-ghost btn-sm" onClick={clearAll}>{t('clear')}</button>
               <button className="btn btn-primary btn-sm" onClick={() => setExportModalOpen(true)}>{t('export')}</button>
             </div>
@@ -4247,13 +4239,7 @@ function TripBuilderApp() {
                   adjustDays(val);
                 }}
               >
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
+                {Array.from({ length: MAX_TRIP_DAYS }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}
               </select>
             </div>
             <button className="ai-plan-btn" onClick={() => {
@@ -4336,6 +4322,7 @@ function TripBuilderApp() {
                             const dateStr = dObj.toISOString().split('T')[0];
                             const weather = weatherData[dateStr];
                             if (!weather) return null;
+                            if (weather.unavailable) return <span className="day-info">{t('weatherUnavailable')}</span>;
                             const codeInfo = WEATHER_CODES[weather.code] || { label: { th: 'ไม่ระบุ', en: 'Unknown' }, emoji: '❓' };
                             const label = codeInfo.label[activeLang] || codeInfo.label.th;
                             return (
@@ -4585,7 +4572,7 @@ function TripBuilderApp() {
                               >
                                 <div className="it-cover-strip">
                                   <OptimizedImage
-                                    src={getCoverImage(actualLandmark)}
+                                    src={item.photoUrl || getCoverImage(actualLandmark)}
                                     alt={(actualLandmark.names && actualLandmark.names[activeLang]) || actualLandmark.name || ''}
                                     width={300}
                                     fallbackSrc={getCityFallbackImage(actualLandmark)}
@@ -4672,7 +4659,8 @@ function TripBuilderApp() {
                                         type="button"
                                         className="xbtn"
                                         onClick={() => removeItinItem(day, idx)}
-                                        title={activeLang === 'th' ? 'ลบออกจากแผน' : 'Remove place'}
+                                        title={t('removePlace')}
+                                        aria-label={`${t('removePlace')}: ${item.names?.[activeLang] || item.name}`}
                                       >
                                         ✕
                                       </button>
@@ -4691,6 +4679,24 @@ function TripBuilderApp() {
                                       ⏱ {item.dur}m
                                     </button>
                                   </div>
+                                  <details>
+                                    <summary>{t('stopDetails')}</summary>
+                                    <form onSubmit={(event) => {
+                                      event.preventDefault();
+                                      const fields = new FormData(event.currentTarget);
+                                      try {
+                                        const details = validateStopDetails(fields.get('note'), fields.get('photoUrl'));
+                                        const next = structuredClone(itin);
+                                        next[day][idx] = { ...next[day][idx], ...details };
+                                        commitItin(next);
+                                        toast(t('detailsSaved'));
+                                      } catch (error) { toast(t(error.message === 'NOTE_TOO_LONG' ? 'noteTooLong' : 'photoHttps')); }
+                                    }} key={`${item.itinId || idx}-${item.note || ''}-${item.photoUrl || ''}`}>
+                                      <label>{t('stopNote')}<textarea className="form-input" name="note" maxLength={1000} defaultValue={item.note || ''} /></label>
+                                      <label>{t('stopPhoto')}<input className="form-input" name="photoUrl" type="url" maxLength={2048} defaultValue={item.photoUrl || ''} /></label>
+                                      <button type="submit" className="btn btn-ghost btn-sm">{t('saveDetails')}</button>
+                                    </form>
+                                  </details>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                                     <span className="it-chip" style={{ background: cityObj.light, color: cityObj.dark }}>
                                       {cityObj.emoji} {getCityName(cityObj, activeLang)}
@@ -4766,6 +4772,7 @@ function TripBuilderApp() {
         {/* ─── RECOMMENDATIONS PANEL ─── */}
         <aside className={`nearby ${mobileTab === 'nearby' ? 'mob-active' : ''} ${rightDrawerOpen ? 'drawer-open' : ''}`}>
           <div className="sidebar-tabs">
+            <button type="button" className={`sidebar-tab-btn ${activeRightTab === 'tools' ? 'active' : ''}`} onClick={() => setActiveRightTab('tools')}>{t('tools')}</button>
             <button 
               className={`sidebar-tab-btn ${activeRightTab === 'nearby' ? 'active' : ''}`}
               onClick={() => setActiveRightTab('nearby')}
@@ -4848,7 +4855,7 @@ function TripBuilderApp() {
                   )}
                 </div>
               )
-            ) : (
+            ) : activeRightTab === 'checklist' ? (
               <div>
                 {/* Form to add new item */}
                 <form onSubmit={(e) => { e.preventDefault(); handleAddChecklistItem(newChecklistItem, newChecklistCat); }} className="checklist-add-form">
@@ -4971,7 +4978,13 @@ function TripBuilderApp() {
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
+
+            {activeRightTab === 'tools' && <>
+              {activeRoom && (sharedRoomBookings.flights.length > 0 || sharedRoomBookings.hotels.length > 0) && <BookingsPanel bookings={sharedRoomBookings} t={t} readOnly />}
+              <BookingsPanel key={activeRoom?.code || activePlanId} bookings={bookings} onChange={updateBookings} t={t} />
+              {activeRoom && <label style={{ display: 'flex', gap: '8px', marginTop: '16px' }}><input type="checkbox" checked={includeRoomBookings} onChange={event => setIncludeRoomBookings(event.target.checked)} />{t('privateBookingsOptIn')}</label>}
+            </>}
 
             {activeRightTab === 'budget' && (
               <BudgetTab
@@ -4994,7 +5007,7 @@ function TripBuilderApp() {
       </div>
 
       {/* ─── MOBILE BOTTOM NAV ──────────────────────────────────────── */}
-      <nav className="mob-nav" aria-label={activeLang === 'th' ? 'เมนูหลัก' : 'Main navigation'}>
+      <GlassSurface component="nav" variant="dock" className="mob-nav" aria-label={activeLang === 'th' ? 'เมนูหลัก' : 'Main navigation'}>
         <button className={`mob-nav-btn ${mobileTab === 'plan' ? 'active' : ''}`} onClick={() => setMobileTab('plan')} aria-current={mobileTab === 'plan' ? 'page' : undefined}>
           <span className="nav-icon">🗓</span>
           <span>{t('mobPlan')}</span>
@@ -5015,14 +5028,10 @@ function TripBuilderApp() {
           <span className="nav-icon">✈️</span>
           <span>{activeLang === 'th' ? 'เที่ยวจริง' : 'Travel'}</span>
         </button>
-        <button className="mob-nav-btn" onClick={() => setExportModalOpen(true)}>
-          <span className="nav-icon">📤</span>
-          <span>{t('mobExport')}</span>
-        </button>
-      </nav>
+      </GlassSurface>
 
       {/* ─── TOAST NOTIFICATION ─────────────────────────────────────── */}
-      <div className={`toast ${toastMessage ? 'show' : ''}`}>{toastMessage}</div>
+      <div className={`toast ${toastMessage ? 'show' : ''}`} role="status" aria-live="polite" aria-atomic="true">{toastMessage}</div>
 
       {/* ─── DETAIL MODAL ───────────────────────────────────────────── */}
       <DetailModal
@@ -5113,6 +5122,7 @@ function TripBuilderApp() {
         handleAISuggest={handleAISuggest}
         aiSuggestLoading={aiSuggestLoading}
         aiSuggestResult={aiSuggestResult}
+        aiSuggestMock={aiSuggestMock}
         addAIPlace={addAIPlace}
         gmapsUrl={gmapsUrl}
         setGmapsUrl={setGmapsUrl}
@@ -5142,6 +5152,8 @@ function TripBuilderApp() {
         selectedStyle={selectedStyle}
         setSelectedStyle={setSelectedStyle}
         buildShareLink={buildShareLink}
+        includePrivateBookings={includePrivateBookings}
+        setIncludePrivateBookings={setIncludePrivateBookings}
         shareGmapsRoute={shareGmapsRoute}
         toast={toast}
         nDays={nDays}
@@ -5170,6 +5182,7 @@ function TripBuilderApp() {
         aiPlanStatus={aiPlanStatus}
         aiPlanLoading={aiPlanLoading}
         aiPlanResult={aiPlanResult}
+        aiPlanMock={aiPlanMock}
         handleAIPlan={handleAIPlan}
         applyAIPlan={applyAIPlan}
       />
@@ -5209,7 +5222,7 @@ function TripBuilderApp() {
       {/* ─── GROUP COLLABORATION MODAL ─────────────────────────────── */}
       <GroupCollabModal
         groupModalOpen={groupModalOpen}
-        setGroupModalOpen={setGroupModalOpen}
+        setGroupModalOpen={handleGroupModalOpen}
         groupModalTab={groupModalTab}
         setGroupModalTab={setGroupModalTab}
         inputNickname={inputNickname}
@@ -5219,6 +5232,12 @@ function TripBuilderApp() {
         inputRoomCode={inputRoomCode}
         setInputRoomCode={setInputRoomCode}
         isRoomSyncing={isRoomSyncing}
+        inputRoomInvite={inputRoomInvite}
+        setInputRoomInvite={setInputRoomInvite}
+        roomError={roomError}
+        roomMode={supabaseSetupRequired ? 'setup-required' : roomStore.mode}
+        includePrivateBookings={includeRoomBookings}
+        setIncludePrivateBookings={setIncludeRoomBookings}
         handleCreateRoom={handleCreateRoom}
         handleJoinRoom={handleJoinRoom}
         t={t}

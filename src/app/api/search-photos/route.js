@@ -1,9 +1,31 @@
 import { NextResponse } from 'next/server';
 import { fetchGoogleMapsPhotos } from '@/lib/googleMapsPhoto';
 import { isGooglePlaceId } from '@/lib/googleMapsIdentity';
-import { getSmartCategoryCover, getBrandPlacePhotos, BRAND_PLACE_IMAGES } from '@/app/constants/translations';
+import { getSmartCategoryCover, getBrandPlacePhotos } from '@/app/constants/translations';
+import { readJsonRequest } from '../../../lib/aiValidation.js';
 
 const photoCache = new Map();
+const MAX_CACHE_ENTRIES = 500;
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const MAX_QUERY_LENGTH = 200;
+const MAX_CONTEXT_LENGTH = 100;
+
+function prunePhotoCache() {
+  const now = Date.now();
+  for (const [key, entry] of photoCache) if (entry.expiresAt <= now) photoCache.delete(key);
+  while (photoCache.size > MAX_CACHE_ENTRIES) photoCache.delete(photoCache.keys().next().value);
+}
+
+function cachePhotos(key, value) {
+  photoCache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+  prunePhotoCache();
+}
+
+function validSearch(query, city, category, latitude, longitude) {
+  if (typeof query !== 'string' || !query.trim() || query.length > MAX_QUERY_LENGTH) return false;
+  if ([city, category].some((value) => typeof value !== 'string' || value.length > MAX_CONTEXT_LENGTH)) return false;
+  return [[latitude, 90], [longitude, 180]].every(([value, maximum]) => value == null || value === '' || ((typeof value === 'string' || typeof value === 'number') && String(value).length <= 24 && Number.isFinite(Number(value)) && Math.abs(Number(value)) <= maximum));
+}
 
 function extractEnglishQuery(query) {
   const match = query.match(/\(([^)]+)\)/);
@@ -155,9 +177,10 @@ async function searchYahooJapan(query) {
 }
 
 async function resolvePlacePhotos(query, city = '', cat = '', lat = null, lng = null, placeId = null, googleOnly = false) {
+  prunePhotoCache();
   const cacheKey = `${query}_${city}_${cat}_${lat}_${lng}_${placeId}_${googleOnly}`.toLowerCase().trim();
   if (photoCache.has(cacheKey)) {
-    return photoCache.get(cacheKey);
+    return photoCache.get(cacheKey).value;
   }
 
   const photos = [];
@@ -166,7 +189,7 @@ async function resolvePlacePhotos(query, city = '', cat = '', lat = null, lng = 
   const googlePhotos = await fetchGoogleMapsPhotos(query, lat, lng, placeId);
   if (googlePhotos.length > 0) {
     const googleResult = { photos: googlePhotos, cover_image: googlePhotos[0], source: 'google' };
-    photoCache.set(cacheKey, googleResult);
+    cachePhotos(cacheKey, googleResult);
     return googleResult;
   }
   if (googleOnly) return { photos: [], cover_image: null, source: null };
@@ -179,7 +202,7 @@ async function resolvePlacePhotos(query, city = '', cat = '', lat = null, lng = 
       photos: brandPhotos,
       cover_image: brandPhotos[0]
     };
-    photoCache.set(cacheKey, result);
+    cachePhotos(cacheKey, result);
     return result;
   }
 
@@ -219,11 +242,7 @@ async function resolvePlacePhotos(query, city = '', cat = '', lat = null, lng = 
     cover_image: uniquePhotos[0] || brandCover || null
   };
 
-  if (photoCache.size > 500) {
-    const firstKey = photoCache.keys().next().value;
-    photoCache.delete(firstKey);
-  }
-  photoCache.set(cacheKey, result);
+  cachePhotos(cacheKey, result);
 
   return result;
 }
@@ -236,7 +255,7 @@ export async function GET(req) {
     const cat = searchParams.get('cat') || '';
     const placeId = searchParams.get('placeId');
 
-    if (!q) {
+    if (!validSearch(q, city, cat, searchParams.get('lat'), searchParams.get('lng'))) {
       return NextResponse.json({ error: 'q is required' }, { status: 400 });
     }
     if (placeId && !isGooglePlaceId(placeId)) {
@@ -246,19 +265,21 @@ export async function GET(req) {
     const data = await resolvePlacePhotos(q, city, cat, searchParams.get('lat'), searchParams.get('lng'), placeId, searchParams.get('googleOnly') === 'true');
     return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Unable to search photos' }, { status: 400 });
+  } finally {
+    prunePhotoCache();
   }
 }
 
 export async function POST(req) {
   try {
-    const body = await req.json();
+    const body = await readJsonRequest(req);
     const q = body.query || body.q || '';
     const city = body.city || '';
     const cat = body.cat || '';
     const placeId = body.placeId || null;
 
-    if (!q) {
+    if (!validSearch(q, city, cat, body.lat, body.lng)) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
     if (placeId && !isGooglePlaceId(placeId)) {
@@ -268,6 +289,8 @@ export async function POST(req) {
     const data = await resolvePlacePhotos(q, city, cat, body.lat, body.lng, placeId, body.googleOnly === true);
     return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Unable to search photos' }, { status: 400 });
+  } finally {
+    prunePhotoCache();
   }
 }

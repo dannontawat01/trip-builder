@@ -10,6 +10,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Project Overview
 trip-builder เป็น Trip Planning Web App ที่ช่วยสร้าง itinerary ท่องเที่ยว ฟีเจอร์หลัก: วางแผนวัน/สถานที่, แผนที่ Leaflet, AI แนะนำสถานที่ (Gemini), export Google Sheets, real-time collaboration (Supabase), multi-language UI
 
+# Commands
+- `npm run dev` — dev server (http://localhost:3000)
+- `npm run build` — production build (ใช้ verify ก่อนประกาศงานเสร็จ)
+- `npm run lint` — ESLint (Next Core Web Vitals; ปิด react-hooks `set-state-in-effect`, `immutability`, `purity`)
+- `node --test tests/` — unit tests (`node:test` + `node:assert/strict`, ไม่มี `npm test`) — ทดสอบได้เฉพาะ pure modules ใน `src/lib/`
+
 # Tech Stack
 - **Framework:** Next.js 16.2.10 (App Router) + React 19 — อ่าน `node_modules/next/dist/docs/` ก่อนเขียนโค้ดใดๆ
 - **Styling:** Tailwind CSS v4 (PostCSS) — syntax v4 ต่างจาก v3 มาก (ใช้ `@import "tailwindcss"` แทน `@tailwind base/components/utilities`)
@@ -31,9 +37,17 @@ trip-builder เป็น Trip Planning Web App ที่ช่วยสร้�
 # Coding Conventions
 - ใช้ JavaScript (ไม่ใช่ TypeScript) — `jsconfig.json` เปิด path alias `@/` → `src/`
 - Modal ทุกตัว lazy-load ด้วย `next/dynamic` + `{ ssr: false }`
-- API key สำหรับ Gemini: `process.env.GEMINI_API_KEY` (server-side); Google Script URL: `process.env.NEXT_PUBLIC_GOOGLE_SCRIPT_URL` (client-side)
+- Env vars (`.env.local`, ห้าม commit/print ค่า): `GEMINI_API_KEY` (server-only), `NEXT_PUBLIC_GOOGLE_SCRIPT_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_CARTO_API_KEY`
+- `src/lib/supabase.js` export `null` เมื่อไม่มี Supabase env — ต้อง null-check ก่อนใช้เสมอ; AI routes fallback เป็น mock data เมื่อไม่มี `GEMINI_API_KEY`
+- Logic ใหม่ที่ test ได้ให้แยกเป็น pure function ใน `src/lib/` แล้วเขียน test ใน `tests/*.test.mjs`
+- i18n: เพิ่ม string ทั้ง `th` และ `en` ใน `translations.js`; theme มีแค่ `clean`/`dark` (`src/lib/theme.js`)
+- `public/sw.js` มี cache name แยกจาก `APP_VERSION` — bump `CACHE_NAME` เมื่อเปลี่ยน asset/caching behavior เพื่อล้าง cache เก่า
 - ห้ามเพิ่ม dependency โดยไม่ได้ถามผู้ใช้ก่อน
 - TypeScript errors ถูก ignore ใน build (`ignoreBuildErrors: true` ใน `next.config.mjs`)
+
+# Docs
+- Design specs: [docs/superpowers/specs/](docs/superpowers/specs/) — implementation plans: [docs/superpowers/plans/](docs/superpowers/plans/) — อ่าน spec/plan ที่เกี่ยวข้องก่อนแก้ feature เดิม
+- DB schema: [schema.sql](schema.sql)
 
 # Skills Available (ใน .agents/skills/)
 ก่อนทำงานใดๆ ให้อ่าน `using-superpowers` skill ก่อน จากนั้นเลือก skill ที่เหมาะสม:

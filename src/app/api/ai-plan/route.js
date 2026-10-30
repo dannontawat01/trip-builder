@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { readJsonRequest, validateAiInput, parseAiOutput } from '../../../lib/aiValidation.js';
+import { checkAiRateLimit, getClientIp, rateLimitResponse } from '../../../lib/rateLimit.js';
 
 // Simple helper to get mock attractions in case AI API key is not set
 const getMockPlaces = (cityId) => {
@@ -33,17 +35,19 @@ const getMockPlaces = (cityId) => {
 };
 
 export async function POST(req) {
+  const rate = checkAiRateLimit(getClientIp(req.headers));
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   let hotel = '', city_id = 'bkk', country_id = 'th', start_date = '', num_days = 3, interests = [];
   try {
-    const body = await req.json();
+    const body = validateAiInput(await readJsonRequest(req));
     hotel = body.hotel || '';
     city_id = body.city_id || 'bkk';
     country_id = body.country_id || 'th';
     start_date = body.start_date || '';
-    num_days = parseInt(body.num_days) || 3;
+    num_days = body.num_days;
     interests = body.interests || [];
-  } catch (e) {
-    // ignore parse error
+  } catch {
+    return Response.json({ error: 'Invalid request' }, { status: 400 });
   }
 
   // Setup fallback mock plan
@@ -74,7 +78,7 @@ export async function POST(req) {
         mockPlaceIdx++;
       }
     }
-    return { itin };
+    return { itin, mock: true };
   };
 
   try {
@@ -126,15 +130,15 @@ Return ONLY valid JSON. No markdown backticks, no wrap text.`;
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        responseMimeType: 'application/json'
+        responseMimeType: 'application/json', maxOutputTokens: 16384
       }
-    });
+    }, { timeout: 20000 });
 
     let jsonText = result.response.text().trim();
     if (jsonText.startsWith('```')) {
       jsonText = jsonText.replace(/^```(?:json)?/, '').replace(/```$/, '').trim();
     }
-    const parsedData = JSON.parse(jsonText);
+    const parsedData = parseAiOutput(jsonText, 'plan', num_days);
 
     return new Response(JSON.stringify(parsedData), {
       status: 200,
@@ -142,7 +146,7 @@ Return ONLY valid JSON. No markdown backticks, no wrap text.`;
     });
 
   } catch (error) {
-    console.error('API Error in ai-plan:', error);
+    console.error('API Error in ai-plan:', error.name);
     return new Response(JSON.stringify(generateMockPlan()), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }

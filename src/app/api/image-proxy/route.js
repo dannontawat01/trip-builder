@@ -1,22 +1,12 @@
 import { NextResponse } from 'next/server';
+import { safeFetch } from '../../../lib/safeFetch.js';
+import { isHttpUrl, isImageCdnHost } from '../../../lib/urlSafety.js';
 
-// Private IP checks to prevent SSRF
-function isPrivateUrl(urlStr) {
-  try {
-    const parsed = new URL(urlStr);
-    const host = parsed.hostname.toLowerCase();
-    
-    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return true;
-    if (host === 'metadata.google.internal') return true;
-    if (host.startsWith('10.') || host.startsWith('192.168.') || host.startsWith('169.254.')) return true;
-    if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)) return true;
-    if (!['http:', 'https:'].includes(parsed.protocol)) return true;
-    
-    return false;
-  } catch {
-    return true;
-  }
-}
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const IMAGE_TIMEOUT_MS = 8000;
+const MAX_IMAGE_PIXELS = 40_000_000;
+const RASTER_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);
+const RASTER_FORMATS = new Set(['jpeg', 'png', 'webp', 'gif', 'avif', 'heif']);
 
 export async function GET(req) {
   try {
@@ -27,7 +17,7 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
     }
 
-    if (isPrivateUrl(targetUrl)) {
+    if (!isHttpUrl(targetUrl)) {
       return NextResponse.json({ error: 'Invalid or restricted URL' }, { status: 403 });
     }
 
@@ -39,90 +29,60 @@ export async function GET(req) {
 
     // Fast redirect for Known Edge CDNs that already support on-the-fly resizing
     const parsed = new URL(targetUrl);
-    if (parsed.hostname.includes('googleusercontent.com')) {
+    let sourceUrl = targetUrl;
+    if (isImageCdnHost(parsed.hostname, 'googleusercontent.com')) {
       const baseUrl = targetUrl.replace(/=[ws]\d+.*$/, '');
-      const cdnUrl = `${baseUrl}=w${width}-c`;
-      return NextResponse.redirect(cdnUrl, 307);
+      sourceUrl = `${baseUrl}=w${width}-c`;
     }
 
-    if (parsed.hostname.includes('images.unsplash.com')) {
+    if (parsed.hostname === 'images.unsplash.com') {
       parsed.searchParams.set('auto', 'format');
       parsed.searchParams.set('fit', 'crop');
       parsed.searchParams.set('w', String(width));
       parsed.searchParams.set('q', String(quality));
-      return NextResponse.redirect(parsed.toString(), 307);
+      sourceUrl = parsed.toString();
     }
 
     // Fetch remote image
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    const remoteRes = await fetch(targetUrl, {
-      signal: controller.signal,
+    const { response: remoteRes } = await safeFetch(sourceUrl, {
+      maxBytes: MAX_IMAGE_BYTES,
+      timeoutMs: IMAGE_TIMEOUT_MS,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+        'Accept': 'image/avif,image/webp,image/png,image/jpeg,image/gif'
       }
     });
-    clearTimeout(timeout);
 
     if (!remoteRes.ok) {
-      return NextResponse.json({ error: 'Failed to fetch source image' }, { status: remoteRes.status });
+      return NextResponse.json({ error: 'Failed to fetch source image' }, { status: 502 });
     }
 
-    const contentType = remoteRes.headers.get('content-type') || '';
+    const contentType = (remoteRes.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!RASTER_TYPES.has(contentType)) return NextResponse.json({ error: 'Unsupported image type' }, { status: 415 });
     const arrayBuffer = await remoteRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // If SVG or very small image, stream as-is with cache
-    if (contentType.includes('svg') || buffer.length < 1024) {
-      return new Response(buffer, {
-        headers: {
-          'Content-Type': contentType || 'image/svg+xml',
-          'Cache-Control': 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400'
-        }
-      });
-    }
-
-    // Attempt processing & compressing with sharp (dynamically loaded)
-    let sharpInstance = null;
-    try {
-      const sharpModule = await import('sharp');
-      sharpInstance = sharpModule.default || sharpModule;
-    } catch (_) {
-      // sharp is not available on this serverless environment
-    }
-
-    if (sharpInstance) {
-      try {
-        const optimizedBuffer = await sharpInstance(buffer)
+    const { default: sharpInstance } = await import('sharp');
+    const metadata = await sharpInstance(buffer, { limitInputPixels: MAX_IMAGE_PIXELS }).metadata();
+    if (!RASTER_FORMATS.has(metadata.format)) return NextResponse.json({ error: 'Unsupported image type' }, { status: 415 });
+    const optimizedBuffer = await sharpInstance(buffer, { limitInputPixels: MAX_IMAGE_PIXELS })
           .rotate() // Auto-orient by EXIF
           .resize({ width, withoutEnlargement: true })
           .webp({ quality })
           .toBuffer();
 
-        return new Response(optimizedBuffer, {
+    return new Response(optimizedBuffer, {
           headers: {
             'Content-Type': 'image/webp',
+            'X-Content-Type-Options': 'nosniff',
             'Cache-Control': 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400',
             'Vary': 'Accept'
           }
-        });
-      } catch (sharpError) {
-        console.warn('[ImageProxy] Sharp processing error, falling back to original:', sharpError.message);
-      }
-    }
-
-    // Bulletproof Fallback: return source image directly with proper content-type & caching
-    return new Response(buffer, {
-      headers: {
-        'Content-Type': contentType || 'image/jpeg',
-        'Cache-Control': 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400'
-      }
     });
 
   } catch (err) {
-    console.error('[ImageProxy] Error handling image:', err.message);
-    return NextResponse.json({ error: 'Image proxy error', details: err.message }, { status: 502 });
+    console.error('[ImageProxy] Request failed:', err.name);
+    const status = err.name === 'ResponseTooLargeError' ? 413 : err.name === 'UnsafeUrlError' ? 403 : 502;
+    return NextResponse.json({ error: 'Image proxy error' }, { status });
   }
 }

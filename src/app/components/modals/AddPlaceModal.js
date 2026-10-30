@@ -53,6 +53,7 @@ export default function AddPlaceModal({
   handleAISuggest,
   aiSuggestLoading,
   aiSuggestResult,
+  aiSuggestMock,
   addAIPlace,
   gmapsUrl,
   setGmapsUrl,
@@ -424,6 +425,7 @@ export default function AddPlaceModal({
                 </button>
               </div>
               
+              {aiSuggestMock && <p role="status">{t('aiMock')}</p>}
               {aiSuggestResult && (
                 <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
                   {aiSuggestResult.length === 0 ? (
